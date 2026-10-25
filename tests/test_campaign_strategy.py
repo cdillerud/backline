@@ -84,8 +84,35 @@ def test_opt_in_ai_adapter_validates_drafts(monkeypatch):
         assert payload['response_format']['type']=='json_object'
         rows=[{'channel':c,'angle':'Campaign '+c,'body':'See you there.'}
               for c in ('Facebook','Instagram','Email')]
-        return json.dumps({'choices':[{'message':{'content':json.dumps({'drafts':rows})}}]}).encode()
+        return json.dumps({'choices':[{'message':{'content':json.dumps({'drafts':rows})}}], 'usage':{'total_tokens':400}}).encode()
     result=generate({'title':'Show','date':'2026-11-14','venue':'Club'},
                     {'name':'Test Band'},[],fetch=fake)
     assert result['generated_by']=='ai_assisted_review_required'
     assert result['published'] is False
+
+def test_ai_rejects_unapproved_model_without_network(monkeypatch):
+    from src.ai_copy import generate
+    from fastapi import HTTPException
+    import pytest
+    monkeypatch.setenv('BACKLINE_AI_COPY_ENABLED','1')
+    monkeypatch.setenv('OPENAI_API_KEY','test-only')
+    monkeypatch.setenv('BACKLINE_AI_MODEL','unapproved-model')
+    with pytest.raises(HTTPException) as error:
+        generate({'title':'Show','date':'2026-11-14','venue':'Club'},
+                 {'name':'Test Band'},[],fetch=lambda request:pytest.fail('Unexpected request'))
+    assert error.value.status_code==503
+
+def test_ai_rejects_missing_usage_metrics(monkeypatch):
+    from src.ai_copy import generate
+    from fastapi import HTTPException
+    import pytest
+    import json
+    monkeypatch.setenv('BACKLINE_AI_COPY_ENABLED','1')
+    monkeypatch.setenv('OPENAI_API_KEY','test-only')
+    monkeypatch.setenv('BACKLINE_AI_MODEL','gpt-4o-mini')
+    rows=[{'channel':c,'angle':'Gig '+c,'body':'Come see us.'} for c in ('Facebook','Instagram','Email')]
+    raw=json.dumps({'choices':[{'message':{'content':json.dumps({'drafts':rows})}}]}).encode()
+    with pytest.raises(HTTPException) as error:
+        generate({'title':'Show','date':'2026-11-14','venue':'Club'},
+                 {'name':'Test Band'},[],fetch=lambda request:raw)
+    assert error.value.status_code==502
