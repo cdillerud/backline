@@ -88,6 +88,95 @@ function stagePreview(stage){
  '<text x="230" y="18" text-anchor="middle" fill="#cbd5e1" font-size="10">UPSTAGE</text>'+shapes+
  '<text x="230" y="234" text-anchor="middle" fill="#cbd5e1" font-size="10">AUDIENCE / DOWNSTAGE</text></svg></div>'
 }
+function openStageDesigner(){
+ const original=state.data.showStage||{items:[],inputs:[],notes:''};
+ let working=JSON.parse(JSON.stringify(original));
+ const kinds=['vocal','guitar','bass','drums','keys','monitor','amp','other'];
+ const shade={vocal:'#818cf8',guitar:'#f59e0b',bass:'#34d399',drums:'#fb7185',keys:'#38bdf8',monitor:'#c084fc',amp:'#fbbf24',other:'#94a3b8'};
+ const dialog=document.createElement('div');dialog.className='stageDesignerBackdrop';dialog.id='stageDesigner';
+ dialog.innerHTML='<div class="stageDesigner"><header class="stageDesignerHeader"><div><h2>Stage Designer</h2><p class="sub">Drag equipment around the stage. Front of house is at the bottom.</p></div><button type="button" id="stageClose">✕ Close</button></header><div class="stageTools"><button id="stageAddItem" type="button">+ Equipment</button><button id="stageAddInput" type="button">+ Input channel</button><button id="stageDemo" type="button">Example four-piece band</button></div><div class="stageEditorGrid"><div><div id="stageCanvas" class="stageCanvas" aria-label="Drag stage equipment"><span class="stageBack">UPSTAGE</span><span class="stageFront">AUDIENCE / FRONT OF HOUSE</span></div><p class="footNote">Click a piece to change its name or type. Drag to reposition.</p></div><div class="stagePatchPanel"><h3>Input patch list</h3><div id="stageInputs"></div><label>Production notes<textarea id="stageNotes" rows="3"></textarea></label></div></div><footer class="stageDesignerFooter"><span id="stageDesignerStatus">Draft changes — not saved</span><button class="primary" type="button" id="stageSave">Save stage setup</button></footer></div>';
+ document.body.append(dialog);
+ const $d=sel=>dialog.querySelector(sel);
+ function draw(){
+  const canvas=$d('#stageCanvas');
+  canvas.querySelectorAll('.stageItem').forEach(n=>n.remove());
+  working.items.forEach((item,index)=>{
+   const node=document.createElement('button');node.type='button';node.className='stageItem';
+   node.style.left=item.x+'%';node.style.top=item.y+'%';
+   node.style.borderColor=shade[item.kind]||'#94a3b8';
+   node.textContent=item.label;
+   node.title=item.kind+' — drag to position, click to edit';
+   node.addEventListener('pointerdown',event=>{
+    if(event.button!==0)return;
+    node.setPointerCapture(event.pointerId);
+    const x=event.clientX,y=event.clientY;let moved=false;
+    const move=e=>{
+     if(Math.abs(e.clientX-x)+Math.abs(e.clientY-y)>5)moved=true;
+     const rect=canvas.getBoundingClientRect();
+     item.x=Math.max(0,Math.min(100,Math.round((e.clientX-rect.left)/rect.width*100)));
+     item.y=Math.max(0,Math.min(100,Math.round((e.clientY-rect.top)/rect.height*100)));
+     node.style.left=item.x+'%';node.style.top=item.y+'%';
+    };
+    const up=()=>{
+     node.removeEventListener('pointermove',move);
+     node.removeEventListener('pointerup',up);
+     if(!moved){
+      const label=prompt('Instrument or position',item.label);if(label?.trim())item.label=label.trim().slice(0,100);
+      const kind=prompt('Type: '+kinds.join(', '),item.kind);if(kinds.includes(kind))item.kind=kind;
+      draw();
+     }
+    };
+    node.addEventListener('pointermove',move);node.addEventListener('pointerup',up);
+   });
+   canvas.append(node);
+  });
+  const inputs=$d('#stageInputs');inputs.replaceChildren();
+  working.inputs.sort((a,b)=>a.channel-b.channel).forEach((item,index)=>{
+   const row=document.createElement('div');row.className='stageInputRow';
+   row.innerHTML='<span class="stageChannel"></span><input class="stageInputSource" aria-label="Audio source"><input class="stageInputMic" aria-label="Microphone or DI"><button type="button" aria-label="Remove channel">✕</button>';
+   row.querySelector('.stageChannel').textContent='CH '+item.channel;
+   const source=row.querySelector('.stageInputSource');source.value=item.source;source.placeholder='Source';source.oninput=()=>item.source=source.value;
+   const mic=row.querySelector('.stageInputMic');mic.value=item.microphone||'';mic.placeholder='Mic / DI';mic.oninput=()=>item.microphone=mic.value;
+   row.querySelector('button').onclick=()=>{working.inputs.splice(index,1);draw()};
+   inputs.append(row);
+  });
+ }
+ $d('#stageNotes').value=working.notes||'';
+ $d('#stageClose').onclick=()=>dialog.remove();
+ $d('#stageAddItem').onclick=()=>{
+  const label=prompt('Equipment label (example: Lead vocal)');if(!label?.trim())return;
+  const kind=prompt('Type: '+kinds.join(', '),'vocal');
+  if(!kinds.includes(kind)){toast('Choose a valid equipment type',true);return}
+  working.items.push({label:label.trim().slice(0,100),kind,x:50,y:50});draw()
+ };
+ $d('#stageAddInput').onclick=()=>{
+  const used=new Set(working.inputs.map(x=>x.channel));let channel=1;
+  while(used.has(channel)&&channel<=128)channel++;
+  if(channel>128){toast('Maximum input count reached',true);return}
+  working.inputs.push({channel,source:'New input',microphone:'',stand:'',notes:''});draw()
+ };
+ $d('#stageDemo').onclick=()=>{
+  if(working.items.length&&!confirm('Replace your unsaved stage setup with the example?'))return;
+  working.items=[{label:'Drums',kind:'drums',x:50,y:18},{label:'Bass',kind:'bass',x:25,y:49},
+   {label:'Guitar',kind:'guitar',x:77,y:49},{label:'Lead vocal',kind:'vocal',x:50,y:80},
+   {label:'Monitor L',kind:'monitor',x:28,y:88},{label:'Monitor R',kind:'monitor',x:73,y:88}];
+  working.inputs=[{channel:1,source:'Kick',microphone:'D112',stand:'',notes:''},
+   {channel:2,source:'Snare',microphone:'SM57',stand:'',notes:''},
+   {channel:3,source:'Bass DI',microphone:'DI',stand:'',notes:''},
+   {channel:4,source:'Guitar',microphone:'SM57',stand:'',notes:''},
+   {channel:5,source:'Lead vocal',microphone:'SM58',stand:'',notes:''}];
+  draw()
+ };
+ $d('#stageSave').onclick=async()=>{
+  working.notes=$d('#stageNotes').value;
+  try{
+   await api('/bands/'+state.band+'/gigs/'+state.showGig+'/stage',
+    {method:'PUT',body:JSON.stringify(working)});
+   dialog.remove();await openShowPacketGig(state.showGig);toast('Stage setup saved')
+  }catch(error){$d('#stageDesignerStatus').textContent=error.message;toast(error.message,true)}
+ };
+ draw()
+}
 function showops(){
  const gigs=get('events').filter(g=>g.kind==='Gig');
  const chosen=gigs.find(g=>g.id===state.showGig);
@@ -190,14 +279,7 @@ if(btn.dataset.stageExport){
  }catch(error){toast(error.message,true)}return
 }
 if(btn.dataset.editStage){
- const current=state.data.showStage||{notes:'',items:[],inputs:[]};
- const raw=prompt('Edit stage setup as JSON. items: label, kind, x, y. inputs: channel, source, microphone, stand, notes.',JSON.stringify(current,null,2));
- if(raw===null)return;
- try{
-  const parsed=JSON.parse(raw);
-  await api('/bands/'+state.band+'/gigs/'+state.showGig+'/stage',{method:'PUT',body:JSON.stringify(parsed)});
-  await openShowPacketGig(state.showGig);toast('Stage plot and input list saved')
- }catch(error){toast(error.message,true)}return
+ openStageDesigner();return
 }
 if(btn.dataset.showGig){await openShowPacketGig(btn.dataset.showGig);return}
 if(btn.dataset.createPacket){
