@@ -37,6 +37,25 @@ def test_scoped_accounts_and_no_cross_band_access(monkeypatch):
             assert client.post(f"/api/bands/{b2}/members",headers=h,
                 json={"name":"Infiltrator"}).status_code == 403
             assert client.get(f"/api/bands/{b2}/finance",headers=h).status_code == 403
+            assert client.get(f"/api/bands/{b2}/bookings",headers=h).status_code == 403
+            assert client.get(f"/api/bands/{b2}/booking-followups",headers=h).status_code == 403
+            assert client.get(f"/api/bands/{b2}/gigs/123/market",headers=h).status_code == 403
+            assert client.post(f"/api/bands/{b2}/bookings",headers=h,
+                json={"venue":"Denied venue"}).status_code == 403
+            assert client.post(f"/api/bands/{b2}/gigs/123/campaign",headers=h,
+                json={"channel":"Email","angle":"No","body":"Denied"}).status_code == 403
+            with application.db() as db:
+                db.execute("INSERT INTO band_users VALUES(?,?,?)",(b1,second,"member"))
+            second_login=client.post("/api/auth/login",json={
+                "email":"two@example.test","password":"long-secret-two-123"}).json()
+            h2={"Authorization":"Bearer "+second_login["access_token"]}
+            assert client.get(f"/api/bands/{b1}/members",headers=h2).status_code == 200
+            assert client.get(f"/api/bands/{b1}/finance",headers=h2).status_code == 403
+            assert client.post(f"/api/bands/{b1}/bookings",headers=h2,
+                json={"venue":"No member writes"}).status_code == 403
+            assert client.post(f"/api/bands/{b1}/gigs/123/market",headers=h2,
+                json={"title":"No","source_url":"https://example.com",
+                "event_date":"2026-11-14"}).status_code == 403
             assert client.post(f"/api/bands/{b1}/members",headers=h,
                 json={"name":"Allowed"}).status_code == 201
             created=client.post("/api/bands",headers=h,json={"name":"New act"})
