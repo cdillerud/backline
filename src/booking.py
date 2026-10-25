@@ -72,6 +72,18 @@ def attach(db):
                 FROM booking_leads b WHERE band_id=?
                 ORDER BY CASE WHEN stage IN ('Closed','Declined','Confirmed') THEN 1 ELSE 0 END,
                 COALESCE(next_followup,'9999-12-31'),id DESC''',(band_id,))]
+    @router.get('/api/bands/{band_id}/booking-followups')
+    def booking_followups(band_id:int,through:datetime.date|None=None):
+        """Actionable, overdue-first work queue; closed and confirmed deals excluded."""
+        cutoff=str(through or datetime.date.today())
+        with db() as con:
+            valid_band(con,band_id)
+            records=con.execute("""SELECT id,venue,contact_name,contact_email,stage,
+              next_followup,target_date,updated_at FROM booking_leads
+              WHERE band_id=? AND next_followup IS NOT NULL AND next_followup<=?
+                AND stage NOT IN ('Confirmed','Declined','Closed')
+              ORDER BY next_followup ASC,id ASC""",(band_id,cutoff)).fetchall()
+            return {'through':cutoff,'count':len(records),'items':[dict(r) for r in records]}
     @router.post('/api/bands/{band_id}/bookings',status_code=201)
     def create_booking(band_id:int,data:LeadInput):
         with db() as con:
