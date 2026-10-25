@@ -72,3 +72,20 @@ def test_optional_ai_disabled_falls_back(monkeypatch):
     result=generate({'title':'Gig','date':'2026-11-14','venue':'Club'}, {'name':'Band'}, [])
     assert result['generated_by']=='deterministic_template'
     assert result['published'] is False
+
+
+def test_opt_in_ai_adapter_validates_drafts(monkeypatch):
+    import json
+    from src.ai_copy import generate
+    monkeypatch.setenv('BACKLINE_AI_COPY_ENABLED','1')
+    monkeypatch.setenv('OPENAI_API_KEY','test-only')
+    def fake(request):
+        payload=json.loads(request.data)
+        assert payload['response_format']['type']=='json_object'
+        rows=[{'channel':c,'angle':'Campaign '+c,'body':'See you there.'}
+              for c in ('Facebook','Instagram','Email')]
+        return json.dumps({'choices':[{'message':{'content':json.dumps({'drafts':rows})}}]}).encode()
+    result=generate({'title':'Show','date':'2026-11-14','venue':'Club'},
+                    {'name':'Test Band'},[],fetch=fake)
+    assert result['generated_by']=='ai_assisted_review_required'
+    assert result['published'] is False
