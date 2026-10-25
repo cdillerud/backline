@@ -4,6 +4,8 @@ No autonomous external publishing. No arbitrary URL fetching (SSRF risk).
 Market findings must have explicit source URLs supplied from a trusted event-data adapter.
 """
 import datetime
+import time
+from .market_provider import discover
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -49,6 +51,38 @@ def attach(db):
     def gig(con,band,event):
         if not con.execute("SELECT id FROM events WHERE band_id=? AND id=? AND kind='Gig'",(band,event)).fetchone():
             raise HTTPException(404,'Gig not found in band')
+    @router.post('/api/bands/{band_id}/gigs/{event_id}/market/discover')
+    def discover_market(band_id:int,event_id:int,city:str):
+        with db() as c:
+            gig(c,band_id,event_id)
+            target=c.execute('SELECT date FROM events WHERE id=?',(event_id,)).fetchone()['date']
+            recent=c.execute("""SELECT captured_at FROM gig_market_findings
+                WHERE band_id=? AND event_id=? AND relevance='Ticketmaster Discovery'
+                ORDER BY id DESC LIMIT 1""",(band_id,event_id)).fetchone()
+            if recent:
+                import calendar
+                try:
+                    stamp=calendar.timegm(time.strptime(recent['captured_at'],'%Y-%m-%d %H:%M:%S'))
+                    if time.time()-stamp<21600:
+                        return {'status':'cached','added':0}
+                except ValueError:
+                    pass
+        found=discover(city,target)
+        added=0
+        with db() as c:
+            gig(c,band_id,event_id)
+            for item in found:
+                exists=c.execute("""SELECT 1 FROM gig_market_findings
+                    WHERE band_id=? AND event_id=? AND source_url=?""",
+                    (band_id,event_id,item['source_url'])).fetchone()
+                if exists:continue
+                c.execute("""INSERT INTO gig_market_findings
+                  (band_id,event_id,title,source_url,event_date,venue,category,relevance)
+                  VALUES(?,?,?,?,?,?,?,?)""",(band_id,event_id,item['title'],
+                    item['source_url'],item['event_date'],item['venue'],
+                    item['category'],'Ticketmaster Discovery'))
+                added+=1
+        return {'status':'complete','found':len(found),'added':added}
     @router.get('/api/bands/{band_id}/gigs/{event_id}/market')
     def market(band_id:int,event_id:int):
         with db() as c:
