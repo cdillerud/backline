@@ -130,7 +130,7 @@ def install_accounts(app, db):
         if os.getenv("BACKLINE_ACCOUNTS_ENABLED") != "1":
             return await call_next(request)
         path=request.url.path
-        if path in ("/","/api/health","/api/auth/login") or path.startswith("/static/"):
+        if path in ("/","/api/health","/api/auth/login","/api/auth/accept-invite") or path.startswith("/static/"):
             return await call_next(request)
         # When accounts are enabled, no anonymous access to static assets or API.
         auth=request.headers.get("authorization","")
