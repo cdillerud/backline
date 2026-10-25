@@ -154,6 +154,15 @@ def logout(request: Request):
                   (hashlib.sha256(token.encode()).hexdigest(),))
     return {'ok':True}
 
+@app.post('/api/auth/logout-all')
+def logout_everywhere(request: Request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED') != '1':
+        raise HTTPException(404,'Not enabled')
+    with db() as c:
+        c.execute('DELETE FROM sessions WHERE user_id=?',
+                  (request.state.user['id'],))
+    return {'ok':True}
+
 @app.get('/api/auth/me')
 def current_user(request: Request):
     if os.getenv('BACKLINE_ACCOUNTS_ENABLED') != '1':
