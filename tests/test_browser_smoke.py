@@ -48,6 +48,12 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             page.get_by_role('tab',name='Stage & inputs').wait_for(state='visible',timeout=10000)
             page.get_by_role('tab',name='Advances & riders').click()
             assert page.get_by_text('Show documents').count()>0
+            page.locator('[data-edit-packet]').first.click()
+            page.locator('#packetTitle').wait_for(state='visible')
+            page.locator('#packetTitle').fill('Revised production rider')
+            page.locator('#packetSave').click()
+            page.locator('#packetEditor').wait_for(state='detached')
+            assert page.get_by_text('Revised production rider').count()>0
             page.get_by_role('tab',name='Contracts & files').click()
             assert page.get_by_text('Contracts and show files').count()>0
             page.locator("[data-go='touring']").first.click()
