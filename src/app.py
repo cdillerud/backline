@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get('BACKLINE_DB', ROOT.parent / 'backline.db'))
 app = FastAPI(title='Backline API', version='0.1.0')
 app.mount('/static', StaticFiles(directory=str(ROOT/'static')), name='static')
+from .recovery import setup as setup_recovery, issue as issue_recovery, redeem as redeem_recovery
 from .invitations import setup as setup_invites, create as create_invite, accept as accept_invite, accept_existing, revoke as revoke_invite
 from .booking import setup as setup_booking, attach as attach_booking
 from .ai_studio import setup as setup_studio, attach as attach_studio
@@ -51,6 +52,7 @@ def init_db():
         ''')
         account_tables(c)
         setup_invites(c)
+        setup_recovery(c)
         setup_booking(c)
         setup_studio(c)
         if not c.execute('SELECT 1 FROM bands LIMIT 1').fetchone():
@@ -210,6 +212,28 @@ def revoke_invitation(band_id:int, payload:RevokeInviteInput, request:Request):
         raise HTTPException(404,'Not enabled')
     with db() as c:
         return revoke_invite(c,band_id,request.state.user['id'],payload.token)
+
+class RecoveryRequest(BaseModel):
+    email: str
+
+class RecoveryRedeem(BaseModel):
+    token: str = Field(min_length=20,max_length=200)
+    password: str
+
+@app.post('/api/bands/{band_id}/account-recovery')
+def recovery_issue(band_id:int,payload:RecoveryRequest,request:Request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
+        raise HTTPException(404,'Not enabled')
+    with db() as c:
+        token=issue_recovery(c,request.state.user['id'],band_id,payload.email)
+    return {'recovery_token':token,'expires_in_minutes':30,'delivery':'manual'}
+
+@app.post('/api/auth/recover')
+def recovery_redeem(payload:RecoveryRedeem):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
+        raise HTTPException(404,'Not enabled')
+    with db() as c:
+        return redeem_recovery(c,payload.token,payload.password)
 
 @app.get('/api/auth/me')
 def current_user(request: Request):
