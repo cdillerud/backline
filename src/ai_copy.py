@@ -26,7 +26,11 @@ def generate(gig,band,findings,voice=None,fetch=None):
                       "tagline":(voice or {}).get("tagline","")[:160]},
              "nearby_events":[{"title":f["title"][:200],"date":f["event_date"],
                         "source_url":f["source_url"][:500]} for f in findings[:5]]}
-    payload={"model":os.getenv("BACKLINE_AI_MODEL","gpt-4o-mini"),
+    model=os.getenv("BACKLINE_AI_MODEL","gpt-4o-mini")
+    if model not in {"gpt-4o-mini","gpt-4.1-mini"}:
+        raise HTTPException(503,"AI copy model is not approved for Backline")
+    payload={"model":model,
+             "max_tokens":650,
              "temperature":0.6,
              "response_format":{"type":"json_object"},
              "messages":[
@@ -43,6 +47,11 @@ def generate(gig,band,findings,voice=None,fetch=None):
         raw=fetch(req)
         if len(raw)>500000:raise ValueError("Response size exceeded")
         response=json.loads(raw)
+        usage=response.get("usage",{})
+        if not isinstance(usage,dict) or not isinstance(usage.get("total_tokens"),int):
+            raise ValueError("Token usage metadata missing")
+        if usage["total_tokens"]>2000:
+            raise ValueError("Token usage over policy limit")
         data=json.loads(response["choices"][0]["message"]["content"])
         rows=data["drafts"]
         if not isinstance(rows,list) or len(rows)!=3:
