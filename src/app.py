@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get('BACKLINE_DB', ROOT.parent / 'backline.db'))
 app = FastAPI(title='Backline API', version='0.1.0')
 app.mount('/static', StaticFiles(directory=str(ROOT/'static')), name='static')
+from .invitations import setup as setup_invites, create as create_invite, accept as accept_invite
 from .booking import setup as setup_booking, attach as attach_booking
 from .ai_studio import setup as setup_studio, attach as attach_studio
 from .security import install_preview_auth
@@ -49,6 +50,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS settlement_shares (id INTEGER PRIMARY KEY, settlement_id INTEGER NOT NULL REFERENCES settlements(id), member_id INTEGER NOT NULL REFERENCES members(id), amount_cents INTEGER NOT NULL CHECK(amount_cents>=0), UNIQUE(settlement_id,member_id));
         ''')
         account_tables(c)
+        setup_invites(c)
         setup_booking(c)
         setup_studio(c)
         if not c.execute('SELECT 1 FROM bands LIMIT 1').fetchone():
@@ -162,6 +164,32 @@ def logout_everywhere(request: Request):
         c.execute('DELETE FROM sessions WHERE user_id=?',
                   (request.state.user['id'],))
     return {'ok':True}
+
+class InviteInput(BaseModel):
+    email: str
+    role: str = 'member'
+
+class AcceptInviteInput(BaseModel):
+    token: str
+    email: str
+    display_name: str = Field(min_length=1,max_length=120)
+    password: str
+
+@app.post('/api/bands/{band_id}/invitations',status_code=201)
+def invite_member(band_id:int, payload:InviteInput, request:Request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
+        raise HTTPException(404,'Not enabled')
+    with db() as c:
+        token=create_invite(c,band_id,request.state.user['id'],payload.email,payload.role)
+    # Staging only; never log or expose invitation tokens to non-inviting members.
+    return {'invite_token':token,'expires_in_days':7,'delivery':'manual'}
+
+@app.post('/api/auth/accept-invite',status_code=201)
+def accept_invitation(payload:AcceptInviteInput):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
+        raise HTTPException(404,'Not enabled')
+    with db() as c:
+        return accept_invite(c,payload.token,payload.email,payload.display_name,payload.password)
 
 @app.get('/api/auth/me')
 def current_user(request: Request):
