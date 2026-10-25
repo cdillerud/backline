@@ -22,6 +22,10 @@ class Draft(BaseModel):
     channel:str=Field(pattern='^(Facebook|Instagram|Email|Press|Other)$')
     angle:str=Field(min_length=1,max_length=120)
     body:str=Field(min_length=1,max_length=4000)
+class Revision(BaseModel):
+    body: str = Field(min_length=1,max_length=4000)
+    angle: str = Field(min_length=1,max_length=120)
+
 class Approval(BaseModel):
     note:str=Field(default='',max_length=500)
 
@@ -50,6 +54,7 @@ def setup(con):
       status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','approved')),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS gig_campaign_revisions (id INTEGER PRIMARY KEY, draft_id INTEGER NOT NULL REFERENCES gig_campaign_drafts(id), previous_body TEXT NOT NULL, previous_angle TEXT NOT NULL, revised_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS gig_campaign_reviews (
       id INTEGER PRIMARY KEY, draft_id INTEGER NOT NULL REFERENCES gig_campaign_drafts(id),
       action TEXT NOT NULL, note TEXT NOT NULL DEFAULT '',
@@ -139,6 +144,19 @@ def attach(db):
             q=c.execute("""INSERT INTO gig_campaign_drafts(band_id,event_id,channel,angle,body)
                 VALUES(?,?,?,?,?)""",(band_id,event_id,data.channel,data.angle,data.body))
             return {'id':q.lastrowid,'status':'draft'}
+    @router.patch('/api/bands/{band_id}/gigs/{event_id}/campaign/{draft_id}')
+    def revise_draft(band_id:int,event_id:int,draft_id:int,data:Revision):
+        with db() as c:
+            gig(c,band_id,event_id)
+            row=c.execute("""SELECT status,body,angle FROM gig_campaign_drafts
+                WHERE band_id=? AND event_id=? AND id=?""",(band_id,event_id,draft_id)).fetchone()
+            if not row:raise HTTPException(404,'Draft not found')
+            if row['status']!='draft':raise HTTPException(409,'Approved drafts cannot be modified')
+            c.execute("""INSERT INTO gig_campaign_revisions(draft_id,previous_body,previous_angle)
+                VALUES(?,?,?)""",(draft_id,row['body'],row['angle']))
+            c.execute("""UPDATE gig_campaign_drafts SET body=?,angle=? WHERE id=?""",
+                (data.body.strip(),data.angle.strip(),draft_id))
+            return {'id':draft_id,'status':'draft','updated':True}
     @router.post('/api/bands/{band_id}/gigs/{event_id}/campaign/{draft_id}/approve')
     def approve(band_id:int,event_id:int,draft_id:int,data:Approval):
         with db() as c:
