@@ -116,3 +116,30 @@ def test_ai_rejects_missing_usage_metrics(monkeypatch):
         generate({'title':'Show','date':'2026-11-14','venue':'Club'},
                  {'name':'Test Band'},[],fetch=lambda request:raw)
     assert error.value.status_code==502
+
+
+def test_ai_daily_quotas_are_persistent_and_atomic(tmp_path,monkeypatch):
+    import sqlite3
+    from src.ai_quota import setup,reserve
+    from fastapi import HTTPException
+    import pytest
+    monkeypatch.setenv('BACKLINE_AI_COPY_ENABLED','1')
+    monkeypatch.setenv('BACKLINE_AI_DAILY_GLOBAL_LIMIT','2')
+    monkeypatch.setenv('BACKLINE_AI_DAILY_BAND_LIMIT','1')
+    path=tmp_path/'quota.sqlite'
+    with sqlite3.connect(path) as c:
+        setup(c)
+        assert reserve(c,1,day='2026-10-25')['reserved']
+    with sqlite3.connect(path) as c:
+        with pytest.raises(HTTPException) as blocked:
+            reserve(c,1,day='2026-10-25')
+        assert blocked.value.status_code==429
+    with sqlite3.connect(path) as c:
+        assert reserve(c,2,day='2026-10-25')['reserved']
+    with sqlite3.connect(path) as c:
+        with pytest.raises(HTTPException) as blocked:
+            reserve(c,3,day='2026-10-25')
+        assert blocked.value.status_code==429
+        assert c.execute("SELECT used FROM ai_daily_requests WHERE scope='all'").fetchone()[0]==2
+    with sqlite3.connect(path) as c:
+        assert reserve(c,1,day='2026-10-26')['reserved']
