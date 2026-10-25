@@ -18,6 +18,11 @@ def setup(con):
        redeemed_at INTEGER,
        created_at INTEGER NOT NULL
     )""")
+    con.execute("""CREATE TABLE IF NOT EXISTS recovery_audit (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), actor_id INTEGER REFERENCES users(id), action TEXT NOT NULL, created_at INTEGER NOT NULL)""")
+
+def record(con, user_id, actor_id, action, at):
+    con.execute("""INSERT INTO recovery_audit(user_id,actor_id,action,created_at)
+                   VALUES(?,?,?,?)""",(user_id,actor_id,action,at))
 
 def issue(con, issuer_id, band_id, target_email, now=None):
     now=int(time.time()) if now is None else now
@@ -40,6 +45,7 @@ def issue(con, issuer_id, band_id, target_email, now=None):
     con.execute("""INSERT INTO account_recovery(token_hash,user_id,issuer_id,expires_at,created_at)
                    VALUES(?,?,?,?,?)""",
                 (hashlib.sha256(token.encode()).hexdigest(),target["id"],issuer_id,now+1800,now))
+    record(con,target["id"],issuer_id,"issued",now)
     return token
 
 def redeem(con, token, new_password, now=None):
@@ -54,4 +60,5 @@ def redeem(con, token, new_password, now=None):
     con.execute("UPDATE users SET password_hash=? WHERE id=?",(new_hash,row["user_id"]))
     con.execute("DELETE FROM sessions WHERE user_id=?",(row["user_id"],))
     con.execute("DELETE FROM account_recovery WHERE user_id=?",(row["user_id"],))
+    record(con,row["user_id"],None,"redeemed",now)
     return {"recovered":True,"sessions_revoked":True}
