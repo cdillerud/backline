@@ -17,7 +17,8 @@ def test_browser_navigation_and_gig_studio(tmp_path):
         port=sock.getsockname()[1]
     env={**os.environ,"BACKLINE_DB":str(tmp_path/"browser.sqlite"),
          "BACKLINE_LOCAL_DEV":"1","BACKLINE_ACCOUNTS_ENABLED":"0",
-         "BACKLINE_AI_COPY_ENABLED":"0","BACKLINE_MARKET_DISCOVERY_ENABLED":"0"}
+         "BACKLINE_AI_COPY_ENABLED":"0","BACKLINE_MARKET_DISCOVERY_ENABLED":"0",
+         "BACKLINE_DEMO_SEED":"1"}
     server=subprocess.Popen([sys.executable,"-m","uvicorn","src.app:app",
         "--host","127.0.0.1","--port",str(port)],env=env,
         stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
