@@ -24,7 +24,7 @@ class Draft(BaseModel):
     body:str=Field(min_length=1,max_length=4000)
 class BandVoice(BaseModel):
     tagline: str = Field(default='',max_length=160)
-    tone: str = Field(default='straightforward',pattern='^(straightforward|playful|gritty|warm))
+    tone: str = Field(default='straightforward', min_length=4, max_length=20)
 
 class Revision(BaseModel):
     body: str = Field(min_length=1,max_length=4000)
@@ -80,6 +80,8 @@ def attach(db):
 
     @router.put('/api/bands/{band_id}/marketing-voice')
     def set_marketing_voice(band_id:int,data:BandVoice):
+        if data.tone not in {'straightforward','playful','gritty','warm'}:
+            raise HTTPException(422,'Unsupported tone')
         with db() as c:
             if not c.execute('SELECT 1 FROM bands WHERE id=?',(band_id,)).fetchone():
                 raise HTTPException(404,'Band not found')
