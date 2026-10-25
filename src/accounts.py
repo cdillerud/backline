@@ -73,12 +73,25 @@ def authenticate(con, bearer):
 def authorized(con, user_id, band_id, method, path):
     row=con.execute("SELECT role FROM band_users WHERE user_id=? AND band_id=?",
                     (user_id,band_id)).fetchone()
-    if not row: return False
+    if not row:
+        return False
     role=row["role"]
-    if method not in WRITE: return True if (not any("/"+x in path for x in FINANCE)) else role in {"owner","manager","treasurer"}
-    if role in {"owner","manager"}: return True
-    if role == "treasurer":
-        return any("/"+x in path for x in FINANCE)
+    # Explicit route segments, not substring checks: no bypass through nested paths.
+    parts=path.strip("/").split("/")
+    resource=parts[3] if len(parts)>3 else ""
+    financial=resource in {"finance","transactions","settlements"} or (
+        resource=="events" and "settle" in parts)
+    marketing=resource=="gigs"
+    booking=resource in {"bookings","booking-followups"}
+    if method not in WRITE:
+        if financial:
+            return role in {"owner","manager","treasurer"}
+        return role in ROLES
+    if role in {"owner","manager"}:
+        return True
+    if role=="treasurer":
+        return financial
+    # Member and viewer can read their workspace, not mutate any data.
     return False
 
 def install_accounts(app, db):
