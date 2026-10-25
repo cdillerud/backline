@@ -177,6 +177,32 @@ function openStageDesigner(){
  };
  draw()
 }
+function openPacketEditor(packet){
+ const modal=document.createElement('div');modal.className='stageDesignerBackdrop';modal.id='packetEditor';
+ const safe=esc;
+ modal.innerHTML='<div class="stageDesigner packetEditor"><div class="stageDesignerHeader"><div><span class="eyebrow">SHOW DOCUMENT EDITOR</span><h2>Edit '+safe(packet.title)+'</h2><p class="sub">Edit each section, then save the entire document as a draft.</p></div><button type="button" id="packetCancel">Close</button></div>'+
+ '<label class="packetTitle">Document title<input id="packetTitle" maxlength="140" required value="'+safe(packet.title)+'"></label>'+
+ '<div id="packetSections">'+packet.sections.map((section,i)=>'<div class="packetSection"><label>Section heading<input class="packetHeading" maxlength="100" value="'+safe(section.heading)+'" required></label><label>Content<textarea class="packetBody" maxlength="6000" rows="6">'+safe(section.body)+'</textarea></label></div>').join('')+'</div>'+
+ '<div class="stageDesignerFooter"><span id="packetStatus">Changes have not been saved</span><div class="actions"><button type="button" id="packetDiscard">Discard</button><button type="button" class="primary" id="packetSave">Save draft</button></div></div></div>';
+ document.body.append(modal);
+ const close=()=>modal.remove();
+ modal.querySelector('#packetCancel').onclick=close;
+ modal.querySelector('#packetDiscard').onclick=close;
+ modal.querySelector('#packetSave').onclick=async()=>{
+  const title=modal.querySelector('#packetTitle').value.trim();
+  const sections=[...modal.querySelectorAll('.packetSection')].map(el=>({
+   heading:el.querySelector('.packetHeading').value.trim(),
+   body:el.querySelector('.packetBody').value
+  }));
+  if(!title||sections.some(x=>!x.heading)){modal.querySelector('#packetStatus').textContent='Title and all section headings are required';return}
+  const save=modal.querySelector('#packetSave');save.disabled=true;
+  try{
+   await api('/bands/'+state.band+'/gigs/'+state.showGig+'/packet/'+packet.id,
+    {method:'PUT',body:JSON.stringify({title,sections})});
+   close();await openShowPacketGig(state.showGig);toast('Show document saved as draft')
+  }catch(error){modal.querySelector('#packetStatus').textContent=error.message;save.disabled=false}
+ };
+}
 function showops(){
  const gigs=get('events').filter(g=>g.kind==='Gig');
  const chosen=gigs.find(g=>g.id===state.showGig);
@@ -296,18 +322,9 @@ if(btn.dataset.createPacket){
  }catch(error){toast(error.message,true)}return
 }
 if(btn.dataset.editPacket){
- const p=get('showPackets').find(x=>String(x.id)===btn.dataset.editPacket);
- if(!p)return;
- const title=prompt('Document title',p.title);if(!title?.trim())return;
- const sections=[];
- for(const part of p.sections){
-  const body=prompt(part.heading,part.body);if(body===null)return;
-  sections.push({heading:part.heading,body});
- }
- try{await api('/bands/'+state.band+'/gigs/'+state.showGig+'/packet/'+p.id,
-  {method:'PUT',body:JSON.stringify({title:title.trim(),sections})});
-  await openShowPacketGig(state.showGig);toast('Document saved as draft')
- }catch(error){toast(error.message,true)}return
+ const packet=get('showPackets').find(x=>String(x.id)===btn.dataset.editPacket);
+ if(packet)openPacketEditor(packet);
+ return
 }
 if(btn.dataset.readyPacket){
  try{await api('/bands/'+state.band+'/gigs/'+state.showGig+'/packet/'+btn.dataset.readyPacket+'/ready',
