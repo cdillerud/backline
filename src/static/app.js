@@ -143,15 +143,20 @@ if(btn.dataset.openTour){
  state.selectedTour=Number(btn.dataset.openTour);await refreshTours();return
 }
 if(btn.dataset.addStop){
- const date=prompt('Stop date (YYYY-MM-DD)');if(!date)return;
+ const gigs=get('events').filter(x=>x.kind==='Gig');
+ const choice=prompt('Optional existing gig ID to link (leave blank for travel or held dates).\\n'+gigs.map(x=>x.id+': '+x.title+' · '+x.date).join('\\n'),'');
+ if(choice===null)return;
+ const linked=choice.trim()?gigs.find(x=>String(x.id)===choice.trim()):null;
+ if(choice.trim()&&!linked){toast('Choose a gig from this band',true);return}
+ const date=linked?.date||prompt('Stop date (YYYY-MM-DD)');if(!date)return;
  const city=prompt('City');if(!city?.trim())return;
  const region=prompt('State or region (e.g., MN)')||'';
- const venue=prompt('Venue (optional)')||'';
- const status=prompt('Status: planned, hold, confirmed, cancelled, travel','planned')||'planned';
+ const venue=linked?.venue||prompt('Venue (optional)')||'';
+ const status=prompt('Status: planned, hold, confirmed, cancelled, travel',linked?'confirmed':'planned')||'planned';
  const lodging=prompt('Hotel or lodging notes (optional)')||'';
  const travel_notes=prompt('Travel / advance notes (optional)')||'';
  try{await api('/bands/'+state.band+'/tours/'+state.selectedTour+'/stops',
-  {method:'POST',body:JSON.stringify({date,city,region,venue,status,lodging,travel_notes})});
+  {method:'POST',body:JSON.stringify({date,city,region,venue,status,lodging,travel_notes,event_id:linked?.id||null})});
   await refreshTours();toast('Tour stop added')
  }catch(err){toast(err.message,true)}return
 }
