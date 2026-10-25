@@ -64,3 +64,11 @@ def test_band_voice_changes_generated_copy(tmp_path,monkeypatch):
     assert client.post(f"/api/bands/{band}/gigs/{gig}/campaign/generate").status_code==200
     rows=client.get(f"/api/bands/{band}/gigs/{gig}/campaign").json()
     assert any("Loud and local." in r["body"] for r in rows)
+
+
+def test_optional_ai_disabled_falls_back(monkeypatch):
+    from src.ai_copy import generate
+    monkeypatch.delenv('BACKLINE_AI_COPY_ENABLED',raising=False)
+    result=generate({'title':'Gig','date':'2026-11-14','venue':'Club'}, {'name':'Band'}, [])
+    assert result['generated_by']=='deterministic_template'
+    assert result['published'] is False
