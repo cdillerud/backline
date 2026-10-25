@@ -20,6 +20,7 @@ from .invitations import setup as setup_invites, create as create_invite, accept
 from .booking import setup as setup_booking, attach as attach_booking
 from .ai_studio import setup as setup_studio, attach as attach_studio
 from .show_ops import setup as setup_show_ops, attach as attach_show_ops
+from .show_files import setup as setup_show_files, attach as attach_show_files
 from .security import install_preview_auth
 install_preview_auth(app)
 from .accounts import account_tables, install_accounts, hash_password, verify_password, make_session, login_locked, login_failure, login_success
@@ -57,6 +58,7 @@ def init_db():
         setup_booking(c)
         setup_studio(c)
         setup_show_ops(c)
+        setup_show_files(c)
         if not c.execute('SELECT 1 FROM bands LIMIT 1').fetchone():
             c.execute('INSERT INTO bands(name,genre,description) VALUES(?,?,?)',('My Band','Rock / Americana','Your band workspace'))
 
@@ -391,4 +393,5 @@ def dashboard(band_id:int):
 app.include_router(attach_booking(db))
 app.include_router(attach_studio(db))
 app.include_router(attach_show_ops(db))
+app.include_router(attach_show_files(db))
 init_db()
