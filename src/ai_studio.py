@@ -6,6 +6,7 @@ Market findings must have explicit source URLs supplied from a trusted event-dat
 import datetime
 import time
 from .market_provider import discover
+from .campaign_strategy import drafts as build_drafts
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -107,6 +108,24 @@ def attach(db):
               VALUES(?,?,?,?,?,?,?,?)""",(band_id,event_id,data.title,str(data.source_url),
               str(data.event_date),data.venue,data.category,data.relevance))
             return {'id':q.lastrowid}
+    @router.post('/api/bands/{band_id}/gigs/{event_id}/campaign/generate')
+    def generate_campaign(band_id:int,event_id:int):
+        with db() as c:
+            gig(c,band_id,event_id)
+            event=dict(c.execute('SELECT * FROM events WHERE id=?',(event_id,)).fetchone())
+            band=dict(c.execute('SELECT * FROM bands WHERE id=?',(band_id,)).fetchone())
+            findings=[dict(row) for row in c.execute("""SELECT * FROM gig_market_findings
+                WHERE band_id=? AND event_id=?""",(band_id,event_id))]
+            campaign=build_drafts(event,band,findings)
+            created=[]
+            for item in campaign['drafts']:
+                row=c.execute("""INSERT INTO gig_campaign_drafts
+                    (band_id,event_id,channel,angle,body) VALUES(?,?,?,?,?)""",
+                    (band_id,event_id,item['channel'],item['angle'],item['body']))
+                created.append(row.lastrowid)
+            return {'draft_ids':created,'strategy':campaign['strategy'],
+                    'verification_required':campaign['verification_required'],
+                    'generated_by':campaign['generated_by'],'published':False}
     @router.get('/api/bands/{band_id}/gigs/{event_id}/campaign')
     def campaign(band_id:int,event_id:int):
         with db() as c:
