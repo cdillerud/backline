@@ -177,6 +177,18 @@ function openStageDesigner(){
  };
  draw()
 }
+function printShowPacket(){
+ const gig=get('events').find(g=>g.id===state.showGig);
+ const docs=get('showPackets');
+ if(!gig||!docs.length){toast('Create show documents before printing',true);return}
+ const content='<header><h1>'+esc(gig.title)+'</h1><p>'+datePretty(gig.date)+' · '+esc(gig.venue||'Venue TBD')+'</p></header>'+
+ docs.map(doc=>'<article><h2>'+esc(doc.title)+'</h2><p class="printStatus">Status: '+esc(doc.status)+'</p>'+
+ doc.sections.map(section=>'<section><h3>'+esc(section.heading)+'</h3><p>'+esc(section.body).replace(/\\n/g,'<br>')+'</p></section>').join('')+'</article>').join('');
+ const w=window.open('','_blank');
+ if(!w){toast('Allow pop-ups to print show documents',true);return}
+ w.document.write('<!doctype html><html><head><title>Show Packet</title><style>body{font:14px/1.6 Arial,sans-serif;max-width:900px;margin:35px auto;color:#17202a}h1{font-size:29px}h2{margin-top:32px;border-bottom:2px solid #2c4058;padding-bottom:8px}h3{margin-bottom:4px}p{white-space:pre-wrap}article{break-before:page}.printStatus{font-size:12px;color:#526275}@media print{body{margin:0;padding:12mm}article{break-inside:avoid}}</style></head><body>'+content+'</body></html>');
+ w.document.close();w.focus();
+}
 function openPacketEditor(packet){
  const modal=document.createElement('div');modal.className='stageDesignerBackdrop';modal.id='packetEditor';
  const safe=esc;
@@ -222,7 +234,7 @@ function showops(){
  html+=summary+'<div class="showTabBar" role="tablist">'+tabs.map(([key,label])=>'<button role="tab" aria-selected="'+(active===key)+'" class="'+(active===key?'selected':'')+'" data-show-tab="'+key+'">'+label+'</button>').join('')+'</div>';
 
  if(active==='advance')html+=panel('Show documents',
-  '<p class="sub">Create riders, advances and schedules; then edit each section before marking ready.</p>'+
+  '<p class="sub">Create riders, advances and schedules; then edit each section before marking ready.</p><button class="small" data-print-packet="1">Print complete show packet</button>'+
   '<div class="actions">'+Object.entries(labels).map(([key,name])=>
    '<button class="small" data-create-packet="'+key+'">+ '+esc(name)+'</button>').join('')+'</div>'+
   (docs.length?'<div class="list">'+docs.map(d=>
@@ -271,7 +283,7 @@ if(type==='transaction'){title='Record transaction';fields=select('kind','Type',
 if(type==='setlist'){title='Create setlist';fields=field('title','Setlist title','text','required')+select('event_id','For gig (optional)',eventOpts)+`<div class="field full"><label>Choose songs (sorted by title)</label><div class="setSongs">${songs.length?songs.map(s=>`<label><input type="checkbox" name="song_ids" value="${s.id}">${esc(s.title)}${s.song_key?' · '+esc(s.song_key):''}</label>`).join(''):'Add songs first.'}</div></div>`}
 if(type==='settlement'){title='Settle a gig';let settled=get('settlements').map(s=>s.event_id);fields=select('event_id','Gig',evs.filter(e=>e.kind==='Gig'&&!settled.includes(e.id)).map(e=>[String(e.id),e.title]))+field('reserve_percent','Retain for band (%)','number','min="0" max="100" value="10" required')+`<div class="field full"><label>Musicians to pay</label><div class="setSongs">${mem.length?mem.map(m=>`<label><input type="checkbox" name="member_ids" value="${m.id}" checked>${esc(m.name)}</label>`).join(''):'Add members first.'}</div></div><p class="footNote">Record actual gig income and expenses in the ledger before settling. The settlement uses the net recorded cash and reserves the specified percentage.</p>`}
 return `<div class="modalWrap" id="modalWrap"><div class="modal" role="dialog" aria-modal="true" aria-label="${title}"><h2>${title}</h2><p class="sub">${esc(state.bands.find(b=>b.id===state.band)?.name||'')}</p><form id="entryForm"><div class="formGrid">${fields}</div><div class="actions"><button type="button" data-action="close">Cancel</button><button class="primary" type="submit">Save</button></div></form></div></div>`}
-document.addEventListener('click',async e=>{let btn=e.target.closest('[data-go],[data-action],[data-reverse],[data-export],[data-booking],[data-studio-gig],[data-approve-draft],[data-scan-market],[data-generate-campaign],[data-edit-draft],[data-voice],[data-show-gig],[data-create-packet],[data-edit-packet],[data-ready-packet],[data-upload-show-file],[data-download-show-file],[data-show-tab],[data-edit-stage],[data-stage-export],[data-new-tour],[data-open-tour],[data-add-stop]');if(!btn){if(e.target.id==='modalWrap'){state.modal=null;render()}return}if(btn.dataset.newTour){
+document.addEventListener('click',async e=>{let btn=e.target.closest('[data-go],[data-action],[data-reverse],[data-export],[data-booking],[data-studio-gig],[data-approve-draft],[data-scan-market],[data-generate-campaign],[data-edit-draft],[data-voice],[data-show-gig],[data-create-packet],[data-edit-packet],[data-ready-packet],[data-upload-show-file],[data-download-show-file],[data-print-packet],[data-show-tab],[data-edit-stage],[data-stage-export],[data-new-tour],[data-open-tour],[data-add-stop]');if(!btn){if(e.target.id==='modalWrap'){state.modal=null;render()}return}if(btn.dataset.newTour){
  const name=prompt('Name this tour (example: Upper Midwest Weekend)');if(!name?.trim())return;
  try{const tour=await api('/bands/'+state.band+'/tours',
   {method:'POST',body:JSON.stringify({name:name.trim()})});
@@ -310,6 +322,7 @@ if(btn.dataset.stageExport){
   link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
  }catch(error){toast(error.message,true)}return
 }
+if(btn.dataset.printPacket){printShowPacket();return}
 if(btn.dataset.showTab){state.showTab=btn.dataset.showTab;render();return}
 if(btn.dataset.editStage){
  openStageDesigner();return
