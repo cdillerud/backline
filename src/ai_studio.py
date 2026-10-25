@@ -34,6 +34,14 @@ def setup(con):
       relevance TEXT NOT NULL DEFAULT '',
       captured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS gig_market_scans (
+      band_id INTEGER NOT NULL REFERENCES bands(id),
+      event_id INTEGER NOT NULL REFERENCES events(id),
+      city TEXT NOT NULL,
+      event_date TEXT NOT NULL,
+      scanned_at INTEGER NOT NULL,
+      PRIMARY KEY(band_id,event_id,city,event_date)
+    );
     CREATE TABLE IF NOT EXISTS gig_campaign_drafts (
       id INTEGER PRIMARY KEY, band_id INTEGER NOT NULL REFERENCES bands(id),
       event_id INTEGER NOT NULL REFERENCES events(id), channel TEXT NOT NULL,
@@ -56,17 +64,14 @@ def attach(db):
         with db() as c:
             gig(c,band_id,event_id)
             target=c.execute('SELECT date FROM events WHERE id=?',(event_id,)).fetchone()['date']
-            recent=c.execute("""SELECT captured_at FROM gig_market_findings
-                WHERE band_id=? AND event_id=? AND relevance='Ticketmaster Discovery'
-                ORDER BY id DESC LIMIT 1""",(band_id,event_id)).fetchone()
-            if recent:
-                import calendar
-                try:
-                    stamp=calendar.timegm(time.strptime(recent['captured_at'],'%Y-%m-%d %H:%M:%S'))
-                    if time.time()-stamp<21600:
-                        return {'status':'cached','added':0}
-                except ValueError:
-                    pass
+            city=city.strip().lower()
+            if not city or len(city)>100:
+                raise HTTPException(422,'Valid city required')
+            recent=c.execute("""SELECT scanned_at FROM gig_market_scans
+                WHERE band_id=? AND event_id=? AND city=? AND event_date=?""",
+                (band_id,event_id,city,target)).fetchone()
+            if recent and time.time()-recent['scanned_at']<21600:
+                return {'status':'cached','added':0}
         found=discover(city,target)
         added=0
         with db() as c:
@@ -82,6 +87,10 @@ def attach(db):
                     item['source_url'],item['event_date'],item['venue'],
                     item['category'],'Ticketmaster Discovery'))
                 added+=1
+            c.execute("""INSERT INTO gig_market_scans(band_id,event_id,city,event_date,scanned_at)
+                VALUES(?,?,?,?,?) ON CONFLICT(band_id,event_id,city,event_date)
+                DO UPDATE SET scanned_at=excluded.scanned_at""",
+                (band_id,event_id,city,target,int(time.time())))
         return {'status':'complete','found':len(found),'added':added}
     @router.get('/api/bands/{band_id}/gigs/{event_id}/market')
     def market(band_id:int,event_id:int):
