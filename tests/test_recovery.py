@@ -29,10 +29,14 @@ def test_owner_assisted_recovery_revokes_sessions(tmp_path,monkeypatch):
         issued=client.post(endpoint,headers=owner_h,json={'email':'member@example.test'})
         assert issued.status_code==200,issued.text
         token=issued.json()['recovery_token']
+        with module.db() as con:
+            assert con.execute("SELECT COUNT(*) FROM recovery_audit WHERE action='issued'").fetchone()[0]==1
         assert client.post('/api/auth/recover',json={'token':'invalid','password':'validnewpassword123'}).status_code==422
         response=client.post('/api/auth/recover',json={'token':token,'password':'validnewpassword123'})
         assert response.status_code==200,response.text
         assert response.json()['sessions_revoked'] is True
+        with module.db() as con:
+            assert [r[0] for r in con.execute('SELECT action FROM recovery_audit ORDER BY id')]==['issued','redeemed']
         assert client.get('/api/auth/me',headers=member_h).status_code==401
         assert client.post('/api/auth/recover',json={'token':token,'password':'anothernewpassword123'}).status_code==400
         assert client.post('/api/auth/login',json={'email':'member@example.test',
