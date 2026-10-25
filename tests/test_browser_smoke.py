@@ -44,6 +44,11 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             assert page.get_by_text("Shows & Rehearsals").count()>0
             page.locator("[data-go='showops']").first.click()
             assert page.get_by_text("Show Packets").count()>0
+            assert page.get_by_role('tab',name='Stage & inputs').count()>0
+            page.get_by_role('tab',name='Advances & riders').click()
+            assert page.get_by_text('Show documents').count()>0
+            page.get_by_role('tab',name='Contracts & files').click()
+            assert page.get_by_text('Contracts and show files').count()>0
             page.locator("[data-go='touring']").first.click()
             assert page.get_by_text("Tour Routing").count()>0
             assert not errors,errors
