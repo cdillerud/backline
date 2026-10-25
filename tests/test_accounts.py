@@ -25,6 +25,13 @@ def test_scoped_accounts_and_no_cross_band_access(monkeypatch):
             con.execute("INSERT INTO band_users VALUES(?,?,?)",(b2,second,"owner"))
         with TestClient(application.app) as client:
             assert client.get("/api/bands").status_code == 401
+            # Invalid credentials are counted and eventually throttled.
+            for attempt in range(4):
+                bad=client.post("/api/auth/login",json={"email":"blocked@example.test","password":"wrong"})
+                assert bad.status_code==401
+            bad=client.post("/api/auth/login",json={"email":"blocked@example.test","password":"wrong"})
+            assert bad.status_code==401
+            assert client.post("/api/auth/login",json={"email":"blocked@example.test","password":"wrong"}).status_code==429
             response=client.post("/api/auth/login",json={"email":"one@example.test","password":"bad"})
             assert response.status_code == 401
             response=client.post("/api/auth/login",json={
