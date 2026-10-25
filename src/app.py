@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get('BACKLINE_DB', ROOT.parent / 'backline.db'))
 app = FastAPI(title='Backline API', version='0.1.0')
 app.mount('/static', StaticFiles(directory=str(ROOT/'static')), name='static')
-from .invitations import setup as setup_invites, create as create_invite, accept as accept_invite
+from .invitations import setup as setup_invites, create as create_invite, accept as accept_invite, accept_existing
 from .booking import setup as setup_booking, attach as attach_booking
 from .ai_studio import setup as setup_studio, attach as attach_studio
 from .security import install_preview_auth
@@ -190,6 +190,16 @@ def accept_invitation(payload:AcceptInviteInput):
         raise HTTPException(404,'Not enabled')
     with db() as c:
         return accept_invite(c,payload.token,payload.email,payload.display_name,payload.password)
+
+class ExistingInviteInput(BaseModel):
+    token: str = Field(min_length=20,max_length=200)
+
+@app.post('/api/auth/accept-existing-invite',status_code=201)
+def accept_existing_invitation(payload: ExistingInviteInput, request: Request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
+        raise HTTPException(404,'Not enabled')
+    with db() as c:
+        return accept_existing(c,payload.token,request.state.user['id'])
 
 @app.get('/api/auth/me')
 def current_user(request: Request):
