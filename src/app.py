@@ -138,6 +138,17 @@ def login(payload: LoginInput):
             raise HTTPException(401,'Invalid credentials')
         return {'access_token':make_session(c,row['id']),'token_type':'bearer'}
 
+@app.post('/api/auth/logout')
+def logout(request: Request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED') != '1':
+        raise HTTPException(404,'Not enabled')
+    token=request.headers.get('authorization','')[7:]
+    import hashlib
+    with db() as c:
+        c.execute('DELETE FROM sessions WHERE token_hash=?',
+                  (hashlib.sha256(token.encode()).hexdigest(),))
+    return {'ok':True}
+
 @app.get('/api/auth/me')
 def current_user(request: Request):
     if os.getenv('BACKLINE_ACCOUNTS_ENABLED') != '1':
