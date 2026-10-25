@@ -114,7 +114,4 @@ def install_accounts(app, db):
             m=BAND_PATH.match(path)
             if m and not authorized(con,user["id"],int(m.group(1)),request.method,path):
                 return JSONResponse({"detail":"Band access denied"},status_code=403)
-            if path=="/api/bands" and request.method in WRITE:
-                # New-band creation is handled separately with atomic owner assignment.
-                return await call_next(request)
         return await call_next(request)
