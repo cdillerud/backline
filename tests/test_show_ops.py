@@ -12,7 +12,7 @@ def test_reusable_show_packet_and_band_isolation(tmp_path,monkeypatch):
     event=client.post(f"/api/bands/{band}/events",json={
         "kind":"Gig","title":"Friday Night","date":"2026-11-14","venue":"Club"}).json()["id"]
     defaults=client.get("/api/show-document-defaults").json()
-    assert set(defaults)=={"technical_rider","hospitality_rider","show_advance","day_of_show"}
+    assert set(defaults)=={"technical_rider","hospitality_rider","show_advance","day_of_show","tour_call_sheet","settlement_sheet"}
     body={"kind":"technical_rider","title":"Our stage setup",
           "sections":[{"heading":"Inputs","body":"Two guitars, bass, drums, vocals"}]}
     made=client.post(f"/api/bands/{band}/show-templates",json=body)
