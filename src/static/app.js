@@ -77,6 +77,17 @@ function touring(){
  return html;
 }
 
+function stagePreview(stage){
+ const items=stage?.items||[];
+ const shapes=items.map(item=>{
+  const cx=10+Number(item.x)*4.4,cy=10+Number(item.y)*2.15;
+  return '<g><circle cx="'+cx+'" cy="'+cy+'" r="11" fill="#334155" stroke="#93c5fd" stroke-width="1.5"/>'+
+   '<text x="'+cx+'" y="'+(cy+18)+'" text-anchor="middle" fill="#e2e8f0" font-size="9">'+esc(item.label).slice(0,55)+'</text></g>';
+ }).join('');
+ return '<div style="overflow:auto"><svg viewBox="0 0 460 250" role="img" aria-label="Stage layout, audience at the bottom" style="width:100%;max-width:700px;background:#0f172a;border-radius:8px"><rect x="5" y="5" width="450" height="235" rx="9" fill="none" stroke="#64748b"/>'+
+ '<text x="230" y="18" text-anchor="middle" fill="#cbd5e1" font-size="10">UPSTAGE</text>'+shapes+
+ '<text x="230" y="234" text-anchor="middle" fill="#cbd5e1" font-size="10">AUDIENCE / DOWNSTAGE</text></svg></div>'
+}
 function showops(){
  const gigs=get('events').filter(g=>g.kind==='Gig');
  const chosen=gigs.find(g=>g.id===state.showGig);
@@ -101,7 +112,7 @@ function showops(){
    empty('Create a document from the defaults to start your packet.')));
  html+=panel('Stage plot and audio input list',
   '<p class="sub">Place instruments on a 0–100 stage grid, and number your patch list.</p>'+
-  '<button class="small" data-edit-stage="1">Edit stage setup</button>'+
+  '<button class="small" data-edit-stage="1">Edit stage setup</button>'+stagePreview(state.data.showStage)+
   '<div class="list">'+(get('showStage').items||[]).map(i=>'<div class="entry">'+esc(i.label)+' · '+esc(i.kind)+' (x:'+i.x+', y:'+i.y+')</div>').join('')+
   (get('showStage').inputs||[]).map(i=>'<div class="entry">CH '+i.channel+' · '+esc(i.source)+' · '+esc(i.microphone)+'</div>').join('')+'</div>');
  html+=panel('Contracts and show files',
