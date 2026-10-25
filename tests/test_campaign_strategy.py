@@ -44,3 +44,23 @@ def test_generated_drafts_are_never_auto_approved(tmp_path,monkeypatch):
         "angle":"Try again","body":"Should not change"}).status_code==409
 
     assert client.post(f"/api/bands/{band+10000}/gigs/{gig}/campaign/generate").status_code==404
+
+def test_band_voice_changes_generated_copy(tmp_path,monkeypatch):
+    monkeypatch.setenv("BACKLINE_DB",str(tmp_path/"voice.db"))
+    monkeypatch.setenv("BACKLINE_LOCAL_DEV","1")
+    import src.app as app_module
+    import importlib
+    importlib.reload(app_module)
+    client=TestClient(app_module.app)
+    band=client.post("/api/bands",json={"name":"Voice Band"}).json()["id"]
+    gig=client.post(f"/api/bands/{band}/events",json={"kind":"Gig",
+        "title":"Tonight","date":"2026-11-14","venue":"Small Club"}).json()["id"]
+    voice=client.put(f"/api/bands/{band}/marketing-voice",
+        json={"tagline":"Loud and local.","tone":"gritty"})
+    assert voice.status_code==200,voice.text
+    assert client.get(f"/api/bands/{band}/marketing-voice").json()["tone"]=="gritty"
+    assert client.put(f"/api/bands/{band}/marketing-voice",
+        json={"tagline":"x","tone":"unsupported"}).status_code==422
+    assert client.post(f"/api/bands/{band}/gigs/{gig}/campaign/generate").status_code==200
+    rows=client.get(f"/api/bands/{band}/gigs/{gig}/campaign").json()
+    assert any("Loud and local." in r["body"] for r in rows)
