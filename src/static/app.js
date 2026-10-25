@@ -99,7 +99,12 @@ function showops(){
    '<button class="small" data-edit-packet="'+d.id+'">Edit</button> '+
    '<button class="small" data-ready-packet="'+d.id+'">Mark ready</button></div>').join('')+'</div>':
    empty('Create a document from the defaults to start your packet.')));
- html+=panel('Stage plot and audio input list',\n  '<p class="sub">Place instruments on a 0–100 stage grid, and number your patch list.</p>'+\n  '<button class="small" data-edit-stage="1">Edit stage setup</button>'+\n  '<div class="list">'+(get('showStage').items||[]).map(i=>'<div class="entry">'+esc(i.label)+' · '+esc(i.kind)+' (x:'+i.x+', y:'+i.y+')</div>').join('')+\n  (get('showStage').inputs||[]).map(i=>'<div class="entry">CH '+i.channel+' · '+esc(i.source)+' · '+esc(i.microphone)+'</div>').join('')+'</div>');\n html+=panel('Contracts and show files',
+ html+=panel('Stage plot and audio input list',
+  '<p class="sub">Place instruments on a 0–100 stage grid, and number your patch list.</p>'+
+  '<button class="small" data-edit-stage="1">Edit stage setup</button>'+
+  '<div class="list">'+(get('showStage').items||[]).map(i=>'<div class="entry">'+esc(i.label)+' · '+esc(i.kind)+' (x:'+i.x+', y:'+i.y+')</div>').join('')+
+  (get('showStage').inputs||[]).map(i=>'<div class="entry">CH '+i.channel+' · '+esc(i.source)+' · '+esc(i.microphone)+'</div>').join('')+'</div>');
+ html+=panel('Contracts and show files',
   '<p class="sub">Upload PDF contracts, stage plots, input lists, receipts or W-9 forms. Files stay attached to this show.</p>'+
   '<div class="actions"><select id="showFileCategory"><option value="contract">Performance contract</option><option value="stage_plot">Stage plot</option><option value="input_list">Input list</option><option value="technical_rider">Technical rider</option><option value="hospitality_rider">Hospitality rider</option><option value="receipt">Receipt</option><option value="w9">W-9</option><option value="insurance">Insurance</option><option value="other">Other</option></select>'+
   '<input id="showFileInput" type="file" accept=".pdf,application/pdf"><button class="small" data-upload-show-file="1">Upload PDF</button></div>'+
