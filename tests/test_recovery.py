@@ -1,4 +1,5 @@
 import importlib
+import pytest
 from fastapi.testclient import TestClient
 from src.accounts import hash_password
 
@@ -38,3 +39,28 @@ def test_owner_assisted_recovery_revokes_sessions(tmp_path,monkeypatch):
             'password':'member-long-password-123'}).status_code==401
         assert client.post('/api/auth/login',json={'email':'member@example.test',
             'password':'validnewpassword123'}).status_code==200
+
+def test_recovery_expiry_and_reissue(tmp_path, monkeypatch):
+    monkeypatch.setenv('BACKLINE_DB',str(tmp_path/'expiry.db'))
+    monkeypatch.setenv('BACKLINE_LOCAL_DEV','1')
+    import src.app as module
+    importlib.reload(module)
+    from src.recovery import issue, redeem
+    from fastapi import HTTPException
+    with module.db() as db:
+        owner=db.execute("INSERT INTO users(email,display_name,password_hash) VALUES(?,?,?)",
+            ('owner2@example.test','Owner',hash_password('owner2-long-password'))).lastrowid
+        member=db.execute("INSERT INTO users(email,display_name,password_hash) VALUES(?,?,?)",
+            ('member2@example.test','Member',hash_password('member2-long-password'))).lastrowid
+        band=db.execute("INSERT INTO bands(name) VALUES('Expiry Band')").lastrowid
+        db.execute("INSERT INTO band_users VALUES(?,?,?)",(band,owner,'owner'))
+        db.execute("INSERT INTO band_users VALUES(?,?,?)",(band,member,'member'))
+        expired=issue(db,owner,band,'member2@example.test',now=1000)
+        with pytest.raises(HTTPException) as failed:
+            redeem(db,expired,'updated-long-password',now=2801)
+        assert failed.value.status_code==400
+        first=issue(db,owner,band,'member2@example.test',now=4000)
+        newer=issue(db,owner,band,'member2@example.test',now=4010)
+        with pytest.raises(HTTPException):
+            redeem(db,first,'updated-long-password',now=4020)
+        assert redeem(db,newer,'updated-long-password',now=4020)['recovered'] is True
