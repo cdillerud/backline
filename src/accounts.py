@@ -38,6 +38,12 @@ def account_tables(con):
       user_id INTEGER NOT NULL REFERENCES users(id),
       expires_at INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS login_attempts (
+      email_key TEXT PRIMARY KEY,
+      failures INTEGER NOT NULL DEFAULT 0,
+      window_started INTEGER NOT NULL,
+      blocked_until INTEGER NOT NULL DEFAULT 0
+    );
     """)
     
 def hash_password(password):
@@ -55,6 +61,30 @@ def verify_password(password, stored):
         return hmac.compare_digest(calc, bytes.fromhex(digest))
     except (ValueError, TypeError, OverflowError):
         return False
+
+LOGIN_WINDOW_SECONDS = 15 * 60
+LOGIN_MAX_FAILURES = 5
+LOGIN_LOCK_SECONDS = 15 * 60
+
+def login_locked(con, email, now=None):
+    now=int(time.time()) if now is None else now
+    row=con.execute("SELECT blocked_until FROM login_attempts WHERE email_key=?",(hashlib.sha256(email.encode()).hexdigest(),)).fetchone()
+    return bool(row and row["blocked_until"] > now)
+
+def login_failure(con, email, now=None):
+    now=int(time.time()) if now is None else now
+    key=hashlib.sha256(email.encode()).hexdigest()
+    row=con.execute("SELECT failures,window_started FROM login_attempts WHERE email_key=?",(key,)).fetchone()
+    failures=(row["failures"]+1) if row and now-row["window_started"]<LOGIN_WINDOW_SECONDS else 1
+    started=row["window_started"] if row and now-row["window_started"]<LOGIN_WINDOW_SECONDS else now
+    blocked=now+LOGIN_LOCK_SECONDS if failures>=LOGIN_MAX_FAILURES else 0
+    con.execute("""INSERT INTO login_attempts(email_key,failures,window_started,blocked_until)
+      VALUES(?,?,?,?) ON CONFLICT(email_key) DO UPDATE SET failures=excluded.failures,
+      window_started=excluded.window_started,blocked_until=excluded.blocked_until""",
+      (key,failures,started,blocked))
+
+def login_success(con, email):
+    con.execute("DELETE FROM login_attempts WHERE email_key=?",(hashlib.sha256(email.encode()).hexdigest(),))
 
 def make_session(con, user_id):
     token = secrets.token_urlsafe(32)
