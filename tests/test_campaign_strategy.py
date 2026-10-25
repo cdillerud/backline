@@ -1,0 +1,32 @@
+import importlib
+from fastapi.testclient import TestClient
+from src.campaign_strategy import strategy,drafts
+
+def test_campaign_strategy_marks_market_claims_as_hypotheses():
+    gig={"date":"2026-11-14","venue":"The Room","title":"A Gig"}
+    band={"name":"The Drunk Uncles"}
+    nearby=[{"event_date":"2026-11-14","title":"Another Show","source_url":"https://example.com/event"}]
+    output=drafts(gig,band,nearby)
+    assert output["generated_by"]=="deterministic_template"
+    assert output["published"] is False
+    assert output["strategy"]["angles"][1]["confidence"]=="medium"
+    assert output["strategy"]["angles"][1]["evidence"][0]["url"]=="https://example.com/event"
+    assert all("Another Show" not in item["body"] for item in output["drafts"])
+    assert "Admission or ticket information" in output["verification_required"]
+
+def test_generated_drafts_are_never_auto_approved(tmp_path,monkeypatch):
+    monkeypatch.setenv("BACKLINE_DB",str(tmp_path/"studio.db"))
+    monkeypatch.setenv("BACKLINE_LOCAL_DEV","1")
+    import src.app as app_module
+    importlib.reload(app_module)
+    client=TestClient(app_module.app)
+    band=client.post("/api/bands",json={"name":"Test Band"}).json()["id"]
+    gig=client.post(f"/api/bands/{band}/events",json={
+        "kind":"Gig","title":"Weekend","date":"2026-11-14","venue":"A Venue"}).json()["id"]
+    prefix=f"/api/bands/{band}/gigs/{gig}/campaign"
+    result=client.post(prefix+"/generate")
+    assert result.status_code==200,result.text
+    assert len(result.json()["draft_ids"])==3
+    assert result.json()["published"] is False
+    assert all(row["status"]=="draft" for row in client.get(prefix).json())
+    assert client.post(f"/api/bands/{band+10000}/gigs/{gig}/campaign/generate").status_code==404
