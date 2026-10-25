@@ -46,3 +46,25 @@ def test_show_packet_requires_a_gig(tmp_path,monkeypatch):
         "kind":"Rehearsal","title":"Practice","date":"2026-11-14"}).json()["id"]
     assert client.post(f"/api/bands/{band}/gigs/{rehearsal}/packet",
         json={"kind":"day_of_show"}).status_code==404
+
+def test_downloadable_pdf_scoped_to_band_and_gig(tmp_path,monkeypatch):
+    monkeypatch.setenv("BACKLINE_DB",str(tmp_path/"pdf.db"))
+    monkeypatch.setenv("BACKLINE_LOCAL_DEV","1")
+    import src.app as module
+    importlib.reload(module)
+    client=TestClient(module.app)
+    band=client.post("/api/bands",json={"name":"Example Quartet"}).json()["id"]
+    other=client.post("/api/bands",json={"name":"Other Group"}).json()["id"]
+    event=client.post(f"/api/bands/{band}/events",json={
+        "kind":"Gig","title":"Evening Showcase","date":"2026-11-14","venue":"Demo Theater"}).json()["id"]
+    endpoint=f"/api/bands/{band}/gigs/{event}/packet"
+    assert client.post(endpoint,json={"kind":"day_of_show"}).status_code==201
+    response=client.get(endpoint+".pdf")
+    assert response.status_code==200,response.text
+    assert response.headers["content-type"].startswith("application/pdf")
+    assert "attachment" in response.headers["content-disposition"]
+    assert response.headers["cache-control"]=="no-store"
+    assert response.content.startswith(b"%PDF-")
+    assert len(response.content)>1500
+    assert client.get(f"/api/bands/{other}/gigs/{event}/packet.pdf").status_code==404
+    assert client.get(f"/api/bands/{band}/gigs/999999/packet.pdf").status_code==404
