@@ -6,7 +6,7 @@ Market findings must have explicit source URLs supplied from a trusted event-dat
 import datetime
 import time
 from .market_provider import discover
-from .campaign_strategy import drafts as build_drafts
+from .ai_copy import generate as build_drafts
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, HttpUrl
 
