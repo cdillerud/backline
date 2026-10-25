@@ -189,7 +189,13 @@ function showops(){
  ).join('')+'</div>');
  if(!chosen)return html;
  const docs=get('showPackets'),files=get('showFiles');
- html+=panel('Show packet · '+esc(chosen.title),
+ const complete=docs.filter(x=>x.status==='ready').length;
+ const summary='<div class="showOverview"><div><span class="eyebrow">SHOW PRODUCTION</span><h2>'+esc(chosen.title)+'</h2><p>'+datePretty(chosen.date)+' · '+esc(chosen.venue||'Venue to confirm')+'</p></div><div class="showMetrics"><span><strong>'+complete+'/'+docs.length+'</strong> documents ready</span><span><strong>'+files.length+'</strong> files attached</span><span><strong>'+(state.data.showStage?.inputs?.length||0)+'</strong> audio inputs</span></div></div>';
+ const tabs=[['stage','Stage & inputs'],['advance','Advances & riders'],['files','Contracts & files']];
+ const active=state.showTab||'stage';
+ html+=summary+'<div class="showTabBar" role="tablist">'+tabs.map(([key,label])=>'<button role="tab" aria-selected="'+(active===key)+'" class="'+(active===key?'selected':'')+'" data-show-tab="'+key+'">'+label+'</button>').join('')+'</div>';
+
+ if(active==='advance')html+=panel('Show documents',
   '<p class="sub">Create riders, advances and schedules; then edit each section before marking ready.</p>'+
   '<div class="actions">'+Object.entries(labels).map(([key,name])=>
    '<button class="small" data-create-packet="'+key+'">+ '+esc(name)+'</button>').join('')+'</div>'+
@@ -199,14 +205,14 @@ function showops(){
    '<button class="small" data-edit-packet="'+d.id+'">Edit</button> '+
    '<button class="small" data-ready-packet="'+d.id+'">Mark ready</button></div>').join('')+'</div>':
    empty('Create a document from the defaults to start your packet.')));
- html+=panel('Stage plot and audio input list',
+ if(active==='stage')html+=panel('Stage plot and audio input list',
   '<p class="sub">Place instruments on a 0–100 stage grid, and number your patch list.</p>'+
   '<button class="small" data-edit-stage="1">Edit stage setup</button> '+ 
   '<button class="small" data-stage-export="stage.svg">Download stage plot</button> '+
   '<button class="small" data-stage-export="inputs.csv">Download input list</button>'+stagePreview(state.data.showStage)+
   '<div class="list">'+(get('showStage').items||[]).map(i=>'<div class="entry">'+esc(i.label)+' · '+esc(i.kind)+' (x:'+i.x+', y:'+i.y+')</div>').join('')+
   (get('showStage').inputs||[]).map(i=>'<div class="entry">CH '+i.channel+' · '+esc(i.source)+' · '+esc(i.microphone)+'</div>').join('')+'</div>');
- html+=panel('Contracts and show files',
+ if(active==='files')html+=panel('Contracts and show files',
   '<p class="sub">Upload PDF contracts, stage plots, input lists, receipts or W-9 forms. Files stay attached to this show.</p>'+
   '<div class="actions"><select id="showFileCategory"><option value="contract">Performance contract</option><option value="stage_plot">Stage plot</option><option value="input_list">Input list</option><option value="technical_rider">Technical rider</option><option value="hospitality_rider">Hospitality rider</option><option value="receipt">Receipt</option><option value="w9">W-9</option><option value="insurance">Insurance</option><option value="other">Other</option></select>'+
   '<input id="showFileInput" type="file" accept=".pdf,application/pdf"><button class="small" data-upload-show-file="1">Upload PDF</button></div>'+
@@ -239,7 +245,7 @@ if(type==='transaction'){title='Record transaction';fields=select('kind','Type',
 if(type==='setlist'){title='Create setlist';fields=field('title','Setlist title','text','required')+select('event_id','For gig (optional)',eventOpts)+`<div class="field full"><label>Choose songs (sorted by title)</label><div class="setSongs">${songs.length?songs.map(s=>`<label><input type="checkbox" name="song_ids" value="${s.id}">${esc(s.title)}${s.song_key?' · '+esc(s.song_key):''}</label>`).join(''):'Add songs first.'}</div></div>`}
 if(type==='settlement'){title='Settle a gig';let settled=get('settlements').map(s=>s.event_id);fields=select('event_id','Gig',evs.filter(e=>e.kind==='Gig'&&!settled.includes(e.id)).map(e=>[String(e.id),e.title]))+field('reserve_percent','Retain for band (%)','number','min="0" max="100" value="10" required')+`<div class="field full"><label>Musicians to pay</label><div class="setSongs">${mem.length?mem.map(m=>`<label><input type="checkbox" name="member_ids" value="${m.id}" checked>${esc(m.name)}</label>`).join(''):'Add members first.'}</div></div><p class="footNote">Record actual gig income and expenses in the ledger before settling. The settlement uses the net recorded cash and reserves the specified percentage.</p>`}
 return `<div class="modalWrap" id="modalWrap"><div class="modal" role="dialog" aria-modal="true" aria-label="${title}"><h2>${title}</h2><p class="sub">${esc(state.bands.find(b=>b.id===state.band)?.name||'')}</p><form id="entryForm"><div class="formGrid">${fields}</div><div class="actions"><button type="button" data-action="close">Cancel</button><button class="primary" type="submit">Save</button></div></form></div></div>`}
-document.addEventListener('click',async e=>{let btn=e.target.closest('[data-go],[data-action],[data-reverse],[data-export],[data-booking],[data-studio-gig],[data-approve-draft],[data-scan-market],[data-generate-campaign],[data-edit-draft],[data-voice],[data-show-gig],[data-create-packet],[data-edit-packet],[data-ready-packet],[data-upload-show-file],[data-download-show-file],[data-edit-stage],[data-stage-export],[data-new-tour],[data-open-tour],[data-add-stop]');if(!btn){if(e.target.id==='modalWrap'){state.modal=null;render()}return}if(btn.dataset.newTour){
+document.addEventListener('click',async e=>{let btn=e.target.closest('[data-go],[data-action],[data-reverse],[data-export],[data-booking],[data-studio-gig],[data-approve-draft],[data-scan-market],[data-generate-campaign],[data-edit-draft],[data-voice],[data-show-gig],[data-create-packet],[data-edit-packet],[data-ready-packet],[data-upload-show-file],[data-download-show-file],[data-show-tab],[data-edit-stage],[data-stage-export],[data-new-tour],[data-open-tour],[data-add-stop]');if(!btn){if(e.target.id==='modalWrap'){state.modal=null;render()}return}if(btn.dataset.newTour){
  const name=prompt('Name this tour (example: Upper Midwest Weekend)');if(!name?.trim())return;
  try{const tour=await api('/bands/'+state.band+'/tours',
   {method:'POST',body:JSON.stringify({name:name.trim()})});
@@ -278,6 +284,7 @@ if(btn.dataset.stageExport){
   link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
  }catch(error){toast(error.message,true)}return
 }
+if(btn.dataset.showTab){state.showTab=btn.dataset.showTab;render();return}
 if(btn.dataset.editStage){
  openStageDesigner();return
 }
