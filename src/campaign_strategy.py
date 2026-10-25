@@ -23,13 +23,19 @@ def strategy(gig, findings):
     return {"angles":angles,"findings_considered":len(findings),
             "caveat":"Marketing hypotheses only. Event listings do not prove attendance or audience overlap."}
 
-def drafts(gig,band,findings):
+def drafts(gig,band,findings,voice=None):
     band_name=band["name"].strip()
     venue=gig["venue"].strip()
     date=datetime.date.fromisoformat(gig["date"]).strftime("%A, %B %d")
     location=f" at {venue}" if venue else ""
     title=f"{band_name} live{location} — {date}"
     basic=f"{band_name} plays live{location} on {date}. Come see us."
+    if voice:
+        tagline=(voice.get("tagline") or "").strip()
+        tone=voice.get("tone","straightforward")
+        endings={"straightforward":"", "playful":" Bring your friends.", "gritty":" No frills, just the songs.", "warm":" We would love to see you there."}
+        basic+=endings.get(tone,"")
+        if tagline: basic+=" "+tagline[:160]
     evidence=strategy(gig,findings)
     result=[
         {"channel":"Facebook","angle":"Show announcement","body":basic},
