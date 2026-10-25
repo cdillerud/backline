@@ -29,4 +29,18 @@ def test_generated_drafts_are_never_auto_approved(tmp_path,monkeypatch):
     assert len(result.json()["draft_ids"])==3
     assert result.json()["published"] is False
     assert all(row["status"]=="draft" for row in client.get(prefix).json())
+    draft_id=result.json()["draft_ids"][0]
+    revision=client.patch(f"{prefix}/{draft_id}",json={
+        "angle":"Edited angle","body":"Edited copy for review"})
+    assert revision.status_code==200,revision.text
+    assert client.get(prefix).json()[2]["body"]=="Edited copy for review"
+    with app_module.db() as con:
+        saved=con.execute("SELECT previous_body FROM gig_campaign_revisions WHERE draft_id=?",
+                          (draft_id,)).fetchone()
+        assert saved and saved[0]!="Edited copy for review"
+    assert client.patch(f"{prefix}/{draft_id}",json={"angle":"","body":"copy"}).status_code==422
+    assert client.post(f"{prefix}/{draft_id}/approve",json={"note":"Reviewed"}).status_code==200
+    assert client.patch(f"{prefix}/{draft_id}",json={
+        "angle":"Try again","body":"Should not change"}).status_code==409
+
     assert client.post(f"/api/bands/{band+10000}/gigs/{gig}/campaign/generate").status_code==404
