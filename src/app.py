@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get('BACKLINE_DB', ROOT.parent / 'backline.db'))
 app = FastAPI(title='Backline API', version='0.1.0')
 app.mount('/static', StaticFiles(directory=str(ROOT/'static')), name='static')
+from .booking import setup as setup_booking, attach as attach_booking
+from .ai_studio import setup as setup_studio, attach as attach_studio
 from .security import install_preview_auth
 install_preview_auth(app)
 from .accounts import account_tables, install_accounts, hash_password, verify_password, make_session
@@ -47,6 +49,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS settlement_shares (id INTEGER PRIMARY KEY, settlement_id INTEGER NOT NULL REFERENCES settlements(id), member_id INTEGER NOT NULL REFERENCES members(id), amount_cents INTEGER NOT NULL CHECK(amount_cents>=0), UNIQUE(settlement_id,member_id));
         ''')
         account_tables(c)
+        setup_booking(c)
+        setup_studio(c)
         if not c.execute('SELECT 1 FROM bands LIMIT 1').fetchone():
             c.execute('INSERT INTO bands(name,genre,description) VALUES(?,?,?)',('My Band','Rock / Americana','Your band workspace'))
 
@@ -285,4 +289,6 @@ def dashboard(band_id:int):
         counts={'members':c.execute('SELECT COUNT(*) FROM members WHERE band_id=? AND active=1',(band_id,)).fetchone()[0], 'songs':c.execute('SELECT COUNT(*) FROM songs WHERE band_id=?',(band_id,)).fetchone()[0], 'gigs':c.execute("SELECT COUNT(*) FROM events WHERE band_id=? AND kind='Gig' AND date>=?",(band_id,today)).fetchone()[0]}
     return {'upcoming':upcoming,'counts':counts,'finance':finance(band_id)}
 
+app.include_router(attach_booking(db))
+app.include_router(attach_studio(db))
 init_db()
