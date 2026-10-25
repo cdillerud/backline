@@ -65,6 +65,9 @@ def init_db():
         setup_tax_records(c)
         setup_tour_routes(c)
         setup_stage_plots(c)
+        if os.getenv('BACKLINE_DEMO_SEED')=='1' and os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
+            from .demo_seed import seed
+            seed(c)
         if not c.execute('SELECT 1 FROM bands LIMIT 1').fetchone():
             c.execute('INSERT INTO bands(name,genre,description) VALUES(?,?,?)',('My Band','Rock / Americana','Your band workspace'))
 
