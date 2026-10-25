@@ -42,3 +42,10 @@ BACKLINE_OWNER_PASSWORD='<secure unique password>' \\
 python -m src.bootstrap_owner --band-id 1
 ```
 Do not paste a real password into shell history; the inline form above is for documentation only. Prefer a secure secret injection method or an interactive prompt wrapper. The command refuses unknown bands, pre-owned bands and existing user email addresses. It does not assign ownership to all bands. It is not suitable for production until the administrator identity and existing records are verified.
+
+## Staging-only invitations
+- An authenticated band owner or manager can POST `/api/bands/{band_id}/invitations` with an email and role. The response contains a one-time token for **manual delivery**. Automatic emails are not configured.
+- `POST /api/auth/accept-invite` with token, matching email, display name and a new password creates an account and membership. Tokens expire in seven days; only token hashes are stored.
+- Managers cannot invite other managers or owners; owner accounts cannot be created through the invitation endpoint.
+- Existing-user invitations intentionally return a conflict for now, rather than altering an existing account without authentication.
+- Before production release, implement invite revocation, email delivery and confirmation, existing-user acceptance, anti-abuse controls and a secure invite UX. Treat returned invite tokens like credentials.
