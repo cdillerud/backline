@@ -56,3 +56,12 @@ An authenticated band owner can request a one-time, 30-minute recovery code usin
 A user can redeem a valid token using `POST /api/auth/recover` with `token` and `password`. Redemption invalidates all existing sessions and deletes outstanding recovery codes for that account. Expired tokens, reused tokens and tokens superseded by a new issuance are rejected. Owners cannot reset other owners through this flow.
 
 **Production blockers:** verified out-of-band identity confirmation, recovery audit events, delivery channel, access to the recovery UX, per-user and per-IP throttling, and a separate high-assurance owner recovery process. Do not activate account mode in production solely on the strength of passing API tests.
+
+## Rehearsal on a representative database
+Run on a machine with the exact intended release code and Python dependencies:
+```sh
+python -m src.rehearse_migration --source /path/to/existing/backline.db
+```
+This reads the source, makes a verified snapshot in a temporary directory, invokes schema initialization on that copy and checks that row counts of preexisting tables are preserved, expected feature tables exist, and SQLite integrity checks pass. It prints a summary, not a migrated production database.
+
+**Limitations:** The current check compares table row counts, not every existing cell value or every foreign-key relationship, and assumes schema initialization is additive. Do not treat a passing rehearsal as complete data-integrity certification. Before any production rollout, perform a representative full-data diff, `PRAGMA foreign_key_check`, application workflow tests, browser acceptance testing, offsite backup confirmation and a timed recovery drill. No live volume was accessed by the CI test.
