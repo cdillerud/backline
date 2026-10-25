@@ -8,6 +8,8 @@ from fastapi.responses import JSONResponse
 def install_preview_auth(app):
     @app.middleware('http')
     async def preview_auth(request: Request, call_next):
+        if os.getenv('BACKLINE_ACCOUNTS_ENABLED') == '1':
+            return await call_next(request)
         if request.url.path == '/api/health':
             return await call_next(request)
         username = os.getenv('BACKLINE_PREVIEW_USER', '')
