@@ -71,5 +71,17 @@ def test_existing_user_invitation_requires_matching_identity(tmp_path,monkeypatc
         assert accepted.json()=={'band_id':band,'role':'member'}
         assert client.post(path,headers=ih,json={'token':token}).status_code==400
         assert client.get(f'/api/bands/{band}/members',headers=ih).status_code==200
+        secondary=client.post(f'/api/bands/{band}/invitations',headers=oh,
+            json={'email':'third@example.test','role':'viewer'})
+        assert secondary.status_code==201
+        second_token=secondary.json()['invite_token']
+        assert client.post(f'/api/bands/{band}/invitations/revoke',headers=sh,
+            json={'token':second_token}).status_code==403
+        assert client.post(f'/api/bands/{band}/invitations/revoke',headers=oh,
+            json={'token':second_token}).status_code==200
+        assert client.post(f'/api/bands/{band}/invitations/revoke',headers=oh,
+            json={'token':second_token}).status_code==409
+        assert client.post('/api/auth/accept-existing-invite',headers=sh,
+            json={'token':second_token}).status_code==400
         assert client.post(f'/api/bands/{band}/bookings',headers=ih,
             json={'venue':'Not allowed'}).status_code==403
