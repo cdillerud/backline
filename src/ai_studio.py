@@ -7,6 +7,7 @@ import datetime
 import time
 from .market_provider import discover
 from .ai_copy import generate as build_drafts
+from .ai_quota import setup as setup_ai_quota, reserve as reserve_ai_request
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -34,6 +35,7 @@ class Approval(BaseModel):
     note:str=Field(default='',max_length=500)
 
 def setup(con):
+    setup_ai_quota(con)
     con.executescript("""
     CREATE TABLE IF NOT EXISTS band_marketing_voice (band_id INTEGER PRIMARY KEY REFERENCES bands(id), tagline TEXT NOT NULL DEFAULT '', tone TEXT NOT NULL DEFAULT 'straightforward');
     CREATE TABLE IF NOT EXISTS gig_market_findings (
@@ -147,7 +149,13 @@ def attach(db):
             findings=[dict(row) for row in c.execute("""SELECT * FROM gig_market_findings
                 WHERE band_id=? AND event_id=?""",(band_id,event_id))]
             voice=c.execute('SELECT tagline,tone FROM band_marketing_voice WHERE band_id=?',(band_id,)).fetchone()
-            campaign=build_drafts(event,band,findings,dict(voice) if voice else None)
+            voice_data=dict(voice) if voice else None
+        # Commit the quota reservation before outbound network I/O.
+        with db() as c:
+            reserve_ai_request(c,band_id)
+        campaign=build_drafts(event,band,findings,voice_data)
+        with db() as c:
+            gig(c,band_id,event_id)
             created=[]
             for item in campaign['drafts']:
                 row=c.execute("""INSERT INTO gig_campaign_drafts
