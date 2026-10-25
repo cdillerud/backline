@@ -28,8 +28,9 @@ def rehearse(source):
         if proc.returncode:
             raise RuntimeError("Isolated app schema initialization failed: "+proc.stderr[-2000:])
         after=counts(copy)
-        if before!=after:
-            raise RuntimeError(f"Existing row counts changed: {before} -> {after}")
+        changed={name:(count,after.get(name)) for name,count in before.items() if after.get(name)!=count}
+        if changed:
+            raise RuntimeError(f"Existing row counts changed: {changed}")
         with sqlite3.connect(copy) as con:
             if con.execute("PRAGMA integrity_check").fetchone()[0]!="ok":
                 raise RuntimeError("Staging copy integrity check failed")
