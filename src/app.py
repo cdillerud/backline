@@ -181,6 +181,21 @@ def add_transaction(band_id:int,data:TransactionInput):
     if data.kind=='payout' and data.member_id is None:raise HTTPException(422,'Payout requires member')
     with db() as c:
         valid_member(c,band_id,data.member_id);valid_event(c,band_id,data.event_id)
+        if data.kind == 'payout' and data.event_id is not None:
+            share = c.execute("""SELECT ss.amount_cents
+                FROM settlement_shares ss
+                JOIN settlements se ON se.id=ss.settlement_id
+                WHERE se.event_id=? AND ss.member_id=?""",
+                (data.event_id, data.member_id)).fetchone()
+            if share is not None:
+                paid = c.execute("""SELECT COALESCE(SUM(t.amount_cents),0)
+                    FROM transactions t
+                    WHERE t.event_id=? AND t.member_id=?
+                    AND t.kind='payout' AND t.reversal_of IS NULL
+                    AND NOT EXISTS (SELECT 1 FROM transactions rev WHERE rev.reversal_of=t.id)""",
+                    (data.event_id, data.member_id)).fetchone()[0]
+                if paid + amount > share['amount_cents']:
+                    raise HTTPException(422,'Payout exceeds member settlement share')
         cur=c.execute('INSERT INTO transactions(band_id,event_id,member_id,kind,amount_cents,category,description,date) VALUES(?,?,?,?,?,?,?,?)',(band_id,data.event_id,data.member_id,data.kind,amount,data.category,data.description,str(data.date)))
         return {'id':cur.lastrowid}
 @app.post('/api/bands/{band_id}/transactions/{transaction_id}/reverse',status_code=201)
@@ -207,7 +222,7 @@ def settlements(band_id:int):
     band_exists(band_id)
     rows=fetchall('SELECT s.*,e.title event_title,e.date event_date FROM settlements s JOIN events e ON s.event_id=e.id WHERE e.band_id=? ORDER BY s.id DESC',(band_id,))
     for r in rows:
-        r['shares']=fetchall('''SELECT ss.*,m.name member_name,(SELECT COALESCE(SUM(t.amount_cents),0) FROM transactions t WHERE t.member_id=ss.member_id AND t.event_id=s.event_id AND t.kind='payout') paid_cents FROM settlement_shares ss JOIN members m ON m.id=ss.member_id JOIN settlements s ON s.id=ss.settlement_id WHERE ss.settlement_id=?''',(r['id'],))
+        r['shares']=fetchall('''SELECT ss.*,m.name member_name,(SELECT COALESCE(SUM(t.amount_cents),0) FROM transactions t WHERE t.member_id=ss.member_id AND t.event_id=s.event_id AND t.kind='payout' AND t.reversal_of IS NULL AND NOT EXISTS (SELECT 1 FROM transactions rev WHERE rev.reversal_of=t.id)) paid_cents FROM settlement_shares ss JOIN members m ON m.id=ss.member_id JOIN settlements s ON s.id=ss.settlement_id WHERE ss.settlement_id=?''',(r['id'],))
     return rows
 @app.post('/api/bands/{band_id}/events/{event_id}/settle',status_code=201)
 def settle(band_id:int,event_id:int,data:SettlementInput):
