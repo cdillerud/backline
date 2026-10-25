@@ -63,5 +63,8 @@ def test_scoped_accounts_and_no_cross_band_access(monkeypatch):
             new_id=created.json()["id"]
             assert client.get(f"/api/bands/{new_id}/members",headers=h).status_code == 200
             assert client.get("/api/bands",headers=h).status_code == 200
+            assert client.post("/api/auth/logout",headers=h).status_code == 200
+            assert client.get("/api/auth/me",headers=h).status_code == 401
+            assert client.post("/api/auth/logout",headers=h).status_code == 401
     monkeypatch.delenv("BACKLINE_ACCOUNTS_ENABLED",raising=False)
     importlib.reload(application)
