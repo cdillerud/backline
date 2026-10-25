@@ -19,7 +19,7 @@ from .booking import setup as setup_booking, attach as attach_booking
 from .ai_studio import setup as setup_studio, attach as attach_studio
 from .security import install_preview_auth
 install_preview_auth(app)
-from .accounts import account_tables, install_accounts, hash_password, verify_password, make_session
+from .accounts import account_tables, install_accounts, hash_password, verify_password, make_session, login_locked, login_failure, login_success
 install_accounts(app, lambda: db())
 
 @contextmanager
@@ -131,11 +131,16 @@ class LoginInput(BaseModel):
 def login(payload: LoginInput):
     if os.getenv('BACKLINE_ACCOUNTS_ENABLED') != '1':
         raise HTTPException(404,'Not enabled')
+    email=payload.email.strip().lower()
     with db() as c:
-        row=c.execute('SELECT id,password_hash FROM users WHERE email=?',
-            (payload.email.strip().lower(),)).fetchone()
+        if login_locked(c,email):
+            raise HTTPException(429,'Login temporarily unavailable')
+        row=c.execute('SELECT id,password_hash FROM users WHERE email=?',(email,)).fetchone()
         if not row or not verify_password(payload.password,row['password_hash']):
+            login_failure(c,email)
+            c.commit()
             raise HTTPException(401,'Invalid credentials')
+        login_success(c,email)
         return {'access_token':make_session(c,row['id']),'token_type':'bearer'}
 
 @app.post('/api/auth/logout')
