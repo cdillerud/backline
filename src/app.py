@@ -6,7 +6,7 @@ import os, sqlite3, json, datetime
 from contextlib import contextmanager
 from pathlib import Path
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -17,6 +17,8 @@ app = FastAPI(title='Backline API', version='0.1.0')
 app.mount('/static', StaticFiles(directory=str(ROOT/'static')), name='static')
 from .security import install_preview_auth
 install_preview_auth(app)
+from .accounts import account_tables, install_accounts, hash_password, verify_password, make_session
+install_accounts(app, lambda: db())
 
 @contextmanager
 def db():
@@ -44,6 +46,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS settlements (id INTEGER PRIMARY KEY, event_id INTEGER NOT NULL UNIQUE REFERENCES events(id), reserve_basis_points INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
         CREATE TABLE IF NOT EXISTS settlement_shares (id INTEGER PRIMARY KEY, settlement_id INTEGER NOT NULL REFERENCES settlements(id), member_id INTEGER NOT NULL REFERENCES members(id), amount_cents INTEGER NOT NULL CHECK(amount_cents>=0), UNIQUE(settlement_id,member_id));
         ''')
+        account_tables(c)
         if not c.execute('SELECT 1 FROM bands LIMIT 1').fetchone():
             c.execute('INSERT INTO bands(name,genre,description) VALUES(?,?,?)',('My Band','Rock / Americana','Your band workspace'))
 
@@ -116,12 +119,41 @@ class SettlementInput(BaseModel):
 def home(): return FileResponse(ROOT/'static'/'index.html')
 @app.get('/api/health')
 def health(): return {'status':'ok','version':'0.1.0'}
-@app.get('/api/bands')
-def bands(): return fetchall('SELECT * FROM bands ORDER BY id')
-@app.post('/api/bands',status_code=201)
-def add_band(data:BandInput):
+class LoginInput(BaseModel):
+    email: str
+    password: str
+
+@app.post('/api/auth/login')
+def login(payload: LoginInput):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED') != '1':
+        raise HTTPException(404,'Not enabled')
     with db() as c:
-        cur=c.execute('INSERT INTO bands(name,genre,description) VALUES(?,?,?)',(data.name.strip(),data.genre,data.description));return {'id':cur.lastrowid}
+        row=c.execute('SELECT id,password_hash FROM users WHERE email=?',
+            (payload.email.strip().lower(),)).fetchone()
+        if not row or not verify_password(payload.password,row['password_hash']):
+            raise HTTPException(401,'Invalid credentials')
+        return {'access_token':make_session(c,row['id']),'token_type':'bearer'}
+
+@app.get('/api/auth/me')
+def current_user(request: Request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED') != '1':
+        raise HTTPException(404,'Not enabled')
+    return request.state.user
+
+@app.get('/api/bands')
+def bands(request: Request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED') == '1':
+        return fetchall('''SELECT b.* FROM bands b JOIN band_users bu ON bu.band_id=b.id
+            WHERE bu.user_id=? ORDER BY b.id''',(request.state.user['id'],))
+    return fetchall('SELECT * FROM bands ORDER BY id')
+@app.post('/api/bands',status_code=201)
+def add_band(data:BandInput, request: Request):
+    with db() as c:
+        cur=c.execute('INSERT INTO bands(name,genre,description) VALUES(?,?,?)',(data.name.strip(),data.genre,data.description))
+        if os.getenv('BACKLINE_ACCOUNTS_ENABLED') == '1':
+            c.execute('INSERT INTO band_users(band_id,user_id,role) VALUES(?,?,?)',
+                      (cur.lastrowid,request.state.user['id'],'owner'))
+        return {'id':cur.lastrowid}
 @app.patch('/api/bands/{band_id}')
 def update_band(band_id:int,data:BandInput):
     band_exists(band_id)
