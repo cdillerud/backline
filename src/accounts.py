@@ -14,7 +14,7 @@ import time
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 
-BAND_PATH = re.compile(r"^/api/bands/(\\d+)(?:/|$)")
+BAND_PATH = re.compile(r"^/api/bands/(\d+)(?:/|$)")
 ROLES = {"owner", "manager", "treasurer", "member", "viewer"}
 WRITE = {"POST", "PUT", "PATCH", "DELETE"}
 FINANCE = {"finance", "transactions", "settlements", "settle"}
