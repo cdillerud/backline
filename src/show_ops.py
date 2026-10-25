@@ -4,6 +4,8 @@ Templates are band-scoped. A show packet snapshots its chosen template so that
 future template edits do not silently rewrite previously advanced shows.
 """
 import json
+from fastapi.responses import Response
+from .show_pdf import create_show_pdf
 from fastapi import APIRouter,HTTPException
 from pydantic import BaseModel,Field
 
@@ -83,6 +85,18 @@ def attach(db):
             gig(con,band_id,event_id)
             return [dict(row)|{"sections":json.loads(row["sections_json"])} for row in con.execute(
                 "SELECT * FROM show_packets WHERE band_id=? AND event_id=? ORDER BY kind",(band_id,event_id))]
+    @router.get('/api/bands/{band_id}/gigs/{event_id}/packet.pdf')
+    def pdf_packet(band_id:int,event_id:int):
+        with db() as con:
+            gig(con,band_id,event_id)
+            band_record=con.execute("SELECT name FROM bands WHERE id=?",(band_id,)).fetchone()
+            event=con.execute("SELECT title,date,venue FROM events WHERE band_id=? AND id=?",(band_id,event_id)).fetchone()
+            documents=[dict(row)|{"sections":json.loads(row["sections_json"])} for row in con.execute(
+                "SELECT * FROM show_packets WHERE band_id=? AND event_id=? ORDER BY kind",(band_id,event_id))]
+        payload=create_show_pdf(band_record,event,documents)
+        return Response(content=payload,media_type="application/pdf",
+            headers={"Content-Disposition":f'attachment; filename="backline-show-{event_id}.pdf"',
+                     "Cache-Control":"no-store"})
     class FromTemplate(BaseModel):
         kind:str
         template_id:int|None=None
