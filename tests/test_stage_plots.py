@@ -17,6 +17,12 @@ def test_stage_plot_and_inputs_are_scoped_and_validated(tmp_path,monkeypatch):
     assert client.get(endpoint).json()["inputs"]==[]
     assert client.put(endpoint,json=stage).json()["input_count"]==1
     assert client.get(endpoint).json()["items"][0]["x"]==50
+    svg=client.get(endpoint+".svg")
+    assert svg.status_code==200
+    assert 'Lead vocal' in svg.text
+    csv=client.get(f"/api/bands/{band}/gigs/{gig}/inputs.csv")
+    assert csv.status_code==200
+    assert "Channel,Source" in csv.text and "Lead vocal" in csv.text
     assert client.put(endpoint,json={**stage,"inputs":stage["inputs"]*2}).status_code==422
     assert client.put(endpoint,json={**stage,"items":[{**stage["items"][0],"x":101}]}).status_code==422
     assert client.get(f"/api/bands/{other}/gigs/{gig}/stage").status_code==404
