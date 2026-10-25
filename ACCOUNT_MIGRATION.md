@@ -49,3 +49,10 @@ Do not paste a real password into shell history; the inline form above is for do
 - Managers cannot invite other managers or owners; owner accounts cannot be created through the invitation endpoint.
 - Existing-user invitations intentionally return a conflict for now, rather than altering an existing account without authentication.
 - Before production release, implement invite revocation, email delivery and confirmation, existing-user acceptance, anti-abuse controls and a secure invite UX. Treat returned invite tokens like credentials.
+
+## Owner-assisted member recovery (staging)
+An authenticated band owner can request a one-time, 30-minute recovery code using `POST /api/bands/{band_id}/account-recovery` with a member email. The owner must verify the requester's identity through a trusted channel before sharing this code. The response contains the token once, for secure manual delivery; **there is no email integration**. Any public exposure of the code allows an account takeover.
+
+A user can redeem a valid token using `POST /api/auth/recover` with `token` and `password`. Redemption invalidates all existing sessions and deletes outstanding recovery codes for that account. Expired tokens, reused tokens and tokens superseded by a new issuance are rejected. Owners cannot reset other owners through this flow.
+
+**Production blockers:** verified out-of-band identity confirmation, recovery audit events, delivery channel, access to the recovery UX, per-user and per-IP throttling, and a separate high-assurance owner recovery process. Do not activate account mode in production solely on the strength of passing API tests.
