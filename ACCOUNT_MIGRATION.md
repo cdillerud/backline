@@ -20,3 +20,25 @@
 8. Ensure HTTPS, caching, restrictive CSP and audit trail for privileged operations.
 
 No external OAuth, email sending, public account registration or social posting is enabled in this branch.
+
+## Verified on-host snapshot utility
+For a running deployment, obtain a consistent SQLite backup using the SQLite online backup API:
+```sh
+python -m src.backup_db \\
+  --source /data/backline.db \\
+  --destination /data/backline-snapshot-YYYYMMDD-HHMM.db
+```
+This prints the absolute path, byte count, SHA-256 hash, and integrity result. The utility refuses to overwrite previous snapshots. The snapshot is **on the same Fly volume** until transferred elsewhere. It is not disaster recovery by itself.
+
+Before release, establish an encrypted off-site destination, a lifecycle/retention policy, periodic scheduling, alerting, and a rehearsed restore on an isolated machine. Never publish snapshots or secrets into the GitHub repository.
+
+## Explicit owner setup (staging only)
+After the account schema is initialized against a *backup copy* and verified, an administrator may run:
+```sh
+BACKLINE_DB=/path/to/staging.db \\
+BACKLINE_OWNER_EMAIL=owner@example.com \\
+BACKLINE_OWNER_NAME='Band Owner' \\
+BACKLINE_OWNER_PASSWORD='<secure unique password>' \\
+python -m src.bootstrap_owner --band-id 1
+```
+Do not paste a real password into shell history; the inline form above is for documentation only. Prefer a secure secret injection method or an interactive prompt wrapper. The command refuses unknown bands, pre-owned bands and existing user email addresses. It does not assign ownership to all bands. It is not suitable for production until the administrator identity and existing records are verified.
