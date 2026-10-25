@@ -71,3 +71,21 @@ def accept_existing(con,token,user_id,now=None):
     con.execute("UPDATE band_invites SET used_at=? WHERE token_hash=? AND used_at IS NULL",
         (now,key))
     return {"band_id":invitation["band_id"],"role":invitation["role"]}
+
+def revoke(con,band_id,actor_id,token,now=None):
+    """Revoke an outstanding invitation; only privileged band users may do so."""
+    now=int(time.time()) if now is None else now
+    role=con.execute("SELECT role FROM band_users WHERE band_id=? AND user_id=?",
+        (band_id,actor_id)).fetchone()
+    if not role or role["role"] not in {"owner","manager"}:
+        raise HTTPException(403,"Manager permission required")
+    key=hashlib.sha256(token.encode()).hexdigest()
+    invite=con.execute("SELECT used_at FROM band_invites WHERE band_id=? AND token_hash=?",
+        (band_id,key)).fetchone()
+    if not invite:
+        raise HTTPException(404,"Invitation not found")
+    if invite["used_at"] is not None:
+        raise HTTPException(409,"Invitation already used or revoked")
+    con.execute("UPDATE band_invites SET used_at=? WHERE band_id=? AND token_hash=?",
+        (now,band_id,key))
+    return {"revoked":True}
