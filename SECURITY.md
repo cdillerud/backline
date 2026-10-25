@@ -22,3 +22,10 @@ Backline v0.1.1 uses a single shared Basic Auth password as a **private preview 
 
 ## Reporting vulnerabilities
 Open a private security advisory or contact the repository maintainer. Do not publish working exploits or secrets in GitHub issues.
+
+## Experimental account work (v0.2 branch)
+The account middleware, membership tables and bearer-token endpoints are **API-only development infrastructure**. The existing browser frontend does not have a login flow, logout flow, token storage strategy, invitations or account recovery. Do not enable `BACKLINE_ACCOUNTS_ENABLED` in the deployed Fly service: doing so would break the current frontend.
+
+Tests create sample users directly in an isolated temporary database. There is no public self-registration or administrator bootstrap command. Before promoting account mode, add a secure one-time owner-claim process for legacy bands, manager-controlled invitations, secure browser sessions (prefer HttpOnly cookies with CSRF protections), and an explicit migration/recovery plan.
+
+Do not merge the current branch or deploy it until these release blockers are resolved.
