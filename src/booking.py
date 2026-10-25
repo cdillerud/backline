@@ -90,7 +90,7 @@ def attach(db):
         with db() as con:
             lead(con,band_id,booking_id)
             return [dict(r) for r in con.execute('''SELECT * FROM booking_activity
-                WHERE band_id=? AND lead_id=? ORDER BY happened_at DESC,id DESC''',(band_id,booking_id))]
+                WHERE band_id=? AND lead_id=? ORDER BY id DESC''',(band_id,booking_id))]
     @router.post('/api/bands/{band_id}/bookings/{booking_id}/activity',status_code=201)
     def record_activity(band_id:int,booking_id:int,data:ActivityInput):
         if data.kind not in ACTIVITIES: raise HTTPException(422,'Invalid activity type')
