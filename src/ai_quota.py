@@ -36,11 +36,18 @@ def reserve(con,band_id,day=None):
     day=day or datetime.datetime.now(datetime.timezone.utc).date().isoformat()
     limits=(("all",_limit("BACKLINE_AI_DAILY_GLOBAL_LIMIT",20,100)),
             (f"band:{int(band_id)}",_limit("BACKLINE_AI_DAILY_BAND_LIMIT",5,50)))
-    for scope,limit in limits:
-        result=con.execute("""INSERT INTO ai_daily_requests(day,scope,used)
-             VALUES(?,?,1)
-             ON CONFLICT(day,scope) DO UPDATE SET used=used+1
-             WHERE used<?""",(day,scope,limit))
-        if result.rowcount!=1:
-            raise HTTPException(429,"AI generation daily request limit reached")
+    con.execute("SAVEPOINT ai_request_reservation")
+    try:
+        for scope,limit in limits:
+            result=con.execute("""INSERT INTO ai_daily_requests(day,scope,used)
+                 VALUES(?,?,1)
+                 ON CONFLICT(day,scope) DO UPDATE SET used=used+1
+                 WHERE used<?""",(day,scope,limit))
+            if result.rowcount!=1:
+                raise HTTPException(429,"AI generation daily request limit reached")
+        con.execute("RELEASE SAVEPOINT ai_request_reservation")
+    except Exception:
+        con.execute("ROLLBACK TO SAVEPOINT ai_request_reservation")
+        con.execute("RELEASE SAVEPOINT ai_request_reservation")
+        raise
     return {"reserved":True,"day":day}
