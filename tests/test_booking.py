@@ -15,6 +15,11 @@ def test_booking_crm_history_and_band_isolation(tmp_path,monkeypatch):
     assert r.status_code==201,r.text
     lead=r.json()['id']
     assert c.get(base).json()[0]['stage']=='To Contact'
+    queue=c.get(f'/api/bands/{first}/booking-followups?through=2026-11-01')
+    assert queue.status_code==200 and queue.json()['count']==1
+    assert queue.json()['items'][0]['id']==lead
+    assert c.get(f'/api/bands/{first}/booking-followups?through=2026-10-31').json()['count']==0
+    assert c.get(f'/api/bands/{second}/booking-followups?through=2026-12-01').json()['count']==0
     activity=c.post(base+f'/{lead}/activity',json={'kind':'Email sent','detail':'Introduced the band','next_followup':'2026-11-03'})
     assert activity.status_code==201
     r=c.post(base+f'/{lead}/stage',json={'stage':'Contacted','detail':'Requested spring calendar'})
@@ -23,6 +28,9 @@ def test_booking_crm_history_and_band_isolation(tmp_path,monkeypatch):
     assert len(hist)==3
     assert hist[0]['kind']=='Stage changed'
     assert c.get(base).json()[0]['stage']=='Contacted'
+    # Stage changes to terminal states remove prospects from the actionable queue.
+    assert c.post(base+f'/{lead}/stage',json={'stage':'Confirmed','detail':'Offer accepted'}).status_code==201
+    assert c.get(f'/api/bands/{first}/booking-followups?through=2026-12-01').json()['count']==0
     assert c.post(base+f'/{lead}/activity',json={'kind':'Unapproved','detail':'Wrong'}).status_code==422
     assert c.post(base+f'/{lead}/stage',json={'stage':'Whatever','detail':'Wrong'}).status_code==422
     wrong=f'/api/bands/{second}/bookings/{lead}'
