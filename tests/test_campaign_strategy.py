@@ -143,3 +143,22 @@ def test_ai_daily_quotas_are_persistent_and_atomic(tmp_path,monkeypatch):
         assert c.execute("SELECT used FROM ai_daily_requests WHERE scope='all'").fetchone()[0]==2
     with sqlite3.connect(path) as c:
         assert reserve(c,1,day='2026-10-26')['reserved']
+
+
+def test_rejected_band_quota_does_not_consume_global_slot(tmp_path,monkeypatch):
+    import sqlite3
+    from src.ai_quota import setup,reserve
+    from fastapi import HTTPException
+    import pytest
+    monkeypatch.setenv('BACKLINE_AI_COPY_ENABLED','1')
+    monkeypatch.setenv('BACKLINE_AI_DAILY_GLOBAL_LIMIT','3')
+    monkeypatch.setenv('BACKLINE_AI_DAILY_BAND_LIMIT','1')
+    with sqlite3.connect(tmp_path/'atomic.db') as db:
+        setup(db)
+        reserve(db,1,day='2026-10-25')
+        with pytest.raises(HTTPException):
+            reserve(db,1,day='2026-10-25')
+        scopes=dict(db.execute('SELECT scope,used FROM ai_daily_requests'))
+        assert scopes=={'all':1,'band:1':1}
+        reserve(db,2,day='2026-10-25')
+        assert db.execute("SELECT used FROM ai_daily_requests WHERE scope='all'").fetchone()[0]==2
