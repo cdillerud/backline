@@ -52,3 +52,22 @@ def accept(con,token,email,name,password,now=None):
                 (row['band_id'],created.lastrowid,row['role']))
     con.execute("UPDATE band_invites SET used_at=? WHERE token_hash=? AND used_at IS NULL",(now,key))
     return {'band_id':row['band_id'],'role':row['role']}
+
+def accept_existing(con,token,user_id,now=None):
+    """Redeem an invitation only for the currently signed-in matching email."""
+    now=int(time.time()) if now is None else now
+    key=hashlib.sha256(token.encode()).hexdigest()
+    invitation=con.execute("""SELECT * FROM band_invites
+        WHERE token_hash=? AND used_at IS NULL AND expires_at>?""",(key,now)).fetchone()
+    user=con.execute("SELECT email FROM users WHERE id=?",(user_id,)).fetchone()
+    if not invitation or not user or user["email"].strip().lower()!=invitation["email"]:
+        raise HTTPException(400,"Invitation invalid or not intended for this account")
+    existing=con.execute("SELECT 1 FROM band_users WHERE band_id=? AND user_id=?",
+        (invitation["band_id"],user_id)).fetchone()
+    if existing:
+        raise HTTPException(409,"Already a member of this band")
+    con.execute("INSERT INTO band_users(band_id,user_id,role) VALUES(?,?,?)",
+        (invitation["band_id"],user_id,invitation["role"]))
+    con.execute("UPDATE band_invites SET used_at=? WHERE token_hash=? AND used_at IS NULL",
+        (now,key))
+    return {"band_id":invitation["band_id"],"role":invitation["role"]}
