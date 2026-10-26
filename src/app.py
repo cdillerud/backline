@@ -455,5 +455,8 @@ app.include_router(attach_media_pages(db))
 app.include_router(attach_sharing(db))
 app.include_router(attach_operations_audit(db))
 app.include_router(attach_show_logistics(db))
+from .rehearsal_plans import attach as attach_rehearsal_plans, setup as setup_rehearsal_plans
+app.include_router(attach_rehearsal_plans(db))
+with db() as _rehearsal_db:setup_rehearsal_plans(_rehearsal_db)
 app.include_router(attach_itinerary_imports(db))
 init_db()
