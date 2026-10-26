@@ -169,6 +169,13 @@ def test_import_source_and_validation_are_manager_scoped(accounts):
     source=c.get(path+f'/{made["id"]}/source',headers=h['owner']).json()
     assert source['source_text']==payload['csv_text'] and source['source_sha256']==made['source_sha256']
     assert c.get(path+f'/{made["id"]}/source',headers=h['member']).status_code==403
+    report=c.get(path+f'/{made["id"]}/review.csv',headers=h['owner'])
+    assert report.status_code==200 and 'text/csv' in report.headers['content-type']
+    assert 'no-store' in report.headers['cache-control']
+    assert 'Source line' in report.text and 'PRIVATE SOURCE NOTE' not in report.text
+    assert c.get(path+f'/{made["id"]}/review.csv',headers=h['member']).status_code==403
+    assert c.get(f'/api/bands/{other}/itinerary-imports/{made["id"]}/review.csv',headers=h['outsider']).status_code in (403,404)
+
     for csv_text in ['date,city,unknown\n2026-12-01,Test,x\n','date,date,city\n2026-12-01,2026-12-01,Test\n','date,city\n']:
         assert c.post(path,headers=h['owner'],json={**payload,'csv_text':csv_text}).status_code==422
     assert c.post(path,headers=h['owner'],json={**payload,'csv_text':'date,city\n'+'2026-12-01,City\n'*201}).status_code==422
