@@ -3,8 +3,10 @@
 No bearer-in-URL feeds, anonymous events or public calendar sharing.
 """
 import datetime
+import os
+from .accounts import authorized
 import json
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, Request
 from pydantic import BaseModel, Field
 from .show_schedule import TIME_PATTERN, valid_timezone
 from zoneinfo import ZoneInfo
@@ -17,7 +19,9 @@ class Assignment(BaseModel):
     calendar_id:int
 
 def setup(con):
-    con.executescript('''CREATE TABLE IF NOT EXISTS band_calendars(
+    con.executescript('''CREATE TABLE IF NOT EXISTS event_classifications(
+        event_id INTEGER PRIMARY KEY REFERENCES events(id),band_id INTEGER NOT NULL REFERENCES bands(id),kind TEXT NOT NULL CHECK(kind='Session'));
+        CREATE TABLE IF NOT EXISTS band_calendars(
         id INTEGER PRIMARY KEY,band_id INTEGER NOT NULL REFERENCES bands(id),name TEXT NOT NULL,color TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS event_calendars(
         event_id INTEGER PRIMARY KEY REFERENCES events(id),band_id INTEGER NOT NULL REFERENCES bands(id),
@@ -89,24 +93,27 @@ def attach(db):
                 ON CONFLICT(event_id) DO UPDATE SET calendar_id=excluded.calendar_id''',(event_id,band_id,data.calendar_id))
         return {'assigned':True}
     @router.get('/api/bands/{band_id}/calendar/events')
-    def calendar_events(band_id:int):
+    def calendar_events(band_id:int,request:Request):
         with db() as con:
             band(con,band_id)
-            rows=con.execute('''SELECT e.*,c.id AS calendar_id,c.name AS calendar_name,c.color AS calendar_color,a.body_json
-                FROM events e LEFT JOIN event_calendars ec ON ec.event_id=e.id AND ec.band_id=e.band_id
+            rows=con.execute('''SELECT e.*,c.id AS calendar_id,c.name AS calendar_name,c.color AS calendar_color,a.body_json,cl.kind AS classified_kind
+                FROM events e LEFT JOIN event_classifications cl ON cl.event_id=e.id AND cl.band_id=e.band_id
+                LEFT JOIN event_calendars ec ON ec.event_id=e.id AND ec.band_id=e.band_id
                 LEFT JOIN band_calendars c ON c.id=ec.calendar_id AND c.band_id=e.band_id
                 LEFT JOIN venue_advances a ON a.event_id=e.id AND a.band_id=e.band_id
                 WHERE e.band_id=? ORDER BY e.date,e.time,e.id''',(band_id,)).fetchall()
+            allowed=os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1' or authorized(con,request.state.user['id'],band_id,'GET',f'/api/bands/{band_id}/finance')
             result=[]
             for row in rows:
-                item=dict(row);item['advance']=json.loads(item.pop('body_json') or '{}')
+                item=dict(row);item['kind']=item.pop('classified_kind') or item['kind'];item['advance']=json.loads(item.pop('body_json') or '{}')
                 item['calendar_name']=item['calendar_name'] or item['kind']
                 item['calendar_color']=item['calendar_color'] or ('#b9fb74' if item['kind']=='Gig' else '#93c5fd')
+                if not allowed:item.pop('fee_cents',None)
                 result.append(item)
             return result
     @router.get('/api/bands/{band_id}/calendar.ics')
-    def export_calendar(band_id:int):
+    def export_calendar(band_id:int,request:Request):
         with db() as con:name=band(con,band_id)
-        return Response(render_ical(name,calendar_events(band_id)),media_type='text/calendar',
+        return Response(render_ical(name,calendar_events(band_id,request)),media_type='text/calendar',
                         headers={'Content-Disposition':f'attachment; filename="backline-calendar-{band_id}.ics"','Cache-Control':'no-store'})
     return router

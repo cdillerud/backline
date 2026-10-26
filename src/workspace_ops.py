@@ -8,6 +8,8 @@ import json
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, Field, field_validator
 from .show_pdf import create_setlist_pdf
+from .collaboration import notify_task
+from .sharing import resolve_shared_venue
 
 router=APIRouter()
 
@@ -146,6 +148,7 @@ def attach(db):
             record(con,'workspace_venues',band_id,data.venue_id)
             con.execute('''INSERT INTO event_venues(event_id,band_id,venue_id) VALUES(?,?,?)
                 ON CONFLICT(event_id) DO UPDATE SET venue_id=excluded.venue_id''',(event_id,band_id,data.venue_id))
+            con.execute('DELETE FROM event_shared_venues WHERE band_id=? AND event_id=?',(band_id,event_id))
         return {'linked':True}
     @router.get('/api/bands/{band_id}/events/{event_id}/venue')
     def event_venue(band_id:int,event_id:int):
@@ -153,7 +156,7 @@ def attach(db):
             record(con,'events',band_id,event_id)
             row=con.execute('''SELECT v.* FROM event_venues e JOIN workspace_venues v ON v.id=e.venue_id AND v.band_id=e.band_id
                 WHERE e.band_id=? AND e.event_id=?''',(band_id,event_id)).fetchone()
-            return json.loads(row['body_json'])|{'id':row['id']} if row else None
+            return json.loads(row['body_json'])|{'id':row['id']} if row else resolve_shared_venue(con,band_id,event_id)
     @router.get('/api/bands/{band_id}/tasks')
     def tasks(band_id:int):
         with db() as con:
@@ -169,11 +172,13 @@ def attach(db):
         with db() as con:
             band(con,band_id);task_links(con,band_id,data)
             row=con.execute('INSERT INTO workspace_tasks(band_id,body_json) VALUES(?,?)',(band_id,data.model_dump_json()))
+            notify_task(con,band_id,row.lastrowid,data)
             return {'id':row.lastrowid}
     @router.put('/api/bands/{band_id}/tasks/{task_id}')
     def edit_task(band_id:int,task_id:int,data:Task):
         with db() as con:
-            record(con,'workspace_tasks',band_id,task_id);task_links(con,band_id,data)
+            previous=json.loads(record(con,'workspace_tasks',band_id,task_id)['body_json']);task_links(con,band_id,data)
+            notify_task(con,band_id,task_id,data,previous)
             con.execute('UPDATE workspace_tasks SET body_json=? WHERE id=? AND band_id=?',(data.model_dump_json(),task_id,band_id))
         return {'updated':True}
     @router.get('/api/bands/{band_id}/song-details')

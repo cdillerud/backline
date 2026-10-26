@@ -6,6 +6,7 @@ future template edits do not silently rewrite previously advanced shows.
 import json
 from fastapi.responses import Response
 from .show_pdf import create_show_pdf
+from .sharing import resolve_shared_venue
 from fastapi import APIRouter,HTTPException
 from pydantic import BaseModel,Field
 
@@ -100,7 +101,7 @@ def attach(db):
             venue_row=con.execute("""SELECT v.body_json FROM event_venues e
                 JOIN workspace_venues v ON v.id=e.venue_id AND v.band_id=e.band_id
                 WHERE e.band_id=? AND e.event_id=?""",(band_id,event_id)).fetchone()
-            venue=json.loads(venue_row["body_json"]) if venue_row else None
+            venue=json.loads(venue_row["body_json"]) if venue_row else resolve_shared_venue(con,band_id,event_id)
         payload=create_show_pdf(band_record,event,documents,stage=stage,advance=advance,venue_details=venue)
         return Response(content=payload,media_type="application/pdf",
             headers={"Content-Disposition":f'attachment; filename="backline-show-{event_id}.pdf"',

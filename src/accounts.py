@@ -121,7 +121,13 @@ def authorized(con, user_id, band_id, method, path):
         return True
     if role=="treasurer":
         return financial
-    # Member and viewer can read their workspace, not mutate any data.
+    if role=='member':
+        # These exact paths derive actor identity from the authenticated session.
+        prefix=rf"/api/bands/{band_id}"
+        if method=='PUT' and re.fullmatch(prefix+r"/events/\d+/rsvp",path):return True
+        if method=='POST' and re.fullmatch(prefix+r"/discussions/\d+/(posts|typing)",path):return True
+        if method=='PUT' and re.fullmatch(prefix+r"/discussions/\d+/posts/\d+",path):return True
+    # Viewers remain read-only; other member writes remain denied.
     return False
 
 def install_accounts(app, db):
@@ -130,9 +136,13 @@ def install_accounts(app, db):
         if os.getenv("BACKLINE_ACCOUNTS_ENABLED") != "1":
             return await call_next(request)
         path=request.url.path
-        if path in ("/","/api/health","/api/auth/login","/api/auth/accept-invite","/api/auth/recover") or path.startswith("/static/"):
+        if path in ("/","/service-worker.js","/api/health","/api/auth/login","/api/auth/accept-invite","/api/auth/recover") or path.startswith("/static/"):
             return await call_next(request)
-        # When accounts are enabled, no anonymous access to static assets or API.
+        public_path=re.fullmatch(r"/public/bands/[a-z0-9]+(?:-[a-z0-9]+)*(?:/data|/media/[a-f0-9]{32})?",path)
+        feed_path=re.fullmatch(r"/calendar-feeds/[a-f0-9]{64}\.ics",path)
+        if request.method=='GET' and os.getenv('BACKLINE_PUBLIC_SHARING_ENABLED')=='1' and (public_path or feed_path):
+            return await call_next(request)
+        # Every other account API still requires a valid session.
         auth=request.headers.get("authorization","")
         if not auth.startswith("Bearer "):
             return JSONResponse({"detail":"Account login required"},status_code=401)

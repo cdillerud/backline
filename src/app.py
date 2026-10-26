@@ -11,9 +11,11 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from .version import VERSION
+
 ROOT = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get('BACKLINE_DB', ROOT.parent / 'backline.db'))
-app = FastAPI(title='Backline API', version='0.1.0')
+app = FastAPI(title='Backline API', version=VERSION)
 app.mount('/static', StaticFiles(directory=str(ROOT/'static')), name='static')
 from .recovery import setup as setup_recovery, issue as issue_recovery, redeem as redeem_recovery
 from .invitations import setup as setup_invites, create as create_invite, accept as accept_invite, accept_existing, revoke as revoke_invite
@@ -24,6 +26,9 @@ from .show_files import setup as setup_show_files, attach as attach_show_files
 from .tax_records import setup as setup_tax_records, attach as attach_tax_records
 from .tour_routes import setup as setup_tour_routes, attach as attach_tour_routes
 from .stage_plots import setup as setup_stage_plots, attach as attach_stage_plots
+from .sharing import setup as setup_sharing, attach as attach_sharing
+from .media_pages import setup as setup_media_pages, attach as attach_media_pages
+from .collaboration import setup as setup_collaboration, attach as attach_collaboration
 from .calendars import setup as setup_calendars, attach as attach_calendars
 from .workspace_ops import setup as setup_workspace_ops, attach as attach_workspace_ops
 from .venue_advance import setup as setup_venue_advance, attach as attach_venue_advance
@@ -71,6 +76,9 @@ def init_db():
         setup_venue_advance(c)
         setup_workspace_ops(c)
         setup_calendars(c)
+        setup_collaboration(c)
+        setup_media_pages(c)
+        setup_sharing(c)
         if os.getenv('BACKLINE_DEMO_SEED')=='1' and os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
             from .demo_seed import seed
             seed(c)
@@ -144,8 +152,10 @@ class SettlementInput(BaseModel):
 
 @app.get('/')
 def home(): return FileResponse(ROOT/'static'/'index.html')
+@app.get('/service-worker.js')
+def service_worker(): return FileResponse(ROOT/'static'/'service-worker.js',media_type='application/javascript',headers={'Cache-Control':'no-store'})
 @app.get('/api/health')
-def health(): return {'status':'ok','version':'0.1.0'}
+def health(): return {'status':'ok','version':VERSION,'build_sha':os.getenv('BACKLINE_BUILD_SHA','development')}
 class LoginInput(BaseModel):
     email: str
     password: str
@@ -287,15 +297,28 @@ def add_member(band_id:int,data:MemberInput):
     band_exists(band_id)
     with db() as c:
         cur=c.execute('INSERT INTO members(band_id,name,instrument,email,role) VALUES(?,?,?,?,?)',(band_id,data.name.strip(),data.instrument,data.email,data.role));return {'id':cur.lastrowid}
+def financial_access(band_id,request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':return True
+    from .accounts import authorized
+    with db() as con:return authorized(con,request.state.user['id'],band_id,'GET',f'/api/bands/{band_id}/finance')
+
 @app.get('/api/bands/{band_id}/events')
-def events(band_id:int):
-    band_exists(band_id);return fetchall('SELECT * FROM events WHERE band_id=? ORDER BY date,time,id',(band_id,))
+def events(band_id:int,request:Request):
+    band_exists(band_id)
+    rows=fetchall('''SELECT e.*,cl.kind AS classified_kind FROM events e LEFT JOIN event_classifications cl ON cl.event_id=e.id AND cl.band_id=e.band_id WHERE e.band_id=? ORDER BY e.date,e.time,e.id''',(band_id,))
+    allowed=financial_access(band_id,request)
+    for row in rows:
+        row['kind']=row.pop('classified_kind') or row['kind']
+        if not allowed:row.pop('fee_cents',None)
+    return rows
 @app.post('/api/bands/{band_id}/events',status_code=201)
 def add_event(band_id:int,data:EventInput):
     band_exists(band_id)
-    if data.kind not in ('Gig','Rehearsal'):raise HTTPException(422,'Invalid event kind')
+    if data.kind not in ('Gig','Rehearsal','Session'):raise HTTPException(422,'Invalid event kind')
     with db() as c:
-        cur=c.execute('INSERT INTO events(band_id,kind,title,venue,date,time,status,notes,fee_cents) VALUES(?,?,?,?,?,?,?,?,?)',(band_id,data.kind,data.title,data.venue,str(data.date),data.time,data.status,data.notes,cents(data.fee)));return {'id':cur.lastrowid}
+        cur=c.execute('INSERT INTO events(band_id,kind,title,venue,date,time,status,notes,fee_cents) VALUES(?,?,?,?,?,?,?,?,?)',(band_id,'Rehearsal' if data.kind=='Session' else data.kind,data.title,data.venue,str(data.date),data.time,data.status,data.notes,cents(data.fee)))
+        if data.kind=='Session':c.execute("INSERT INTO event_classifications(event_id,band_id,kind) VALUES(?,?,'Session')",(cur.lastrowid,band_id))
+        return {'id':cur.lastrowid}
 @app.get('/api/bands/{band_id}/songs')
 def songs(band_id:int):
     band_exists(band_id);return fetchall('SELECT * FROM songs WHERE band_id=? ORDER BY title',(band_id,))
@@ -397,13 +420,19 @@ def settle(band_id:int,event_id:int,data:SettlementInput):
         for i,mid in enumerate(ids):c.execute('INSERT INTO settlement_shares(settlement_id,member_id,amount_cents) VALUES(?,?,?)',(sid,mid,base+(1 if i<remainder else 0)))
         return {'id':sid,'net_cents':net,'reserve_cents':retained,'distributable_cents':available}
 @app.get('/api/bands/{band_id}/dashboard')
-def dashboard(band_id:int):
+def dashboard(band_id:int,request:Request):
     band_exists(band_id)
     today=datetime.date.today().isoformat()
     with db() as c:
-        upcoming=[dict(r) for r in c.execute('SELECT * FROM events WHERE band_id=? AND date>=? ORDER BY date,time LIMIT 6',(band_id,today))]
+        upcoming=[dict(r) for r in c.execute('''SELECT e.*,cl.kind AS classified_kind FROM events e LEFT JOIN event_classifications cl ON cl.event_id=e.id AND cl.band_id=e.band_id WHERE e.band_id=? AND e.date>=? ORDER BY e.date,e.time LIMIT 6''',(band_id,today))]
+        for event in upcoming:event['kind']=event.pop('classified_kind') or event['kind']
         counts={'members':c.execute('SELECT COUNT(*) FROM members WHERE band_id=? AND active=1',(band_id,)).fetchone()[0], 'songs':c.execute('SELECT COUNT(*) FROM songs WHERE band_id=?',(band_id,)).fetchone()[0], 'gigs':c.execute("SELECT COUNT(*) FROM events WHERE band_id=? AND kind='Gig' AND date>=?",(band_id,today)).fetchone()[0]}
-    return {'upcoming':upcoming,'counts':counts,'finance':finance(band_id)}
+    allowed=financial_access(band_id,request)
+    if not allowed:
+        for event in upcoming:event.pop('fee_cents',None)
+    result={'upcoming':upcoming,'counts':counts}
+    if allowed:result['finance']=finance(band_id)
+    return result
 
 app.include_router(attach_booking(db))
 app.include_router(attach_studio(db))
@@ -415,4 +444,7 @@ app.include_router(attach_stage_plots(db))
 app.include_router(attach_venue_advance(db))
 app.include_router(attach_workspace_ops(db))
 app.include_router(attach_calendars(db))
+app.include_router(attach_collaboration(db))
+app.include_router(attach_media_pages(db))
+app.include_router(attach_sharing(db))
 init_db()
