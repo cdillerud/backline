@@ -1,0 +1,26 @@
+"""Unified scheduling and band-social navigation smoke coverage."""
+import pytest
+from playwright.sync_api import sync_playwright,expect
+from test_browser_show_ops import preview_url
+
+@pytest.mark.parametrize("width",[1280,390])
+def test_schedule_and_band_hub_navigation(preview_url,width):
+    with sync_playwright() as p:
+        browser=p.chromium.launch()
+        page=browser.new_page(viewport={"width":width,"height":900})
+        errors=[]
+        page.on("pageerror",lambda err:errors.append(str(err)))
+        page.goto(preview_url,wait_until="networkidle")
+        page.locator('[data-go="schedule"]:visible').first.click()
+        expect(page.get_by_role("tab",name="Calendar",exact=True)).to_be_visible()
+        page.get_by_role("tab",name="Shows",exact=True).click()
+        expect(page.get_by_role("heading",name="Shows",exact=True)).to_be_visible()
+        page.get_by_role("tab",name="Rehearsals",exact=True).click()
+        expect(page.get_by_role("heading",name="Rehearsals",exact=True)).to_be_visible()
+        page.get_by_role("tab",name="Agenda",exact=True).click()
+        expect(page.get_by_role("tab",name="Agenda",exact=True)).to_have_attribute("aria-selected","true")
+        page.locator('[data-go="collaboration"]:visible').first.click()
+        expect(page.get_by_role("heading",name="Your band, connected")).to_be_visible()
+        expect(page.get_by_role("button",name="Photos & albums")).to_be_visible()
+        assert not errors,errors
+        browser.close()
