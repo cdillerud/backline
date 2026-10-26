@@ -187,6 +187,17 @@ def test_import_mapping_preview_requires_new_review_and_preserves_original(accou
     raw='Day,Town,Stage,Private note\\n2026-12-01,Minneapolis,Sample Hall,DO NOT DISTRIBUTE\\n'
     # Raw nonstandard headings are not accepted as a directly applicable import.
     assert c.post(path,headers=h['owner'],json={'tour_id':tour,'filename':'nonstandard.csv','csv_text':raw}).status_code==422
+    mapped=c.post(path+'/map-source',headers=h['owner'],json={
+        'tour_id':tour,'filename':'nonstandard.csv','csv_text':raw,
+        'mapping':{'Day':'date','Town':'city','Stage':'venue','Private note':'travel_notes'}})
+    assert mapped.status_code==200,mapped.text
+    assert mapped.json()['requires_new_review']
+    assert mapped.json()['rows'][0]['data']['travel_notes']=='DO NOT DISTRIBUTE'
+    assert c.get(base+f'/tours/{tour}/route',headers=h['owner']).json()['stops']==[]
+    assert c.post(path+'/map-source',headers=h['member'],json={
+        'tour_id':tour,'filename':'nonstandard.csv','csv_text':raw,
+        'mapping':{'Day':'date','Town':'city'}}).status_code==403
+
     seed='date,city,venue\\n2026-12-01,Minneapolis,Sample Hall\\n'
     draft=c.post(path,headers=h['owner'],json={'tour_id':tour,'filename':'original.csv','csv_text':seed}).json()
     ident=draft['id']
