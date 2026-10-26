@@ -3,8 +3,10 @@ from test_collaboration import accounts
 
 def test_rehearsal_plans_are_band_scoped_and_manager_editable(accounts):
     app,c,band,other,base,users,h,gig,_,_=accounts
-    event=c.post(base+'/events',json={'kind':'Rehearsal','title':'Synthetic practice',
-        'date':'2026-12-08','time':'18:00','venue':'Test studio'}).json()['id']
+    created_event=c.post(base+'/events',headers=h['owner'],json={'kind':'Rehearsal','title':'Synthetic practice',
+        'date':'2026-12-08','time':'18:00','venue':'Test studio'})
+    assert created_event.status_code==201,created_event.text
+    event=created_event.json()['id']
     url=base+f'/rehearsals/{event}/plan'
     empty=c.get(url,headers=h['owner'])
     assert empty.status_code==200,empty.text
