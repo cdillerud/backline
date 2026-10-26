@@ -22,6 +22,12 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
             page.get_by_role("button",name="Close details").click()
         page.get_by_role("tab",name="Rehearsals",exact=True).click()
         expect(page.get_by_role("heading",name="Rehearsals",exact=True)).to_be_visible()
+        if page.get_by_role("button",name="Prepare",exact=True).count():
+            page.get_by_role("button",name="Prepare",exact=True).first.click()
+            expect(page.get_by_role("button",name="Songs to practice")).to_be_visible()
+            expect(page.get_by_role("button",name="Rehearsal repertoire")).to_be_visible()
+            expect(page.get_by_role("button",name="Preparation tasks")).to_be_visible()
+            page.get_by_role("button",name="Close details").click()
         page.get_by_role("tab",name="Agenda",exact=True).click()
         expect(page.get_by_role("tab",name="Agenda",exact=True)).to_have_attribute("aria-selected","true")
         page.locator('[data-go="collaboration"]:visible').first.click()
