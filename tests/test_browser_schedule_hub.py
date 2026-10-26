@@ -25,6 +25,9 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
         if page.get_by_role("button",name="Prepare",exact=True).count():
             page.get_by_role("button",name="Prepare",exact=True).first.click()
             expect(page.get_by_role("button",name="Songs to practice")).to_be_visible()
+            page.get_by_role("button",name="Objectives & notes").click()
+            expect(page.get_by_role("dialog",name="Rehearsal objectives and notes")).to_be_visible()
+            page.get_by_role("dialog",name="Rehearsal objectives and notes").get_by_role("button",name="Close").click()
             expect(page.get_by_role("button",name="Rehearsal repertoire")).to_be_visible()
             expect(page.get_by_role("button",name="Preparation tasks")).to_be_visible()
             page.get_by_role("button",name="Close details").click()
