@@ -49,4 +49,12 @@
 .scheduleEventLink{display:block;text-align:left;width:100%;padding:3px;background:transparent;border:0;color:inherit;cursor:pointer;font:inherit}.scheduleEventLink:hover,.scheduleEventLink:focus-visible{text-decoration:underline;outline-offset:2px}
 .showDayCalls{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.showDayCalls span{padding:6px 10px;border:1px solid #526272;border-radius:8px;font-size:12px}.showDayCalls strong{margin-right:5px}
 .hubConversation{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:48px;padding:12px;text-align:left;border:1px solid #45566a;border-radius:10px;background:transparent;color:inherit}.hubConversation:hover,.hubConversation:focus-visible{border-color:#93c5fd}.hubConversation small{opacity:.8}
+/* v0.5 contextual navigation */
+.workspaceSubnav{margin:2px 0 10px 12px;padding-left:8px;border-left:1px solid #354456}
+.workspaceSubnav button{font-size:13px;padding:9px 12px;font-weight:600}
+.workspaceSubnav button.active{background:#25383a}
+@media(max-width:1000px) and (min-width:661px){.workspaceSubnav{margin:0;padding:0;border:0}.workspaceSubnav button{font-size:20px;padding:10px}}
+@media(max-width:660px){.mobileNav{gap:0;justify-content:space-between;padding-bottom:max(9px,env(safe-area-inset-bottom))}
+.mobileNav button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:17px;padding:7px 1px}
+.mobileNav button span{display:block;font-size:9px;line-height:1.15;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
