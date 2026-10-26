@@ -67,6 +67,13 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             page.get_by_role("tab",name="Day of show").click()
             expect(page.get_by_text("Tour day sheets",exact=True)).to_be_visible()
             expect(page.get_by_text("Show days and travel stops in chronological order",exact=False)).to_be_visible()
+            # The day sheet must reuse the existing itinerary editor for both show and travel stops.
+            edit_buttons=page.locator("[data-edit-stop]")
+            if edit_buttons.count():
+                edit_buttons.first.click()
+                expect(page.get_by_role("dialog")).to_be_visible()
+                expect(page.get_by_role("dialog").get_by_text("Edit tour stop")).to_be_visible()
+                page.get_by_role("dialog").press("Escape")
             page.get_by_role("tab",name="Itinerary",exact=True).click()
             assert not errors,errors
             browser.close()
