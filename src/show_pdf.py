@@ -5,9 +5,36 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, KeepTogether
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, KeepTogether, Flowable, Table, TableStyle
 
-def create_show_pdf(band, gig, packets):
+class StageDiagram(Flowable):
+    """Vector stage plot embedded directly in the PDF, no external images."""
+    def __init__(self, items):
+        super().__init__()
+        self.items=items
+        self.width=500
+        self.height=295
+
+    def draw(self):
+        c=self.canv
+        c.setStrokeColor(colors.HexColor('#71849b'))
+        c.setFillColor(colors.HexColor('#f0f5f9'))
+        c.roundRect(4,20,492,265,12,stroke=1,fill=1)
+        c.setFont('Helvetica-Bold',9)
+        c.setFillColor(colors.HexColor('#36506a'))
+        c.drawCentredString(250,273,'UPSTAGE')
+        c.drawCentredString(250,7,'AUDIENCE / DOWNSTAGE')
+        for item in self.items:
+            x=20+max(0,min(100,item['x']))*4.6
+            y=34+(100-max(0,min(100,item['y'])))*2.25
+            c.setFillColor(colors.HexColor('#d1f3a9'))
+            c.circle(x,y,12,stroke=1,fill=1)
+            c.setFillColor(colors.HexColor('#203448'))
+            c.setFont('Helvetica',8)
+            label=str(item.get('label',''))[:32]
+            c.drawCentredString(x,max(24,y-24),label)
+
+def create_show_pdf(band, gig, packets, stage=None):
     """Render a PDF from already-authorized band/gig records."""
     output=BytesIO()
     doc=SimpleDocTemplate(output,pagesize=(612,792),rightMargin=53,leftMargin=53,
@@ -31,7 +58,10 @@ def create_show_pdf(band, gig, packets):
     e=lambda v:escape(str(v or ''))
     def para(value,style='TextX'):
         return Paragraph(e(value).replace('\n','<br/>'),base[style])
+    stage=stage or {'items':[],'inputs':[],'notes':''}
     notes=[]
+    if not stage.get('items'):notes.append('Stage plot has no equipment positions.')
+    if not stage.get('inputs'):notes.append('Audio input list has no channels.')
     if not packets:notes.append('No show documents have been created.')
     for packet in packets:
         if packet['status']!='ready':
@@ -53,12 +83,36 @@ def create_show_pdf(band, gig, packets):
     if notes:
         story.append(para('WORKING DRAFT — review missing or unconfirmed details before distribution.','NoticeX'))
     story.extend([PageBreak(),para('Contents','TitleX')])
+    story.append(para('Stage plot and audio inputs'))
     for n,packet in enumerate(packets,1):
         story.append(para(f"{n}. {packet['title']} — {packet['status'].upper()}"))
     if notes:
         story.extend([Spacer(1,.28*inch),para('Items requiring confirmation','SectionX')])
         for note in notes:
             story.append(para('• '+note,'NoticeX'))
+    if stage.get('items') or stage.get('inputs'):
+        story.extend([PageBreak(),para('Stage plot and audio inputs','TitleX')])
+        if stage.get('items'):
+            story.extend([para('Stage layout','SectionX'),StageDiagram(stage['items'])])
+        if stage.get('notes'):
+            story.extend([Spacer(1,10),para('Stage notes','SectionX'),para(stage['notes'])])
+        if stage.get('inputs'):
+            story.append(para('Audio input list','SectionX'))
+            rows=[[para(h) for h in ('CH','Source','Microphone / DI','Stand','Notes')]]
+            for item in sorted(stage['inputs'],key=lambda x:x['channel']):
+                rows.append([para(item.get(key,'')) for key in ('channel','source','microphone','stand','notes')])
+            table=Table(rows,colWidths=[34,116,124,68,158],repeatRows=1,hAlign='LEFT')
+            table.setStyle(TableStyle([
+                ('BACKGROUND',(0,0),(-1,0),colors.HexColor('#e8eef3')),
+                ('VALIGN',(0,0),(-1,-1),'TOP'),
+                ('LINEBELOW',(0,0),(-1,0),.8,colors.HexColor('#71849b')),
+                ('LINEBELOW',(0,1),(-1,-1),.3,colors.HexColor('#d8e1e9')),
+                ('LEFTPADDING',(0,0),(-1,-1),4),
+                ('RIGHTPADDING',(0,0),(-1,-1),4),
+                ('TOPPADDING',(0,0),(-1,-1),5),
+                ('BOTTOMPADDING',(0,0),(-1,-1),5)
+            ]))
+            story.append(table)
     for packet in packets:
         story.extend([PageBreak(),para(packet['title'],'TitleX'),
                       para('STATUS: '+packet['status'].upper(),'NoticeX' if packet['status']!='ready' else 'TextX')])
