@@ -31,13 +31,13 @@ def canonical_csv(source,mapping):
     if len(set(mapping.values()))!=len(mapping) or not {'date','city'}<=set(mapping.values()) or not set(mapping.values())<=COLUMNS:
         raise HTTPException(422,'Unique target columns including date and city are required')
     try:
-        reader=csv.DictReader(StringIO(source.lstrip('\\ufeff')),strict=True)
+        reader=csv.DictReader(StringIO(source.lstrip('\ufeff')),strict=True)
         headers=reader.fieldnames
         if not headers or len(headers)!=len(set(headers)) or not set(mapping)<=set(headers):
             raise HTTPException(422,'Mapped source columns must exist and be unique')
         buf=io.StringIO()
         columns=[col for col in sorted(COLUMNS) if col in mapping.values()]
-        writer=csv.DictWriter(buf,fieldnames=columns,lineterminator='\\n')
+        writer=csv.DictWriter(buf,fieldnames=columns,lineterminator='\n')
         writer.writeheader()
         for index,row in enumerate(reader,1):
             if index>200:raise HTTPException(422,'Import at most 200 rows at a time')
