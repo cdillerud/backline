@@ -63,7 +63,7 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             page.get_by_role('tab',name='Contracts & files').click()
             assert page.get_by_text('Contracts and show files').count()>0
             page.locator("[data-go='touring']").first.click()
-            page.get_by_role("heading",name="Tours",exact=True).wait_for(state="visible",timeout=15000)
+            page.get_by_role("heading",name="Tour Routing",exact=True).wait_for(state="visible",timeout=15000)
             assert not errors,errors
             browser.close()
     finally:
