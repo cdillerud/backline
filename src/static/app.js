@@ -4,7 +4,7 @@ const $=s=>document.querySelector(s);const esc=s=>String(s??'').replace(/[&<>"']
 const dollars=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format((n||0)/100);
 const datePretty=s=>{if(!s)return '';let [y,m,d]=s.split('-');return new Date(Number(y),Number(m)-1,Number(d)).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})};
 const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
-const api=async(path,options={})=>{const token=sessionStorage.getItem('backline_session');const headers={'Content-Type':'application/json',...(token?{'Authorization':'Bearer '+token}:{})};const r=await fetch('/api'+path,{...options,headers:{...headers,...(options.headers||{})}});const x=await r.json();if(!r.ok)throw Error(typeof x.detail==='string'?x.detail:'Request failed');return x};
+const api=async(path,options={})=>{const token=sessionStorage.getItem('backline_session');const headers={'Content-Type':'application/json',...(token?{'Authorization':'Bearer '+token}:{})};const r=await fetch('/api'+path,{...options,headers:{...headers,...(options.headers||{})}});const x=await r.json();if(!r.ok)throw Error(typeof x.detail==='string'?x.detail:Array.isArray(x.detail)?x.detail.map(d=>d.loc.slice(1).join('.')+': '+d.msg).join('; '):'Request failed');return x};
 function loginScreen(){document.querySelector('#app').innerHTML='<main style="min-height:100vh;display:grid;place-items:center;padding:24px"><form id="loginForm" class="panel" style="width:min(420px,100%)"><h1>Backline</h1><p class="sub">Sign in to your band workspace</p><div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="username" required></div><div class="field" style="margin-top:14px"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" required></div><div class="actions"><button class="primary" type="submit">Sign in</button></div><div style="margin-top:16px"><button type="button" id="showInviteSignup">Have an invitation? Create account</button><button type="button" id="showRecovery">Have a recovery code?</button></div></form></main>'}
 document.addEventListener('click',e=>{if(e.target.id!=='showInviteSignup')return;document.querySelector('#app').innerHTML='<main style="min-height:100vh;display:grid;place-items:center;padding:24px"><form class="panel" id="inviteSignup" style="width:min(480px,100%)"><h1>Join Backline</h1><p class="sub">Create an account using a band invitation.</p><div class="field"><label>Invitation token</label><input name="token" required autocomplete="off"></div><div class="field"><label>Email</label><input name="email" type="email" required></div><div class="field"><label>Your name</label><input name="display_name" required></div><div class="field"><label>Password (12+ characters)</label><input name="password" type="password" minlength="12" required autocomplete="new-password"></div><div class="actions"><button class="primary" type="submit">Create account</button><button type="button" id="backToLogin">Back</button></div></form></main>'});
 document.addEventListener('click',e=>{if(e.target.id==='backToLogin')loginScreen()});
@@ -16,7 +16,7 @@ document.addEventListener('submit',async e=>{if(e.target.id!=='loginForm')return
 document.addEventListener('click',async e=>{if(!e.target.closest('#logoutButton'))return;try{await api('/auth/logout',{method:'POST'})}catch(error){}sessionStorage.removeItem('backline_session');state.data={};loginScreen()});
 const get=key=>state.data[key]||[];
 async function load(){try{state.bands=await api('/bands');if(!state.bands.find(b=>b.id===state.band))state.band=state.bands[0]?.id;if(!state.previewSelected){const example=state.bands.find(b=>b.name==='The Drunk Uncles (Demo)');if(example){state.band=example.id;state.previewSelected=true}}const b=`/bands/${state.band}`;let names=['dashboard','events','finance','transactions','songs','setlists','members','settlements','bookings','booking-followups'];const vals=await Promise.all(names.map(x=>api(`${b}/${x}`)));names.forEach((x,i)=>state.data[x]=vals[i]);render()}catch(e){if(/Account login required|Invalid or expired session/.test(e.message)){sessionStorage.removeItem('backline_session');loginScreen();return}toast(e.message,true)}}
-function toast(msg,err=false){document.querySelector('.toast')?.remove();let e=document.createElement('div');e.className='toast'+(err?' errorToast':'');e.textContent=msg;document.body.append(e);setTimeout(()=>e.remove(),3600)}
+function toast(msg,err=false){document.querySelector('.toast')?.remove();let e=document.createElement('div');e.className='toast'+(err?' errorToast':'');e.setAttribute('role',err?'alert':'status');e.textContent=msg;document.body.append(e);setTimeout(()=>e.remove(),3600)}
 function button(text,action=''){return `<button class="primary" data-action="${action}">${text}</button>`}
 function empty(msg){return `<div class="empty">${esc(msg)}</div>`}
 function item(title,sub,tag=''){return `<div class="entry"><div class="entryMain"><strong>${esc(title)}</strong><small>${esc(sub)}</small></div>${tag?`<span class="tag">${esc(tag)}</span>`:''}</div>`}
@@ -45,9 +45,9 @@ async function openShowPacketGig(id){
  state.showGig=Number(id);
  try{
   const base='/bands/'+state.band+'/gigs/'+state.showGig;
-  const [packets,files,templates,stage,advance]=await Promise.all([
-   api(base+'/packet'),api(base+'/files'),api('/bands/'+state.band+'/show-templates'),api(base+'/stage'),api(base+'/advance')]);
-  state.data.showPackets=packets;state.data.showFiles=files;state.data.showTemplates=templates;state.data.showStage=stage;state.data.showAdvance=advance;
+  const [packets,files,templates,stage,advance,timeline]=await Promise.all([
+   api(base+'/packet'),api(base+'/files'),api('/bands/'+state.band+'/show-templates'),api(base+'/stage'),api(base+'/advance'),api(base+'/timeline')]);
+  state.data.showPackets=packets;state.data.showFiles=files;state.data.showTemplates=templates;state.data.showStage=stage;state.data.showAdvance=advance;state.data.showTimeline=timeline;
   state.section='showops';render();
  }catch(error){toast(error.message,true)}
 }
@@ -70,11 +70,26 @@ function touring(){
   (route.stops.length?'<div class="list">'+route.stops.map(stop=>
   '<div class="entry"><div><strong>'+datePretty(stop.stop_date)+' · '+esc(stop.city)+', '+esc(stop.region)+'</strong>'+
   '<p>'+esc(stop.venue||'Travel / routing day')+' · '+esc(stop.status)+'</p>'+
-  '<p>'+esc(stop.lodging||'No lodging recorded')+'</p></div></div>').join('')+'</div>':empty('Add your first tour stop.'))+
+  '<p>'+esc(stop.lodging||'No lodging recorded')+'</p><p>Arrive '+esc(stop.arrival_time||'TBC')+' · Depart '+esc(stop.departure_time||'TBC')+'</p><p>'+esc(stop.travel_notes)+'</p>'+
+  (stop.advance?'<p>Advance: '+esc(stop.advance.timeline.status)+' · '+esc(stop.advance.timeline.timezone||'Time zone TBC')+'</p><p>'+esc(stop.advance.venue_contact)+' · '+esc(stop.advance.contact_phone)+'</p><p>'+esc(stop.advance.parking)+'</p><button data-show-gig="'+stop.event_id+'">Open show call sheet</button> ':'')+
+  '<button data-edit-stop="'+stop.id+'">Edit stop</button></div></div>').join('')+'</div>':empty('Add your first tour stop.'))+
   '<p class="footNote">'+esc(route.note)+'</p>');
  if(route.warnings.length)html+=panel('Routing flags','<div class="list">'+route.warnings.map(w=>
   '<div class="entry">'+esc(w.message)+'</div>').join('')+'</div>');
  return html;
+}
+
+function openTourStopEditor(stop=null){
+ const modal=document.createElement('dialog');modal.className='timelineDialog';modal.setAttribute('aria-label',stop?'Edit tour stop':'Add tour stop');
+ const gigs=get('events').filter(e=>e.kind==='Gig'),v=stop||{};
+ modal.innerHTML='<form><h2>'+(stop?'Edit tour stop':'Add tour stop')+'</h2><label>Linked gig<select name="event_id"><option value="">Travel or unlinked stop</option>'+gigs.map(g=>'<option value="'+g.id+'" '+(g.id===v.event_id?'selected':'')+'>'+esc(g.title)+' · '+esc(g.date)+'</option>').join('')+'</select></label><div class="advanceGrid">'+
+ [['date','Date','date',10],['city','City','text',120],['region','State / region','text',80],['venue','Venue','text',160],['arrival_time','Arrival time','time',5],['departure_time','Departure time','time',5],['lodging','Lodging','text',250],['travel_notes','Travel and access notes','text',2000]].map(([key,label,type,max])=>'<label>'+label+'<input name="'+key+'" type="'+type+'" maxlength="'+max+'" '+(['city','date'].includes(key)?'required':'')+' value="'+esc(key==='date'?v.stop_date||'':v[key]||'')+'"></label>').join('')+
+ '<label>Status<select name="status">'+['planned','hold','confirmed','cancelled','travel'].map(status=>'<option '+((v.status||'planned')===status?'selected':'')+'>'+status+'</option>').join('')+'</select></label></div><p role="alert" id="stopError"></p><div class="actions"><button type="button" id="cancelStop">Cancel</button><button class="primary">Save stop</button></div></form>';
+ document.body.append(modal);modal.addEventListener('close',()=>modal.remove());modal.querySelector('#cancelStop').onclick=()=>modal.close();
+ modal.querySelector('[name="event_id"]').onchange=event=>{const gig=gigs.find(g=>String(g.id)===event.target.value);if(gig){modal.querySelector('[name="date"]').value=gig.date;modal.querySelector('[name="venue"]').value=gig.venue||''}};
+ modal.querySelector('form').onsubmit=async event=>{event.preventDefault();const data=Object.fromEntries(new FormData(event.target));data.event_id=data.event_id?Number(data.event_id):null;try{
+  await api('/bands/'+state.band+'/tours/'+state.selectedTour+'/stops'+(stop?'/'+stop.id:''),{method:stop?'PUT':'POST',body:JSON.stringify(data)});modal.close();await refreshTours();toast('Tour stop saved')
+ }catch(error){modal.querySelector('#stopError').textContent=error.message}};modal.showModal();
 }
 
 function stagePreview(stage){
@@ -90,12 +105,15 @@ function stagePreview(stage){
 }
 function openStageDesigner(){
  const original=state.data.showStage||{items:[],inputs:[],notes:''};
- let working=JSON.parse(JSON.stringify(original));
+ let working=JSON.parse(JSON.stringify(original));let selected=-1;
  const kinds=['vocal','guitar','bass','drums','keys','monitor','amp','other'];
  const shade={vocal:'#818cf8',guitar:'#f59e0b',bass:'#34d399',drums:'#fb7185',keys:'#38bdf8',monitor:'#c084fc',amp:'#fbbf24',other:'#94a3b8'};
  const dialog=document.createElement('div');dialog.className='stageDesignerBackdrop';dialog.id='stageDesigner';
- dialog.innerHTML='<div class="stageDesigner"><header class="stageDesignerHeader"><div><h2>Stage Designer</h2><p class="sub">Drag equipment around the stage. Front of house is at the bottom.</p></div><button type="button" id="stageClose">✕ Close</button></header><div class="stageTools"><button id="stageAddItem" type="button">+ Equipment</button><button id="stageAddInput" type="button">+ Input channel</button><button id="stageDemo" type="button">Example four-piece band</button></div><div class="stageEditorGrid"><div><div id="stageCanvas" class="stageCanvas" aria-label="Drag stage equipment"><span class="stageBack">UPSTAGE</span><span class="stageFront">AUDIENCE / FRONT OF HOUSE</span></div><p class="footNote">Click a piece to change its name or type. Drag to reposition.</p></div><div class="stagePatchPanel"><h3>Input patch list</h3><div id="stageInputs"></div><label>Production notes<textarea id="stageNotes" rows="3"></textarea></label></div></div><footer class="stageDesignerFooter"><span id="stageDesignerStatus">Draft changes — not saved</span><button class="primary" type="button" id="stageSave">Save stage setup</button></footer></div>';
- document.body.append(dialog);
+ dialog.innerHTML='<div class="stageDesigner"><header class="stageDesignerHeader"><div><h2>Stage Designer</h2><p class="sub">Drag equipment around the stage. Front of house is at the bottom.</p></div><button type="button" id="stageClose">✕ Close</button></header><div class="stageTools"><button id="stageAddItem" type="button">+ Equipment</button><button id="stageAddInput" type="button">+ Input channel</button><button id="stageDemo" type="button">Example four-piece band</button></div><div class="stageEditorGrid"><div><div id="stageCanvas" class="stageCanvas" aria-label="Drag stage equipment"><span class="stageBack">UPSTAGE</span><span class="stageFront">AUDIENCE / FRONT OF HOUSE</span></div><p class="footNote">Select equipment to edit. Drag or use arrow keys to move; Shift moves 10 grid units.</p><div id="equipmentEditor"></div></div><div class="stagePatchPanel"><h3>Input patch list</h3><div id="stageInputs"></div><label>Production notes<textarea id="stageNotes" rows="3"></textarea></label></div></div><footer class="stageDesignerFooter"><span id="stageDesignerStatus">Draft changes — not saved</span><button class="primary" type="button" id="stageSave">Save stage setup</button></footer></div>';
+ dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-label','Stage Designer');
+ const opener=document.activeElement;document.body.append(dialog);document.querySelector('#app').inert=true;
+ const close=(saved=false)=>{working.notes=$d('#stageNotes').value;if(!saved&&JSON.stringify(working)!==JSON.stringify(original)&&!confirm('Discard unsaved stage changes?'))return;document.querySelector('#app').inert=false;dialog.remove();opener?.focus()};
+ dialog.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();close()}if(event.key==='Tab'){const nodes=[...dialog.querySelectorAll('button,input,select,textarea')].filter(n=>!n.disabled);const first=nodes[0],last=nodes.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}}});
  const $d=sel=>dialog.querySelector(sel);
  function draw(){
   const canvas=$d('#stageCanvas');
@@ -105,7 +123,13 @@ function openStageDesigner(){
    node.style.left=item.x+'%';node.style.top=item.y+'%';
    node.style.borderColor=shade[item.kind]||'#94a3b8';
    node.textContent=item.label;
-   node.title=item.kind+' — drag to position, click to edit';
+   node.title=item.kind+' — drag or arrow keys to move; Enter to edit';
+   node.setAttribute('aria-label',item.label+', x '+item.x+', y '+item.y);
+   node.addEventListener('keydown',event=>{
+    const directions={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
+    if(directions[event.key]){event.preventDefault();const [dx,dy]=directions[event.key],step=event.shiftKey?10:1;item.x=Math.max(0,Math.min(100,item.x+dx*step));item.y=Math.max(0,Math.min(100,item.y+dy*step));draw();$d('#stageCanvas').querySelectorAll('.stageItem')[index].focus()}
+    if(event.key==='Enter'||event.key===' '){event.preventDefault();selected=index;draw();$d('#equipmentLabel').focus()}
+   });
    node.addEventListener('pointerdown',event=>{
     if(event.button!==0)return;
     node.setPointerCapture(event.pointerId);
@@ -121,33 +145,48 @@ function openStageDesigner(){
      node.removeEventListener('pointermove',move);
      node.removeEventListener('pointerup',up);
      if(!moved){
-      const label=prompt('Instrument or position',item.label);if(label?.trim())item.label=label.trim().slice(0,100);
-      const kind=prompt('Type: '+kinds.join(', '),item.kind);if(kinds.includes(kind))item.kind=kind;
+      selected=index;
       draw();
      }
     };
-    node.addEventListener('pointermove',move);node.addEventListener('pointerup',up);
+    node.addEventListener('pointermove',move);node.addEventListener('pointerup',up);node.addEventListener('pointercancel',up,{once:true});
    });
    canvas.append(node);
   });
+  const editor=$d('#equipmentEditor');editor.replaceChildren();
+  if(working.items[selected]){
+   const item=working.items[selected];
+   for(const [key,label] of [['label','Equipment label'],['kind','Equipment type'],['x','Horizontal position'],['y','Vertical position']]){
+    const wrap=document.createElement('label');wrap.textContent=label;const input=document.createElement(key==='kind'?'select':'input');
+    input.id='equipment'+(key==='label'?'Label':key);input.setAttribute('aria-label',label);
+    if(key==='kind')kinds.forEach(kind=>input.add(new Option(kind,kind)));
+    else if(key==='x'||key==='y'){input.type='number';input.min=0;input.max=100}else input.maxLength=100;
+    input.value=item[key];input.onchange=()=>{item[key]=(key==='x'||key==='y')?Math.max(0,Math.min(100,Number(input.value))):input.value;draw()};wrap.append(input);editor.append(wrap);
+   }
+   const remove=document.createElement('button');remove.textContent='Remove equipment';remove.type='button';remove.onclick=()=>{working.items.splice(selected,1);selected=-1;draw();$d('#stageAddItem').focus()};editor.append(remove);
+  }
   const inputs=$d('#stageInputs');inputs.replaceChildren();
   working.inputs.sort((a,b)=>a.channel-b.channel).forEach((item,index)=>{
    const row=document.createElement('div');row.className='stageInputRow';
-   row.innerHTML='<span class="stageChannel"></span><input class="stageInputSource" aria-label="Audio source"><input class="stageInputMic" aria-label="Microphone or DI"><button type="button" aria-label="Remove channel">✕</button>';
-   row.querySelector('.stageChannel').textContent='CH '+item.channel;
-   const source=row.querySelector('.stageInputSource');source.value=item.source;source.placeholder='Source';source.oninput=()=>item.source=source.value;
-   const mic=row.querySelector('.stageInputMic');mic.value=item.microphone||'';mic.placeholder='Mic / DI';mic.oninput=()=>item.microphone=mic.value;
-   row.querySelector('button').onclick=()=>{working.inputs.splice(index,1);draw()};
+   for(const [key,label,max] of [['channel','Channel',128],['source','Audio source',120],['microphone','Microphone or DI',120],['stand','Stand',60],['notes','Channel notes',300]]){
+    const wrap=document.createElement('label');wrap.textContent=label;
+    const input=document.createElement('input');input.setAttribute('aria-label',label+' '+(index+1));input.type=key==='channel'?'number':'text';
+    if(key==='channel'){input.min=1;input.max=128}else input.maxLength=max;
+    input.value=item[key]||'';input.oninput=()=>item[key]=key==='channel'?Number(input.value):input.value;wrap.append(input);row.append(wrap);
+   }
+   for(const [title,delta] of [['Move channel up',-1],['Move channel down',1]]){
+    const move=document.createElement('button');move.type='button';move.textContent=delta<0?'↑':'↓';move.setAttribute('aria-label',title+' '+(index+1));move.disabled=index+delta<0||index+delta>=working.inputs.length;
+    move.onclick=()=>{const other=working.inputs[index+delta];[item.channel,other.channel]=[other.channel,item.channel];draw()};row.append(move);
+   }
+   const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';remove.setAttribute('aria-label','Remove channel '+(index+1));remove.onclick=()=>{working.inputs.splice(index,1);draw()};row.append(remove);
    inputs.append(row);
   });
  }
  $d('#stageNotes').value=working.notes||'';
- $d('#stageClose').onclick=()=>dialog.remove();
+ $d('#stageClose').onclick=()=>close();
  $d('#stageAddItem').onclick=()=>{
-  const label=prompt('Equipment label (example: Lead vocal)');if(!label?.trim())return;
-  const kind=prompt('Type: '+kinds.join(', '),'vocal');
-  if(!kinds.includes(kind)){toast('Choose a valid equipment type',true);return}
-  working.items.push({label:label.trim().slice(0,100),kind,x:50,y:50});draw()
+  if(working.items.length>=80){toast('Maximum equipment count reached',true);return}
+  working.items.push({label:'New equipment',kind:'vocal',x:50,y:50});selected=working.items.length-1;draw();$d('#equipmentLabel').focus()
  };
  $d('#stageAddInput').onclick=()=>{
   const used=new Set(working.inputs.map(x=>x.channel));let channel=1;
@@ -156,7 +195,7 @@ function openStageDesigner(){
   working.inputs.push({channel,source:'New input',microphone:'',stand:'',notes:''});draw()
  };
  $d('#stageDemo').onclick=()=>{
-  if(working.items.length&&!confirm('Replace your unsaved stage setup with the example?'))return;
+  if((working.items.length||working.inputs.length)&&!confirm('Replace your unsaved stage setup with the example?'))return;
   working.items=[{label:'Drums',kind:'drums',x:50,y:18},{label:'Bass',kind:'bass',x:25,y:49},
    {label:'Guitar',kind:'guitar',x:77,y:49},{label:'Lead vocal',kind:'vocal',x:50,y:80},
    {label:'Monitor L',kind:'monitor',x:28,y:88},{label:'Monitor R',kind:'monitor',x:73,y:88}];
@@ -172,16 +211,16 @@ function openStageDesigner(){
   try{
    await api('/bands/'+state.band+'/gigs/'+state.showGig+'/stage',
     {method:'PUT',body:JSON.stringify(working)});
-   dialog.remove();await openShowPacketGig(state.showGig);toast('Stage setup saved')
+   close(true);await openShowPacketGig(state.showGig);toast('Stage setup saved')
   }catch(error){$d('#stageDesignerStatus').textContent=error.message;toast(error.message,true)}
  };
- draw()
+ draw();$d('#stageClose').focus()
 }
 function printShowPacket(){
  const gig=get('events').find(g=>g.id===state.showGig);
  const docs=get('showPackets');
  if(!gig||!docs.length){toast('Create show documents before printing',true);return}
- const content='<header><h1>'+esc(gig.title)+'</h1><p>'+datePretty(gig.date)+' · '+esc(gig.venue||'Venue TBD')+'</p></header>'+
+ const content=timelinePanel(true)+'<header><h1>'+esc(gig.title)+'</h1><p>'+datePretty(gig.date)+' · '+esc(gig.venue||'Venue TBD')+'</p></header>'+
  docs.map(doc=>'<article><h2>'+esc(doc.title)+'</h2><p class="printStatus">Status: '+esc(doc.status)+'</p>'+
  doc.sections.map(section=>'<section><h3>'+esc(section.heading)+'</h3><p>'+esc(section.body).replace(/\\n/g,'<br>')+'</p></section>').join('')+'</article>').join('');
  const w=window.open('','_blank');
@@ -215,6 +254,33 @@ function openPacketEditor(packet){
   }catch(error){modal.querySelector('#packetStatus').textContent=error.message;save.disabled=false}
  };
 }
+function timelinePanel(printing=false){
+ const t=state.data.showTimeline||{entries:[],warnings:[]},a=state.data.showAdvance||{};
+ const contacts=[['Venue contact',a.venue_contact],['Production contact',a.production_contact],['Email',a.contact_email],['Phone',a.contact_phone],['Venue address',a.venue_address],['Parking and access',a.parking],['Lodging',a.lodging],['Meals and hospitality',a.hospitality],['Settlement',a.settlement]];
+ return panel('Day-of-show call sheet','<p><strong>'+esc(t.timezone||'Time zone to confirm')+'</strong> · '+esc(t.status||'draft')+' · All times local to venue. Day +1 / +2 follow the show date.</p>'+t.warnings.map(w=>'<p class="scheduleWarning">'+esc(w)+'</p>').join('')+
+ '<dl class="callContacts">'+contacts.filter(x=>x[1]).map(([label,value])=>'<div><dt>'+label+'</dt><dd>'+esc(value)+'</dd></div>').join('')+'</dl>'+
+ '<ol class="showTimeline">'+t.entries.map(entry=>'<li><div class="callTime">'+esc(entry.time)+(entry.day_offset?' <small>Day +'+entry.day_offset+'</small>':'')+'</div><div><strong>'+esc(entry.title)+'</strong><p>'+esc([entry.owner,entry.location].filter(Boolean).join(' · '))+'</p><p>'+esc(entry.notes)+'</p><small>'+esc(entry.source==='venue'?'Venue milestone':'Crew call')+'</small></div></li>').join('')+'</ol>'+
+ (printing?'':'<div class="actions"><button data-edit-timeline="1">Edit crew calls</button><button data-pdf-packet="1">Download PDF show packet</button></div>'));
+}
+function openTimelineEditor(){
+ const a=state.data.showAdvance||{},working=JSON.parse(JSON.stringify(a.schedule||[]));
+ const modal=document.createElement('dialog');modal.className='timelineDialog';modal.setAttribute('aria-label','Edit crew calls');
+ modal.innerHTML='<form><h2>Edit crew calls</h2><p>Save venue milestone times on Advances & riders. Each saved change returns advancement to draft for review.</p><div id="crewCalls"></div><button type="button" id="addCrewCall">+ Crew call</button><p role="alert" id="crewError"></p><div class="actions"><button type="button" id="cancelCrew">Cancel</button><button class="primary">Save crew calls</button></div></form>';
+ document.body.append(modal);
+ const draw=()=>{const list=modal.querySelector('#crewCalls');list.replaceChildren();working.forEach((entry,index)=>{
+  const row=document.createElement('fieldset');const legend=document.createElement('legend');legend.textContent='Crew call '+(index+1);row.append(legend);
+  for(const [key,label,max] of [['title','Activity',120],['time','Local time',5],['day_offset','Day offset',2],['owner','Owner',150],['location','Location',200],['notes','Notes',1000]]){
+   const wrap=document.createElement('label');wrap.textContent=label;const input=document.createElement('input');input.type=key==='time'?'time':key==='day_offset'?'number':'text';input.setAttribute('aria-label',label+' '+(index+1));input.value=entry[key]??'';
+   if(key==='title'||key==='time')input.required=true;if(key==='day_offset'){input.min=0;input.max=2}else input.maxLength=max;
+   input.oninput=()=>entry[key]=key==='day_offset'?Number(input.value):input.value;wrap.append(input);row.append(wrap);
+  }
+  const remove=document.createElement('button');remove.type='button';remove.textContent='Remove call '+(index+1);remove.onclick=()=>{working.splice(index,1);draw()};row.append(remove);list.append(row);
+ })};
+ modal.querySelector('#addCrewCall').onclick=()=>{if(working.length>=50)return;working.push({title:'',time:'',day_offset:0,owner:'',location:'',notes:''});draw();modal.querySelector('#crewCalls fieldset:last-child input').focus()};
+ modal.querySelector('#cancelCrew').onclick=()=>modal.close();modal.addEventListener('close',()=>modal.remove());
+ modal.querySelector('form').onsubmit=async event=>{event.preventDefault();try{await api('/bands/'+state.band+'/gigs/'+state.showGig+'/advance',{method:'PUT',body:JSON.stringify({...a,schedule:working,status:'draft'})});modal.close();await openShowPacketGig(state.showGig);toast('Crew calls saved — review and confirm advancement')}catch(error){modal.querySelector('#crewError').textContent=error.message}};
+ draw();modal.showModal();
+}
 function showops(){
  const gigs=get('events').filter(g=>g.kind==='Gig');
  const chosen=gigs.find(g=>g.id===state.showGig);
@@ -229,14 +295,14 @@ function showops(){
  const docs=get('showPackets'),files=get('showFiles');
  const complete=docs.filter(x=>x.status==='ready').length;
  const summary='<div class="showOverview"><div><span class="eyebrow">SHOW PRODUCTION</span><h2>'+esc(chosen.title)+'</h2><p>'+datePretty(chosen.date)+' · '+esc(chosen.venue||'Venue to confirm')+'</p></div><div class="showMetrics"><span><strong>'+complete+'/'+docs.length+'</strong> documents ready</span><span><strong>'+files.length+'</strong> files attached</span><span><strong>'+(state.data.showStage?.inputs?.length||0)+'</strong> audio inputs</span></div></div>';
- const tabs=[['stage','Stage & inputs'],['advance','Advances & riders'],['files','Contracts & files']];
+ const tabs=[['stage','Stage & inputs'],['advance','Advances & riders'],['timeline','Day of show'],['files','Contracts & files']];
  const active=state.showTab||'stage';
  html+=summary+'<div class="showTabBar" role="tablist">'+tabs.map(([key,label])=>'<button role="tab" aria-selected="'+(active===key)+'" class="'+(active===key?'selected':'')+'" data-show-tab="'+key+'">'+label+'</button>').join('')+'</div>';
 
  if(active==='advance'){
  const a=state.data.showAdvance||{};
- const fields=[['venue_contact','Venue contact'],['production_contact','Production contact'],['contact_email','Contact email'],['contact_phone','Contact phone'],['load_in','Load-in time'],['soundcheck','Soundcheck'],['doors','Doors'],['show_time','Show time'],['curfew','Curfew'],['parking','Parking and access'],['open_questions','Outstanding questions']];
- html+=panel('Venue advancement','<p class="sub">Keep show-day contact information and confirmed times together. Confirmation requires key times and no open questions.</p><div class="advanceGrid">'+fields.map(([key,label])=>'<label>'+label+(key==='parking'||key==='open_questions'?'<textarea data-advance-field="'+key+'" rows="3">'+esc(a[key]||'')+'</textarea>':'<input data-advance-field="'+key+'" value="'+esc(a[key]||'')+'">')+'</label>').join('')+'</div><div class="actions"><select id="advanceStatus"><option value="draft" '+(a.status==='draft'?'selected':'')+'>Draft</option><option value="awaiting_venue" '+(a.status==='awaiting_venue'?'selected':'')+'>Awaiting venue</option><option value="confirmed" '+(a.status==='confirmed'?'selected':'')+'>Confirmed</option></select><button class="small" data-save-advance="1">Save advancement</button></div>');
+ const fields=[['timezone','Venue time zone (e.g. America/Chicago)'],['venue_address','Venue address'],['lodging','Lodging'],['hospitality','Meals and hospitality'],['settlement','Settlement arrangements'],['venue_contact','Venue contact'],['production_contact','Production contact'],['contact_email','Contact email'],['contact_phone','Contact phone'],['load_in','Load-in time'],['soundcheck','Soundcheck'],['doors','Doors'],['show_time','Show time'],['curfew','Curfew'],['parking','Parking and access'],['open_questions','Outstanding questions']];
+ html+=panel('Venue advancement','<p class="sub">Keep show-day contact information and confirmed times together. Confirmation requires key times and no open questions.</p><div class="advanceGrid">'+fields.map(([key,label])=>'<label>'+label+(['parking','open_questions','lodging','hospitality','settlement'].includes(key)?'<textarea data-advance-field="'+key+'" rows="3">'+esc(a[key]||'')+'</textarea>':'<input type="'+(['load_in','soundcheck','doors','show_time','curfew'].includes(key)?'time':key==='contact_email'?'email':key==='contact_phone'?'tel':'text')+'" data-advance-field="'+key+'" value="'+esc(a[key]||'')+'">'+(['load_in','soundcheck','doors','show_time','curfew'].includes(key)?'<select aria-label="'+label+' day" data-advance-day="'+key+'">'+[0,1,2].map(day=>'<option value="'+day+'" '+((a.day_offsets?.[key]||0)===day?'selected':'')+'>'+(day?'Day +'+day:'Show date')+'</option>').join('')+'</select>':''))+'</label>').join('')+'</div><div class="actions"><select id="advanceStatus" aria-label="Advancement status"><option value="draft" '+(a.status==='draft'?'selected':'')+'>Draft</option><option value="awaiting_venue" '+(a.status==='awaiting_venue'?'selected':'')+'>Awaiting venue</option><option value="confirmed" '+(a.status==='confirmed'?'selected':'')+'>Confirmed</option></select><button class="small" data-save-advance="1">Save advancement</button></div>');
  }
  if(active==='advance')html+=panel('Show documents',
   '<p class="sub">Create riders, advances and schedules; then edit each section before marking ready.</p><button class="small" data-pdf-packet="1">Download PDF show packet</button> <button class="small" data-print-packet="1">Print in browser</button>'+
@@ -255,6 +321,7 @@ function showops(){
   '<button class="small" data-stage-export="inputs.csv">Download input list</button>'+stagePreview(state.data.showStage)+
   '<div class="list">'+(get('showStage').items||[]).map(i=>'<div class="entry">'+esc(i.label)+' · '+esc(i.kind)+' (x:'+i.x+', y:'+i.y+')</div>').join('')+
   (get('showStage').inputs||[]).map(i=>'<div class="entry">CH '+i.channel+' · '+esc(i.source)+' · '+esc(i.microphone)+'</div>').join('')+'</div>');
+ if(active==='timeline')html+=timelinePanel();
  if(active==='files')html+=panel('Contracts and show files',
   '<p class="sub">Upload PDF contracts, stage plots, input lists, receipts or W-9 forms. Files stay attached to this show.</p>'+
   '<div class="actions"><select id="showFileCategory"><option value="contract">Performance contract</option><option value="stage_plot">Stage plot</option><option value="input_list">Input list</option><option value="technical_rider">Technical rider</option><option value="hospitality_rider">Hospitality rider</option><option value="receipt">Receipt</option><option value="w9">W-9</option><option value="insurance">Insurance</option><option value="other">Other</option></select>'+
@@ -270,7 +337,7 @@ function songs(){let a=get('songs');return `<div class="toolbar"><p>A centralize
 function members(){let a=get('members');return `<div class="toolbar"><p>Your roster, responsibilities and band contacts.</p><div style="display:flex;gap:8px">${sessionStorage.getItem('backline_session')?button('+ Invite user','invitation')+button('Member recovery','issueRecovery'):''}${button('+ Add member','member')}</div></div>${panel('Band roster',a.length?`<div class="list">${a.map(m=>item(m.name,`${m.instrument||'Instrument not set'} · ${m.email||'No email'} · ${m.role}`,m.active?'Active':'Inactive')).join('')}</div>`:empty('Add your first band member.'))}`}
 function setlists(){let a=get('setlists');return `<div class="toolbar"><p>Build show-ready sets from your song library.</p>${button('+ Create setlist','setlist')}</div>${a.length?a.map(s=>panel(`${esc(s.title)} <span class="sub">· ${s.songs.length} songs</span>`,s.songs.length?`<div class="list">${s.songs.map((song,i)=>item(`${i+1}. ${song.title}`,`${song.artist||'Original'} ${song.song_key?' · Key: '+song.song_key:''}`)).join('')}</div>`:empty('No songs in this setlist.'))).join(''):panel('Setlist library',empty('Create your first setlist after adding songs.'))}`}
 function finance(){let f=get('finance'),ts=get('transactions'),settlements=get('settlements');let cards=[['Cash on hand',f.balance_cents],['Revenue',f.income_cents],['Expenses',f.expenses_cents],['Member payouts',f.payouts_cents]];let gigs=get('events').filter(e=>e.kind==='Gig'&&!settlements.find(s=>s.event_id===e.id));return `<div class="toolbar"><p>Transparent band bookkeeping, connected to gigs and members.</p><div style="display:flex;gap:8px">${button('+ Transaction','transaction')}${button('Settle gig','settlement')}<button data-export="ledger">Export CSV</button></div></div><div class="cards">${cards.map(([label,v])=>`<div class="card"><span>${label}</span><strong>${dollars(v)}</strong></div>`).join('')}</div>${panel('Settlements',settlements.length?`<div class="list">${settlements.map(s=>`<div class="entry" style="display:block"><strong>${esc(s.event_title)}</strong><div class="sub" style="margin:7px 0">${datePretty(s.event_date)} · Band reserve: ${s.reserve_basis_points/100}%</div>${s.shares.map(sh=>`<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px"><span>${esc(sh.member_name)}</span><span>${dollars(sh.amount_cents)} due · ${dollars(sh.paid_cents)} paid</span></div>`).join('')}</div>`).join('')}</div>`:empty('No settled gigs yet. Record gig revenue and expenses, then create a settlement.'))}${panel('Transaction ledger',ts.length?`<div class="tableWrap"><table class="table"><thead><tr><th>Date</th><th>Type</th><th>Detail</th><th>Gig / Member</th><th>Amount</th><th></th></tr></thead><tbody>${ts.map(t=>`<tr><td>${datePretty(t.date)}</td><td><span class="tag muted">${esc(t.kind)}</span></td><td>${esc(t.description)}<div class="dim">${esc(t.category)}</div></td><td>${esc([t.event_title,t.member_name].filter(Boolean).join(' / '))}</td><td class="${['income','contribution'].includes(t.kind)?'positive':'negative'}">${['income','contribution'].includes(t.kind)?'+':'−'}${dollars(t.amount_cents)}</td><td>${!t.reversal_of&&!ts.some(q=>q.reversal_of===t.id)?`<button class="small" data-reverse="${t.id}">Reverse</button>`:''}</td></tr>`).join('')}</tbody></table></div>`:empty('No transactions yet. Record your first payment or expense.'))}<p class="footNote">Ledger records are immutable. Corrections create an offsetting transaction, preserving the original entry. Reconciled bank balances, tax preparation, and payment transfers require additional integrations.</p>`}
-function render(){const b=state.bands.find(x=>x.id===state.band)||{name:'Your band'};let titles={dashboard:'Overview',events:'Shows & Rehearsals',finance:'Band Finances',bookings:'Booking Tracker',studio:'AI Gig Studio',songs:'Song Library',setlists:'Setlist Studio',members:'Band Members',showops:'Show Packets',touring:'Tour Routing'};$('#app').innerHTML=`<div class="app"><aside class="side"><div class="brand"><span class="mark">⌁</span>BACKLINE</div><div><div class="overline">Workspace</div><select class="bandPicker" id="bandPicker">${state.bands.map(b=>`<option value="${b.id}" ${b.id===state.band?'selected':''}>${esc(b.name)}</option>`).join('')}</select></div><div><div class="overline">Manage</div><nav class="nav">${nav.map(([id,ico,label])=>`<button data-go="${id}" class="${state.section===id?'active':''}"><span>${ico}</span><span class="navName">${label}</span></button>`).join('')}</nav></div><button class="ghost" data-action="band">+ New band</button><div class="sideFoot">BACKLINE V0.1<br>Local-first prototype<br>Data stays in your SQLite database.</div></aside><main class="main"><header class="top"><div><span class="eyebrow">${esc(b.name)}</span><h1>${titles[state.section]}</h1></div><div style="display:flex;gap:10px;align-items:center"><span class="chip">● Band workspace</span><button class="small" data-action="joinband">Join band</button><button class="small" id="logoutButton">Sign out</button></div></header><section class="content">${({dashboard,events,finance,bookings,studio,songs,setlists,members,showops,touring})[state.section]()}</section></main><div class="mobileNav">${nav.map(([id,ico,label])=>`<button class="${state.section===id?'active':''}" data-go="${id}">${ico}<br>${label.split(' ')[0]}</button>`).join('')}</div></div>${state.modal?modalHTML():''}`;$('#bandPicker')?.addEventListener('change',async e=>{state.band=Number(e.target.value);await load()})}
+function render(){const b=state.bands.find(x=>x.id===state.band)||{name:'Your band'};let titles={dashboard:'Overview',events:'Shows & Rehearsals',finance:'Band Finances',bookings:'Booking Tracker',studio:'AI Gig Studio',songs:'Song Library',setlists:'Setlist Studio',members:'Band Members',showops:'Show Packets',touring:'Tour Routing'};$('#app').innerHTML=`<div class="app"><aside class="side"><div class="brand"><span class="mark">⌁</span>BACKLINE</div><div><div class="overline">Workspace</div><select class="bandPicker" id="bandPicker">${state.bands.map(b=>`<option value="${b.id}" ${b.id===state.band?'selected':''}>${esc(b.name)}</option>`).join('')}</select></div><div><div class="overline">Manage</div><nav class="nav">${nav.map(([id,ico,label])=>`<button data-go="${id}" class="${state.section===id?'active':''}"><span>${ico}</span><span class="navName">${label}</span></button>`).join('')}</nav></div><button class="ghost" data-action="band">+ New band</button><div class="sideFoot">BACKLINE V0.4 RC<br>Private development preview<br>Data stays in your SQLite database.</div></aside><main class="main"><header class="top"><div><span class="eyebrow">${esc(b.name)}</span><h1>${titles[state.section]}</h1></div><div style="display:flex;gap:10px;align-items:center"><span class="chip">● Band workspace</span><button class="small" data-action="joinband">Join band</button><button class="small" id="logoutButton">Sign out</button></div></header><section class="content">${({dashboard,events,finance,bookings,studio,songs,setlists,members,showops,touring})[state.section]()}</section></main><div class="mobileNav">${nav.map(([id,ico,label])=>`<button class="${state.section===id?'active':''}" data-go="${id}">${ico}<br>${label.split(' ')[0]}</button>`).join('')}</div></div>${state.modal?modalHTML():''}`;$('#bandPicker')?.addEventListener('change',async e=>{state.band=Number(e.target.value);state.showGig=null;state.selectedTour=null;state.studioGig=null;state.data={};state.section='dashboard';await load()})}
 const field=(name,label,type='text',extras='')=>`<div class="field"><label for="f_${name}">${label}</label><input id="f_${name}" name="${name}" type="${type}" ${extras}></div>`;
 const select=(name,label,options)=>`<div class="field"><label for="f_${name}">${label}</label><select id="f_${name}" name="${name}">${options.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join('')}</select></div>`;
 function modalHTML(){let type=state.modal;let fields='',title='';let evs=get('events'), mem=get('members'), songs=get('songs');const eventOpts=[['','None'],...evs.map(e=>[String(e.id),e.title])];const memberOpts=[['','None'],...mem.map(m=>[String(m.id),m.name])];
@@ -288,7 +355,7 @@ if(type==='transaction'){title='Record transaction';fields=select('kind','Type',
 if(type==='setlist'){title='Create setlist';fields=field('title','Setlist title','text','required')+select('event_id','For gig (optional)',eventOpts)+`<div class="field full"><label>Choose songs (sorted by title)</label><div class="setSongs">${songs.length?songs.map(s=>`<label><input type="checkbox" name="song_ids" value="${s.id}">${esc(s.title)}${s.song_key?' · '+esc(s.song_key):''}</label>`).join(''):'Add songs first.'}</div></div>`}
 if(type==='settlement'){title='Settle a gig';let settled=get('settlements').map(s=>s.event_id);fields=select('event_id','Gig',evs.filter(e=>e.kind==='Gig'&&!settled.includes(e.id)).map(e=>[String(e.id),e.title]))+field('reserve_percent','Retain for band (%)','number','min="0" max="100" value="10" required')+`<div class="field full"><label>Musicians to pay</label><div class="setSongs">${mem.length?mem.map(m=>`<label><input type="checkbox" name="member_ids" value="${m.id}" checked>${esc(m.name)}</label>`).join(''):'Add members first.'}</div></div><p class="footNote">Record actual gig income and expenses in the ledger before settling. The settlement uses the net recorded cash and reserves the specified percentage.</p>`}
 return `<div class="modalWrap" id="modalWrap"><div class="modal" role="dialog" aria-modal="true" aria-label="${title}"><h2>${title}</h2><p class="sub">${esc(state.bands.find(b=>b.id===state.band)?.name||'')}</p><form id="entryForm"><div class="formGrid">${fields}</div><div class="actions"><button type="button" data-action="close">Cancel</button><button class="primary" type="submit">Save</button></div></form></div></div>`}
-document.addEventListener('click',async e=>{let btn=e.target.closest('[data-go],[data-action],[data-reverse],[data-export],[data-booking],[data-studio-gig],[data-approve-draft],[data-scan-market],[data-generate-campaign],[data-edit-draft],[data-voice],[data-show-gig],[data-create-packet],[data-edit-packet],[data-ready-packet],[data-upload-show-file],[data-download-show-file],[data-save-advance],[data-pdf-packet],[data-print-packet],[data-show-tab],[data-edit-stage],[data-stage-export],[data-new-tour],[data-open-tour],[data-add-stop]');if(!btn){if(e.target.id==='modalWrap'){state.modal=null;render()}return}if(btn.dataset.newTour){
+document.addEventListener('click',async e=>{let btn=e.target.closest('[data-go],[data-action],[data-reverse],[data-export],[data-booking],[data-studio-gig],[data-approve-draft],[data-scan-market],[data-generate-campaign],[data-edit-draft],[data-voice],[data-show-gig],[data-create-packet],[data-edit-packet],[data-ready-packet],[data-upload-show-file],[data-download-show-file],[data-save-advance],[data-edit-timeline],[data-pdf-packet],[data-print-packet],[data-show-tab],[data-edit-stage],[data-stage-export],[data-new-tour],[data-open-tour],[data-add-stop],[data-edit-stop]');if(!btn){if(e.target.id==='modalWrap'){state.modal=null;render()}return}if(btn.dataset.editTimeline){openTimelineEditor();return}if(btn.dataset.newTour){
  const name=prompt('Name this tour (example: Upper Midwest Weekend)');if(!name?.trim())return;
  try{const tour=await api('/bands/'+state.band+'/tours',
   {method:'POST',body:JSON.stringify({name:name.trim()})});
@@ -298,24 +365,8 @@ document.addEventListener('click',async e=>{let btn=e.target.closest('[data-go],
 if(btn.dataset.openTour){
  state.selectedTour=Number(btn.dataset.openTour);await refreshTours();return
 }
-if(btn.dataset.addStop){
- const gigs=get('events').filter(x=>x.kind==='Gig');
- const choice=prompt('Optional existing gig ID to link (leave blank for travel or held dates).\\n'+gigs.map(x=>x.id+': '+x.title+' · '+x.date).join('\\n'),'');
- if(choice===null)return;
- const linked=choice.trim()?gigs.find(x=>String(x.id)===choice.trim()):null;
- if(choice.trim()&&!linked){toast('Choose a gig from this band',true);return}
- const date=linked?.date||prompt('Stop date (YYYY-MM-DD)');if(!date)return;
- const city=prompt('City');if(!city?.trim())return;
- const region=prompt('State or region (e.g., MN)')||'';
- const venue=linked?.venue||prompt('Venue (optional)')||'';
- const status=prompt('Status: planned, hold, confirmed, cancelled, travel',linked?'confirmed':'planned')||'planned';
- const lodging=prompt('Hotel or lodging notes (optional)')||'';
- const travel_notes=prompt('Travel / advance notes (optional)')||'';
- try{await api('/bands/'+state.band+'/tours/'+state.selectedTour+'/stops',
-  {method:'POST',body:JSON.stringify({date,city,region,venue,status,lodging,travel_notes,event_id:linked?.id||null})});
-  await refreshTours();toast('Tour stop added')
- }catch(err){toast(err.message,true)}return
-}
+if(btn.dataset.addStop){openTourStopEditor();return}
+if(btn.dataset.editStop){const stop=state.data.currentRoute?.stops.find(s=>String(s.id)===btn.dataset.editStop);if(stop)openTourStopEditor(stop);return}
 if(btn.dataset.stageExport){
  try{
   const token=sessionStorage.getItem('backline_session');
@@ -328,7 +379,8 @@ if(btn.dataset.stageExport){
  }catch(error){toast(error.message,true)}return
 }
 if(btn.dataset.saveAdvance){
- const a={};document.querySelectorAll('[data-advance-field]').forEach(el=>{a[el.dataset.advanceField]=el.value});
+ const a={...state.data.showAdvance};document.querySelectorAll('[data-advance-field]').forEach(el=>{a[el.dataset.advanceField]=el.value});
+ a.day_offsets={};document.querySelectorAll('[data-advance-day]').forEach(el=>a.day_offsets[el.dataset.advanceDay]=Number(el.value));
  a.status=document.getElementById('advanceStatus').value;
  try{await api('/bands/'+state.band+'/gigs/'+state.showGig+'/advance',{method:'PUT',body:JSON.stringify(a)});await openShowPacketGig(state.showGig);toast('Venue advancement saved')}
  catch(error){toast(error.message,true)}return
@@ -342,7 +394,7 @@ if(btn.dataset.showTab){state.showTab=btn.dataset.showTab;render();return}
 if(btn.dataset.editStage){
  openStageDesigner();return
 }
-if(btn.dataset.showGig){await openShowPacketGig(btn.dataset.showGig);return}
+if(btn.dataset.showGig){if(state.section==='touring')state.showTab='timeline';await openShowPacketGig(btn.dataset.showGig);return}
 if(btn.dataset.createPacket){
  try{await api('/bands/'+state.band+'/gigs/'+state.showGig+'/packet',{
   method:'POST',body:JSON.stringify({kind:btn.dataset.createPacket})});
@@ -388,3 +440,5 @@ if(btn.dataset.voice){try{const p='/bands/'+state.band+'/marketing-voice';const 
 document.addEventListener('submit',async e=>{if(e.target.id!=='entryForm')return;e.preventDefault();let type=state.modal;let data=Object.fromEntries(new FormData(e.target));let fd=new FormData(e.target);if(type==='setlist')data.song_ids=fd.getAll('song_ids').map(Number);if(type==='settlement')data.member_ids=fd.getAll('member_ids').map(Number);for(let k of ['event_id','member_id'])if(k in data)data[k]=data[k]?Number(data[k]):null;if(type==='song'){data.bpm=data.bpm?Number(data.bpm):null;data.duration_seconds=Number(data.duration_seconds||0)}if(type==='settlement')data.reserve_percent=Number(data.reserve_percent);let b=`/bands/${state.band}`;const urls={issueRecovery:b+'/account-recovery',invitation:b+'/invitations',joinband:'/auth/accept-existing-invite',band:'/bands',market:b+'/gigs/'+state.studioGig+'/market',campaign:b+'/gigs/'+state.studioGig+'/campaign',booking:b+'/bookings',member:b+'/members',event:b+'/events',song:b+'/songs',transaction:b+'/transactions',setlist:b+'/setlists',settlement:b+`/events/${data.event_id}/settle`};if(type==='settlement')delete data.event_id;if(type==='booking'){if(!data.target_date)data.target_date=null;if(!data.next_followup)data.next_followup=null;}try{let response=await api(urls[type],{method:'POST',body:JSON.stringify(data)});state.modal=null;if(type==='band'||type==='joinband')state.band=response.band_id||response.id;if(type==='issueRecovery'){const box=document.createElement('div');box.className='modalWrap';box.id='recoveryResult';box.innerHTML='<div class="modal"><h2>Recovery code issued</h2><p class="sub">Verify the intended member, then deliver this one-time code securely. It expires after 30 minutes.</p><textarea readonly id="recoveryIssuedToken" aria-label="Recovery code"></textarea><div class="actions"><button id="copyRecovery" type="button">Copy code</button><button id="closeRecovery" type="button">Close</button></div></div>';document.body.append(box);document.querySelector('#recoveryIssuedToken').value=response.recovery_token;document.querySelector('#copyRecovery').onclick=()=>navigator.clipboard.writeText(response.recovery_token).then(()=>toast('Code copied')).catch(()=>toast('Copy the code manually',true));document.querySelector('#closeRecovery').onclick=()=>box.remove()}
 if(type==='invitation'){const box=document.createElement('div');box.className='modalWrap';box.id='inviteResult';box.innerHTML='<div class="modal"><h2>Invitation created</h2><p class="sub">Copy this secret token and deliver it securely to the invited user. It expires in seven days.</p><textarea readonly id="invitationToken" aria-label="Invitation token"></textarea><div class="actions"><button id="copyInvite" type="button">Copy token</button><button id="closeInvite" type="button">Close</button></div></div>';document.body.append(box);document.querySelector('#invitationToken').value=response.invite_token;document.querySelector('#copyInvite').onclick=()=>navigator.clipboard.writeText(response.invite_token).then(()=>toast('Token copied')).catch(()=>toast('Select and copy the token manually',true));document.querySelector('#closeInvite').onclick=()=>box.remove()}toast(type==='invitation'?'Invitation created':'Saved successfully');await load();if(type==='campaign'||type==='market')await refreshStudio()}catch(x){toast(x.message,true)}});
 load();
+
+document.addEventListener('keydown',event=>{const tab=event.target.closest('[role="tab"]');if(!tab||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const tabs=[...tab.parentElement.querySelectorAll('[role="tab"]')],index=tabs.indexOf(tab);const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;const key=tabs[next].dataset.showTab;tabs[next].click();document.querySelector('[data-show-tab="'+key+'"]')?.focus()});

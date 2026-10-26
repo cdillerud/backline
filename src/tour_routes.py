@@ -4,8 +4,10 @@ Stops are chronological; geographical routing times require a licensed maps
 provider and are intentionally not guessed here.
 """
 import datetime
+import json
+from .show_schedule import TIME_PATTERN, show_timeline
 from fastapi import APIRouter,HTTPException
-from pydantic import BaseModel,Field
+from pydantic import BaseModel,Field,field_validator
 router=APIRouter()
 class TourInput(BaseModel):
     name:str=Field(min_length=1,max_length=140)
@@ -21,6 +23,18 @@ class StopInput(BaseModel):
     departure_time:str=Field(default='',max_length=20)
     lodging:str=Field(default='',max_length=250)
     travel_notes:str=Field(default='',max_length=2000)
+    @field_validator("city")
+    @classmethod
+    def city_not_blank(cls,value):
+        if not value.strip():raise ValueError("City is required")
+        return value.strip()
+
+    @field_validator("arrival_time","departure_time")
+    @classmethod
+    def clock_time(cls,value):
+        if value and not TIME_PATTERN.fullmatch(value):raise ValueError("Use 24-hour HH:MM time")
+        return value
+
 def setup(con):
     con.executescript("""CREATE TABLE IF NOT EXISTS tours(
       id INTEGER PRIMARY KEY,band_id INTEGER NOT NULL REFERENCES bands(id),
@@ -40,6 +54,12 @@ def attach(db):
         row=con.execute("SELECT * FROM tours WHERE id=? AND band_id=?",(tour_id,band_id)).fetchone()
         if not row:raise HTTPException(404,"Tour not found")
         return row
+    def validate_link(con,band_id,data):
+        if data.event_id is not None:
+            event=con.execute("SELECT date FROM events WHERE id=? AND band_id=? AND kind='Gig'",
+                              (data.event_id,band_id)).fetchone()
+            if not event:raise HTTPException(422,"Linked gig not found in band")
+            if event["date"]!=str(data.date):raise HTTPException(422,"Stop date must match linked gig")
     @router.post('/api/bands/{band_id}/tours',status_code=201)
     def create_tour(band_id:int,data:TourInput):
         with db() as con:
@@ -58,11 +78,7 @@ def attach(db):
     def add_stop(band_id:int,tour_id:int,data:StopInput):
         with db() as con:
             tour(con,band_id,tour_id)
-            if data.event_id is not None:
-                event=con.execute("""SELECT date,venue FROM events
-                    WHERE id=? AND band_id=? AND kind='Gig'""",(data.event_id,band_id)).fetchone()
-                if not event:raise HTTPException(422,"Linked gig not found in band")
-                if event["date"]!=str(data.date):raise HTTPException(422,"Stop date must match linked gig")
+            validate_link(con,band_id,data)
             values=(tour_id,band_id,data.event_id,str(data.date),data.city.strip(),data.region.strip(),
                     data.venue.strip(),data.status,data.arrival_time,data.departure_time,
                     data.lodging,data.travel_notes)
@@ -73,15 +89,45 @@ def attach(db):
                 if "UNIQUE constraint" in str(exc):raise HTTPException(409,"Gig already linked to tour") from None
                 raise
             return {"id":row.lastrowid}
+    @router.put('/api/bands/{band_id}/tours/{tour_id}/stops/{stop_id}')
+    def edit_stop(band_id:int,tour_id:int,stop_id:int,data:StopInput):
+        with db() as con:
+            tour(con,band_id,tour_id)
+            if not con.execute("SELECT 1 FROM tour_stops WHERE id=? AND tour_id=? AND band_id=?",
+                               (stop_id,tour_id,band_id)).fetchone():raise HTTPException(404,"Stop not found")
+            validate_link(con,band_id,data)
+            try:
+                con.execute("""UPDATE tour_stops SET event_id=?,stop_date=?,city=?,region=?,venue=?,status=?,
+                    arrival_time=?,departure_time=?,lodging=?,travel_notes=? WHERE id=? AND tour_id=? AND band_id=?""",
+                    (data.event_id,str(data.date),data.city,data.region.strip(),data.venue.strip(),data.status,
+                     data.arrival_time,data.departure_time,data.lodging,data.travel_notes,stop_id,tour_id,band_id))
+            except Exception as exc:
+                if "UNIQUE constraint" in str(exc):raise HTTPException(409,"Gig already linked to tour") from None
+                raise
+        return {"updated":True}
     @router.get('/api/bands/{band_id}/tours/{tour_id}/route')
     def route(band_id:int,tour_id:int):
         with db() as con:
             info=dict(tour(con,band_id,tour_id))
             stops=[dict(r) for r in con.execute("""SELECT * FROM tour_stops
                 WHERE band_id=? AND tour_id=? ORDER BY stop_date,id""",(band_id,tour_id))]
+            for stop in stops:
+                stop["advance"]=None
+                if stop["event_id"] is not None:
+                    row=con.execute("""SELECT e.date,e.venue,e.title,a.body_json FROM events e
+                        LEFT JOIN venue_advances a ON a.event_id=e.id AND a.band_id=e.band_id
+                        WHERE e.id=? AND e.band_id=? AND e.kind='Gig'""",(stop["event_id"],band_id)).fetchone()
+                    if row:
+                        advance=json.loads(row["body_json"]) if row["body_json"] else {}
+                        stop["advance"]={"gig_title":row["title"],"gig_date":row["date"],"venue":row["venue"],
+                            "venue_contact":advance.get("venue_contact",""),"contact_phone":advance.get("contact_phone",""),
+                            "parking":advance.get("parking",""),"timeline":show_timeline(advance)}
         warnings=[]
         previous=None
         for stop in stops:
+            if stop["status"]=="cancelled":continue
+            if stop["advance"] and stop["advance"]["gig_date"]!=stop["stop_date"]:
+                warnings.append({"stop_id":stop["id"],"type":"gig_date_changed","message":"Linked gig date has changed; update this stop before travel"})
             if previous:
                 span=(datetime.date.fromisoformat(stop["stop_date"])-
                       datetime.date.fromisoformat(previous["stop_date"])).days
