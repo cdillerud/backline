@@ -79,6 +79,8 @@ This is deterministic CSV review. It does not claim PDF/email/AI confirmation
 extraction, travel-provider integration, automatic venue matching or route estimates.
 Correct invalid source rows and upload a new source version to review them.
 
+A manager-only **Download review CSV** action provides a spreadsheet-readable row audit with source row and line, validation issue, duplicate-existing indicator, and minimally necessary stop identity fields. It does not include free-text travel notes or private source contents. The original CSV remains separately viewable with its SHA-256 evidence. Editing the report itself does not modify or apply stops; fix the original source CSV and create a newly reviewed draft.
+
 ## Access and storage boundaries
 
 - Owners/managers manage guest policies, approvals, hotel/room records and imports.
