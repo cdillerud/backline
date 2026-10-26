@@ -89,7 +89,13 @@ function scheduleBoard(){
  return head+buttons+panel(mode==='shows'?'Shows':mode==='rehearsals'?'Rehearsals':'Upcoming and past commitments',content);
 }
 document.addEventListener('click',async event=>{
- const b=event.target.closest('[data-schedule-view],[data-schedule-packet],[data-schedule-rsvp]');if(!b)return;
+ const b=event.target.closest('[data-schedule-view],[data-schedule-packet],[data-schedule-rsvp],[data-calendar-event]');if(!b)return;
+ if(b.dataset.calendarEvent){
+  const id=Number(b.dataset.calendarEvent);
+  if(b.dataset.calendarKind==='Gig'){await openShowPacketGig(id)}
+  else {state.rsvpEvent=id;state.section='collaboration';await refreshCollaboration()}
+  return
+ }
  if(b.dataset.scheduleView){state.scheduleView=b.dataset.scheduleView;render();return}
  if(b.dataset.schedulePacket){await openShowPacketGig(Number(b.dataset.schedulePacket));return}
  if(b.dataset.scheduleRsvp){state.rsvpEvent=Number(b.dataset.scheduleRsvp);state.hubTab='availability';state.section='collaboration';await refreshCollaboration();return}
@@ -98,7 +104,7 @@ function calendarBoard(){
  const month=state.calendarMonth||today().slice(0,7),rows=(state.data.calendarEvents||[]).filter(event=>event.date.startsWith(month));
  const [year,m]=month.split('-').map(Number),days=new Date(year,m,0).getDate(),offset=(new Date(year,m-1,1).getDay()+6)%7;
  let cells=Array.from({length:offset},()=>'<div></div>');
- for(let day=1;day<=days;day++){const date=month+'-'+String(day).padStart(2,'0'),events=rows.filter(event=>event.date===date);cells.push('<div class="calendarDay"><strong>'+day+'</strong>'+events.map(event=>'<div class="calendarEvent" style="border-color:'+event.calendar_color+'"><strong>'+esc(event.title)+'</strong><small>'+esc(event.calendar_name)+' · '+esc(event.advance.show_time||event.time||'Time TBC')+'</small>'+(state.calendarAll?'<small>'+esc(event.band_name)+'</small>':'')+'</div>').join('')+'</div>')}
+ for(let day=1;day<=days;day++){const date=month+'-'+String(day).padStart(2,'0'),events=rows.filter(event=>event.date===date);cells.push('<div class="calendarDay"><strong>'+day+'</strong>'+events.map(event=>'<div class="calendarEvent" style="border-color:'+event.calendar_color+'">'+(event.band_id===state.band?'<button class="scheduleEventLink" data-calendar-event="'+event.id+'" data-calendar-kind="'+esc(event.kind||'')+'"><strong>'+esc(event.title)+'</strong></button>':'<strong>'+esc(event.title)+'</strong>')+'<small>'+esc(event.calendar_name)+' · '+esc(event.advance.show_time||event.time||'Time TBC')+'</small>'+(state.calendarAll?'<small>'+esc(event.band_name)+'</small>':'')+'</div>').join('')+'</div>')}
  return panel('Band calendars','<div class="actions"><label>Month<input id="calendarMonth" type="month" value="'+esc(month)+'"></label><button data-calendar-all>'+(state.calendarAll?'This band only':'My bands combined')+'</button><button data-new-calendar>+ Calendar</button><button data-calendar-export>Download iCal</button><button data-calendar-subscriptions>Subscriptions</button></div><p class="sub">Named, colour-coded calendars for this band. Personal view combines only workspaces your account can access.</p><div class="calendarWrap"><div class="calendarGrid">'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day=>'<strong>'+day+'</strong>').join('')+cells.join('')+'</div></div><div class="list">'+rows.map(event=>'<div class="entry"><div><strong>'+esc(event.date)+' · '+esc(event.title)+'</strong><p>'+esc(event.calendar_name)+' · '+esc(event.venue)+'</p><p>Load-in '+esc(event.advance.load_in||'TBC')+' · Doors '+esc(event.advance.doors||'TBC')+' · Stage '+esc(event.advance.show_time||event.time||'TBC')+'</p>'+(event.band_id===state.band?'<button data-assign-calendar="'+event.id+'">Choose calendar</button>':'')+'</div></div>').join('')+'</div>');
 }
 document.addEventListener('change',event=>{if(event.target.id==='calendarMonth'){state.calendarMonth=event.target.value;render()}});
