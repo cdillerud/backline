@@ -45,9 +45,9 @@ async function openShowPacketGig(id){
  state.showGig=Number(id);
  try{
   const base='/bands/'+state.band+'/gigs/'+state.showGig;
-  const [packets,files,templates,stage]=await Promise.all([
-   api(base+'/packet'),api(base+'/files'),api('/bands/'+state.band+'/show-templates'),api(base+'/stage')]);
-  state.data.showPackets=packets;state.data.showFiles=files;state.data.showTemplates=templates;state.data.showStage=stage;
+  const [packets,files,templates,stage,advance]=await Promise.all([
+   api(base+'/packet'),api(base+'/files'),api('/bands/'+state.band+'/show-templates'),api(base+'/stage'),api(base+'/advance')]);
+  state.data.showPackets=packets;state.data.showFiles=files;state.data.showTemplates=templates;state.data.showStage=stage;state.data.showAdvance=advance;
   state.section='showops';render();
  }catch(error){toast(error.message,true)}
 }
@@ -233,6 +233,11 @@ function showops(){
  const active=state.showTab||'stage';
  html+=summary+'<div class="showTabBar" role="tablist">'+tabs.map(([key,label])=>'<button role="tab" aria-selected="'+(active===key)+'" class="'+(active===key?'selected':'')+'" data-show-tab="'+key+'">'+label+'</button>').join('')+'</div>';
 
+ if(active==='advance'){
+ const a=state.data.showAdvance||{};
+ const fields=[['venue_contact','Venue contact'],['production_contact','Production contact'],['contact_email','Contact email'],['contact_phone','Contact phone'],['load_in','Load-in time'],['soundcheck','Soundcheck'],['doors','Doors'],['show_time','Show time'],['curfew','Curfew'],['parking','Parking and access'],['open_questions','Outstanding questions']];
+ html+=panel('Venue advancement','<p class="sub">Keep show-day contact information and confirmed times together. Confirmation requires key times and no open questions.</p><div class="advanceGrid">'+fields.map(([key,label])=>'<label>'+label+(key==='parking'||key==='open_questions'?'<textarea data-advance-field="'+key+'" rows="3">'+esc(a[key]||'')+'</textarea>':'<input data-advance-field="'+key+'" value="'+esc(a[key]||'')+'">')+'</label>').join('')+'</div><div class="actions"><select id="advanceStatus"><option value="draft" '+(a.status==='draft'?'selected':'')+'>Draft</option><option value="awaiting_venue" '+(a.status==='awaiting_venue'?'selected':'')+'>Awaiting venue</option><option value="confirmed" '+(a.status==='confirmed'?'selected':'')+'>Confirmed</option></select><button class="small" data-save-advance="1">Save advancement</button></div>');
+ }
  if(active==='advance')html+=panel('Show documents',
   '<p class="sub">Create riders, advances and schedules; then edit each section before marking ready.</p><button class="small" data-pdf-packet="1">Download PDF show packet</button> <button class="small" data-print-packet="1">Print in browser</button>'+
   '<div class="actions">'+Object.entries(labels).map(([key,name])=>
@@ -283,7 +288,7 @@ if(type==='transaction'){title='Record transaction';fields=select('kind','Type',
 if(type==='setlist'){title='Create setlist';fields=field('title','Setlist title','text','required')+select('event_id','For gig (optional)',eventOpts)+`<div class="field full"><label>Choose songs (sorted by title)</label><div class="setSongs">${songs.length?songs.map(s=>`<label><input type="checkbox" name="song_ids" value="${s.id}">${esc(s.title)}${s.song_key?' · '+esc(s.song_key):''}</label>`).join(''):'Add songs first.'}</div></div>`}
 if(type==='settlement'){title='Settle a gig';let settled=get('settlements').map(s=>s.event_id);fields=select('event_id','Gig',evs.filter(e=>e.kind==='Gig'&&!settled.includes(e.id)).map(e=>[String(e.id),e.title]))+field('reserve_percent','Retain for band (%)','number','min="0" max="100" value="10" required')+`<div class="field full"><label>Musicians to pay</label><div class="setSongs">${mem.length?mem.map(m=>`<label><input type="checkbox" name="member_ids" value="${m.id}" checked>${esc(m.name)}</label>`).join(''):'Add members first.'}</div></div><p class="footNote">Record actual gig income and expenses in the ledger before settling. The settlement uses the net recorded cash and reserves the specified percentage.</p>`}
 return `<div class="modalWrap" id="modalWrap"><div class="modal" role="dialog" aria-modal="true" aria-label="${title}"><h2>${title}</h2><p class="sub">${esc(state.bands.find(b=>b.id===state.band)?.name||'')}</p><form id="entryForm"><div class="formGrid">${fields}</div><div class="actions"><button type="button" data-action="close">Cancel</button><button class="primary" type="submit">Save</button></div></form></div></div>`}
-document.addEventListener('click',async e=>{let btn=e.target.closest('[data-go],[data-action],[data-reverse],[data-export],[data-booking],[data-studio-gig],[data-approve-draft],[data-scan-market],[data-generate-campaign],[data-edit-draft],[data-voice],[data-show-gig],[data-create-packet],[data-edit-packet],[data-ready-packet],[data-upload-show-file],[data-download-show-file],[data-pdf-packet],[data-print-packet],[data-show-tab],[data-edit-stage],[data-stage-export],[data-new-tour],[data-open-tour],[data-add-stop]');if(!btn){if(e.target.id==='modalWrap'){state.modal=null;render()}return}if(btn.dataset.newTour){
+document.addEventListener('click',async e=>{let btn=e.target.closest('[data-go],[data-action],[data-reverse],[data-export],[data-booking],[data-studio-gig],[data-approve-draft],[data-scan-market],[data-generate-campaign],[data-edit-draft],[data-voice],[data-show-gig],[data-create-packet],[data-edit-packet],[data-ready-packet],[data-upload-show-file],[data-download-show-file],[data-save-advance],[data-pdf-packet],[data-print-packet],[data-show-tab],[data-edit-stage],[data-stage-export],[data-new-tour],[data-open-tour],[data-add-stop]');if(!btn){if(e.target.id==='modalWrap'){state.modal=null;render()}return}if(btn.dataset.newTour){
  const name=prompt('Name this tour (example: Upper Midwest Weekend)');if(!name?.trim())return;
  try{const tour=await api('/bands/'+state.band+'/tours',
   {method:'POST',body:JSON.stringify({name:name.trim()})});
@@ -321,6 +326,12 @@ if(btn.dataset.stageExport){
   link.href=url;link.download=btn.dataset.stageExport==='stage.svg'?'stage-plot.svg':'input-list.csv';
   link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
  }catch(error){toast(error.message,true)}return
+}
+if(btn.dataset.saveAdvance){
+ const a={};document.querySelectorAll('[data-advance-field]').forEach(el=>{a[el.dataset.advanceField]=el.value});
+ a.status=document.getElementById('advanceStatus').value;
+ try{await api('/bands/'+state.band+'/gigs/'+state.showGig+'/advance',{method:'PUT',body:JSON.stringify(a)});await openShowPacketGig(state.showGig);toast('Venue advancement saved')}
+ catch(error){toast(error.message,true)}return
 }
 if(btn.dataset.pdfPacket){
  window.open('/api/bands/'+state.band+'/gigs/'+state.showGig+'/packet.pdf','_blank');
