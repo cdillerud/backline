@@ -74,18 +74,19 @@ function touring(){
  const linked=route?.stops.filter(stop=>stop.event_id)||[];
  const showActions=linked.length?'<div class="list">'+linked.map(stop=>'<div class="entry"><div><strong>'+esc(stop.city)+' · '+datePretty(stop.stop_date)+'</strong><p>'+esc(stop.venue||'Venue TBC')+' · '+esc(stop.status)+'</p><p>Advance: '+esc(stop.advance?.timeline?.status||'Not linked')+'</p></div><button data-show-gig="'+stop.event_id+'">Open production</button></div>').join('')+'</div>':empty('Link gigs to tour stops to open their production details here.');
  if(selected==='day'){
-  const upcoming=route?.stops.filter(stop=>stop.event_id).slice().sort((a,b)=>a.stop_date.localeCompare(b.stop_date))||[];
+  const upcoming=route?.stops.slice().sort((a,b)=>a.stop_date.localeCompare(b.stop_date))||[];
   const cards=upcoming.map(stop=>{
+    const linkedShow=Boolean(stop.event_id);
     const advance=stop.advance||{},timeline=advance.timeline||{},calls=[
       ['Arrival',stop.arrival_time],['Load-in',timeline.load_in],['Soundcheck',timeline.soundcheck],
       ['Doors',timeline.doors],['Show',timeline.show_time],['Departure',stop.departure_time]
     ].filter(([_,time])=>Boolean(time));
     return '<article class="entry scheduleEntry"><div><strong>'+datePretty(stop.stop_date)+' · '+esc(stop.city)+'</strong><p>'+esc(stop.venue||'Venue to confirm')+' · '+esc(stop.status||'planned')+'</p>'+
-      '<p>'+esc(stop.lodging||'Lodging not recorded')+'</p><div class="showDayCalls">'+calls.map(([label,value])=>'<span><strong>'+label+'</strong> '+esc(value)+'</span>').join('')+'</div>'+
-      '<p class="sub">Times are shown as recorded; confirm local time zone with the advance.</p></div>'+
-      '<div class="actions"><button data-show-gig="'+stop.event_id+'">Production</button><button data-tour-crew-gig="'+stop.event_id+'">Guests & crew</button></div></article>';
+      '<p>'+esc(stop.lodging||'Lodging not recorded')+'</p><p class="sub">'+(linkedShow?'Linked show':'Travel / itinerary stop · no linked show')+'</p><div class="showDayCalls">'+calls.map(([label,value])=>'<span><strong>'+label+'</strong> '+esc(value)+'</span>').join('')+'</div>'+
+      '<p class="sub">'+(linkedShow?'Times are shown as recorded; confirm local time zone with the advance.':'Travel times are shown as recorded; no production calls are inferred.')+'</p></div>'+
+      '<div class="actions">'+(linkedShow?'<button data-show-gig="'+stop.event_id+'">Production</button><button data-tour-crew-gig="'+stop.event_id+'">Guests & crew</button>':'<button data-edit-stop="'+stop.id+'">Edit itinerary stop</button>')+'</div></article>';
   }).join('');
-  return tabbar+tourSummary+panel('Tour day sheets','<p class="sub">Linked show days, calls, lodging and next actions in one place. Missing times are omitted rather than guessed.</p>'+(cards?'<div class="list">'+cards+'</div>':empty('Link a confirmed gig to a tour stop to see its day sheet.')));
+  return tabbar+tourSummary+panel('Tour day sheets','<p class="sub">Show days and travel stops in chronological order, with recorded calls, lodging and relevant actions. Missing times are omitted rather than guessed.</p>'+(cards?'<div class="list">'+cards+'</div>':empty('Add itinerary stops to build a tour day-by-day view.')));
  }
  if(selected==='production')return tabbar+tourSummary+panel('Tour production','<p class="sub">Production packets and advances for the shows on this tour.</p>'+showActions+'<button data-go="showops">All show packets</button>');
  if(selected==='operations')return tabbar+tourSummary+panel('Tour crew & logistics','<p class="sub">Show-day crew coordination, guest approvals and private rooming remain permission-scoped.</p>'+(linked.length?'<div class="list">'+linked.map(stop=>'<div class="entry"><div><strong>'+datePretty(stop.stop_date)+' · '+esc(stop.city)+'</strong><p>'+esc(stop.venue||'Venue TBC')+'</p></div><button data-tour-crew-gig="'+stop.event_id+'">Guests & crew</button></div>').join('')+'</div>':'')+'<button data-go="operations">All crew operations</button>');
