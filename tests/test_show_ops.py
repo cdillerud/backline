@@ -59,6 +59,10 @@ def test_downloadable_pdf_scoped_to_band_and_gig(tmp_path,monkeypatch):
         "kind":"Gig","title":"Evening Showcase","date":"2026-11-14","venue":"Demo Theater"}).json()["id"]
     endpoint=f"/api/bands/{band}/gigs/{event}/packet"
     assert client.post(endpoint,json={"kind":"day_of_show"}).status_code==201
+    stage={"notes":"Bring 2 DI boxes", "items":[{"label":"Lead guitar","kind":"guitar","x":35,"y":50}],
+           "inputs":[{"channel":1,"source":"Lead vocal","microphone":"SM58","stand":"Boom","notes":"Center"}]}
+    saved=client.put(f"/api/bands/{band}/gigs/{event}/stage",json=stage)
+    assert saved.status_code==200,saved.text
     response=client.get(endpoint+".pdf")
     assert response.status_code==200,response.text
     assert response.headers["content-type"].startswith("application/pdf")
