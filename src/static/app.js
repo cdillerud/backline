@@ -68,11 +68,14 @@ function touring(){
  const tabs=[['itinerary','Itinerary'],['production','Show production'],['operations','Crew & logistics']];
  const selected=state.tourTab||'itinerary';
  const tabbar='<div class="showTabBar" role="tablist" aria-label="Tour workspace views">'+tabs.map(([key,label])=>'<button role="tab" aria-selected="'+(key===selected)+'" class="'+(key===selected?'selected':'')+'" data-tour-tab="'+key+'">'+label+'</button>').join('')+'</div>';
- if(selected==='production')return panel('Tour production','<p class="sub">Production packets, stage plots and venue advances stay attached to their gigs.</p><button data-go="showops">Open show production</button>')+tabbar;
- if(selected==='operations')return panel('Tour crew & logistics','<p class="sub">Guest approvals, private hotel rooming, itinerary imports and urgent change acknowledgements are managed together.</p><button data-go="operations">Open crew operations</button>')+tabbar;
+ const tourSummary=route&&state.selectedTour?panel('Current tour · '+esc(route.tour.name),
+  '<div class="hubStats"><span><strong>'+route.stops.length+'</strong> itinerary stops</span><span><strong>'+route.stops.filter(stop=>stop.event_id).length+'</strong> linked shows</span><span><strong>'+route.warnings.length+'</strong> routing flags</span></div>'+
+  '<p class="sub">All changes stay attached to the existing tour and show records. Select Itinerary to edit stops.</p>'):'';
+ if(selected==='production')return tabbar+tourSummary+panel('Tour production','<p class="sub">Production packets, stage plots and venue advances stay attached to their gigs.</p><button data-go="showops">Open show production</button>');
+ if(selected==='operations')return tabbar+tourSummary+panel('Tour crew & logistics','<p class="sub">Guest approvals, private hotel rooming, itinerary imports and urgent change acknowledgements are managed together.</p><button data-go="operations">Open crew operations</button>');
  let html=panel('Tour planning','<p class="sub">Build a dated tour itinerary, attach confirmed gigs, track holds and travel days. Routing times require a map provider.</p><button class="small" data-new-tour="1">+ Create tour</button>'+
   '<div class="list">'+tours.map(t=>'<div class="entry"><strong>'+esc(t.name)+'</strong> <button class="small" data-open-tour="'+t.id+'">Open itinerary</button></div>').join('')+'</div>');
- html=tabbar+html;
+ html=tabbar+tourSummary+html;
  if(!route || !state.selectedTour)return html;
  html+=panel('Itinerary · '+esc(route.tour.name),'<button class="small" data-add-stop="1">+ Add stop</button>'+
   (route.stops.length?'<div class="list">'+route.stops.map(stop=>
