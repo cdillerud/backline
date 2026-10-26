@@ -41,7 +41,7 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             assert page.get_by_text("Dashboard",exact=True).count()>0
             page.locator("[data-go='studio']").first.click()
             assert page.get_by_text("AI Gig Studio").count()>0
-            page.locator("[data-go='events']").first.click()
+            page.locator("[data-go='schedule']").first.click()
             assert page.get_by_text("Shows & Rehearsals").count()>0
             page.locator("[data-go='showops']").first.click()
             assert page.get_by_text("Show Packets").count()>0
