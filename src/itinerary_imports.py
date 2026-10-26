@@ -23,6 +23,30 @@ class ImportInput(Strict):
         except UnicodeEncodeError:raise ValueError('CSV must contain valid UTF-8 text') from None
         if len(encoded)>250000:raise ValueError('CSV exceeds 250 KB')
         return value
+class MapColumns(Strict):
+    """Transform existing source to a canonical, separately reviewable CSV."""
+    mapping:dict[str,str]=Field(min_length=2,max_length=9)
+
+def canonical_csv(source,mapping):
+    if len(set(mapping.values()))!=len(mapping) or not {'date','city'}<=set(mapping.values()) or not set(mapping.values())<=COLUMNS:
+        raise HTTPException(422,'Unique target columns including date and city are required')
+    try:
+        reader=csv.DictReader(StringIO(source.lstrip('\\ufeff')),strict=True)
+        headers=reader.fieldnames
+        if not headers or len(headers)!=len(set(headers)) or not set(mapping)<=set(headers):
+            raise HTTPException(422,'Mapped source columns must exist and be unique')
+        buf=io.StringIO()
+        columns=[col for col in sorted(COLUMNS) if col in mapping.values()]
+        writer=csv.DictWriter(buf,fieldnames=columns,lineterminator='\\n')
+        writer.writeheader()
+        for index,row in enumerate(reader,1):
+            if index>200:raise HTTPException(422,'Import at most 200 rows at a time')
+            if None in row or any(v is None for v in row.values()):
+                raise HTTPException(422,f'Source row {index} has a column mismatch')
+            writer.writerow({destination:row[source] for source,destination in mapping.items()})
+        return buf.getvalue()
+    except csv.Error:raise HTTPException(422,'Source CSV has invalid quoting or separators') from None
+
 class ApplyImport(Strict):
     revision:int=Field(ge=0)
     row_ids:list[int]=Field(min_length=1,max_length=200)
@@ -98,6 +122,17 @@ def attach(db):
         with db() as con:
             require_manager(con,band_id,actor(request));row=get(con,band_id,import_id)
             return {'filename':row['filename'],'source_sha256':row['source_sha256'],'source_text':row['source_text']}
+    @router.post('/api/bands/{band_id}/itinerary-imports/{import_id}/map-preview')
+    def map_preview(band_id:int,import_id:int,data:MapColumns,request:Request):
+        with db() as con:
+            require_manager(con,band_id,actor(request))
+            original=get(con,band_id,import_id)
+            transformed=canonical_csv(original['source_text'],data.mapping)
+        rows=parse_csv(transformed)
+        return {'canonical_csv':transformed,'rows':rows,'valid_count':sum(bool(r['data']) for r in rows),
+                'source_sha256':original['source_sha256'],'original_unchanged':True,
+                'requires_new_review':True}
+
     @router.get('/api/bands/{band_id}/itinerary-imports/{import_id}/review.csv')
     def review_report(band_id:int,import_id:int,request:Request):
         """Manager-only spreadsheet-safe issues report; never applies source data."""
