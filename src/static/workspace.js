@@ -73,12 +73,27 @@ function venueLinkPanel(){
  const v=state.data.showVenue;
  return panel('Linked venue book record','<p class="sub">Directory details stay linked to the show. Review and confirm show-specific arrangements below.</p><label>Venue<select id="showVenueLink"><option value="">Select venue</option>'+get('shared-venues').map(venue=>'<option value="shared:'+venue.share_id+'">'+esc(venue.name)+' (shared)</option>').join('')+get('venues').map(venue=>'<option value="'+venue.id+'" '+(venue.id===v?.id?'selected':'')+'>'+esc(venue.name)+'</option>').join('')+'</select></label> <button data-link-venue>Link venue to show</button>'+(v?'<h3>'+esc(v.name)+'</h3><p>'+esc(v.address)+'</p><p>'+(v.contacts||[]).map(c=>esc([c.name,c.role,c.email,c.phone].filter(Boolean).join(' · '))).join('<br>')+'</p><p>'+esc(v.load_in_notes)+'</p><p>'+esc(v.curfew_notes)+'</p>':''));
 }
-nav.splice(2,0,['calendars','▦','Calendars']);
+// Schedule exposes the same named calendars without duplicate navigation.
 async function refreshCalendar(all=false){
  const bands=all?state.bands:state.bands.filter(b=>b.id===state.band);
  const results=await Promise.all(bands.map(async band=>{const events=await api('/bands/'+band.id+'/calendar/events');return events.map(event=>({...event,band_name:band.name}))}));
  state.data.calendarEvents=results.flat().sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));state.data.bandCalendars=await api(workspaceBase()+'/calendars');state.calendarAll=all;render();
 }
+function scheduleBoard(){
+ const mode=state.scheduleView||'calendar',views=[['calendar','Calendar'],['shows','Shows'],['rehearsals','Rehearsals'],['agenda','Agenda']];
+ const buttons='<div class="showTabBar" role="tablist" aria-label="Schedule views">'+views.map(([key,label])=>'<button role="tab" aria-selected="'+(mode===key)+'" class="'+(mode===key?'selected':'')+'" data-schedule-view="'+key+'">'+label+'</button>').join('')+'</div>';
+ const head='<div class="toolbar"><p>One shared home for shows, rehearsals and sessions.</p><button class="primary" data-action="event">+ Add event</button></div>';
+ if(mode==='calendar')return head+buttons+calendarBoard();
+ const events=get('events').filter(e=>mode==='shows'?e.kind==='Gig':mode==='rehearsals'?e.kind==='Rehearsal':true).slice().sort((a,b)=>a.date.localeCompare(b.date)||String(a.time||'').localeCompare(String(b.time||'')));
+ const content=events.length?'<div class="list">'+events.map(e=>'<article class="entry scheduleEntry"><div><span class="tag muted">'+esc(e.kind)+'</span> <strong>'+esc(e.title)+'</strong><p>'+datePretty(e.date)+' · '+esc(e.time||'Time to confirm')+' · '+esc(e.venue||'Location to confirm')+'</p><small>'+esc(e.status||'Planned')+'</small></div><div class="actions">'+(e.kind==='Gig'?'<button data-schedule-packet="'+e.id+'">Production</button>':'')+'<button data-schedule-rsvp="'+e.id+'">Availability</button></div></article>').join('')+'</div>':empty('No events in this view. Add one to get started.');
+ return head+buttons+panel(mode==='shows'?'Shows':mode==='rehearsals'?'Rehearsals':'Upcoming and past commitments',content);
+}
+document.addEventListener('click',async event=>{
+ const b=event.target.closest('[data-schedule-view],[data-schedule-packet],[data-schedule-rsvp]');if(!b)return;
+ if(b.dataset.scheduleView){state.scheduleView=b.dataset.scheduleView;render();return}
+ if(b.dataset.schedulePacket){await openShowPacketGig(Number(b.dataset.schedulePacket));return}
+ if(b.dataset.scheduleRsvp){state.rsvpEvent=Number(b.dataset.scheduleRsvp);state.hubTab='availability';state.section='collaboration';await refreshCollaboration();return}
+});
 function calendarBoard(){
  const month=state.calendarMonth||today().slice(0,7),rows=(state.data.calendarEvents||[]).filter(event=>event.date.startsWith(month));
  const [year,m]=month.split('-').map(Number),days=new Date(year,m,0).getDate(),offset=(new Date(year,m-1,1).getDay()+6)%7;
