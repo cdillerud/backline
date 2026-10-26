@@ -93,7 +93,9 @@ def attach(db):
             event=con.execute("SELECT title,date,venue FROM events WHERE band_id=? AND id=?",(band_id,event_id)).fetchone()
             documents=[dict(row)|{"sections":json.loads(row["sections_json"])} for row in con.execute(
                 "SELECT * FROM show_packets WHERE band_id=? AND event_id=? ORDER BY kind",(band_id,event_id))]
-        payload=create_show_pdf(band_record,event,documents)
+            stage_row=con.execute("SELECT body_json FROM show_stage_plots WHERE band_id=? AND event_id=?",(band_id,event_id)).fetchone()
+            stage=json.loads(stage_row["body_json"]) if stage_row else {"items":[],"inputs":[],"notes":""}
+        payload=create_show_pdf(band_record,event,documents,stage=stage)
         return Response(content=payload,media_type="application/pdf",
             headers={"Content-Disposition":f'attachment; filename="backline-show-{event_id}.pdf"',
                      "Cache-Control":"no-store"})
