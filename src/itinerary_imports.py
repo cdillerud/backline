@@ -47,6 +47,9 @@ def canonical_csv(source,mapping):
         return buf.getvalue()
     except csv.Error:raise HTTPException(422,'Source CSV has invalid quoting or separators') from None
 
+class MapSource(ImportInput):
+    mapping:dict[str,str]=Field(min_length=2,max_length=9)
+
 class ApplyImport(Strict):
     revision:int=Field(ge=0)
     row_ids:list[int]=Field(min_length=1,max_length=200)
@@ -97,6 +100,18 @@ def attach(db):
         for entry in rows:
             entry['duplicate_existing']=bool(entry['data'] and entry['status']=='draft' and stop_identity(entry['data']) in existing)
         return result|{'rows':rows,'revision':current_revision(con,row['band_id'],'import',row['id'])}
+    @router.post('/api/bands/{band_id}/itinerary-imports/map-source')
+    def map_source(band_id:int,data:MapSource,request:Request):
+        with db() as con:
+            require_manager(con,band_id,actor(request))
+            if not con.execute('SELECT 1 FROM tours WHERE id=? AND band_id=?',(data.tour_id,band_id)).fetchone():
+                raise HTTPException(404,'Tour not found')
+        converted=canonical_csv(data.csv_text,data.mapping)
+        rows=parse_csv(converted)
+        return {'canonical_csv':converted,'rows':rows,
+                'source_sha256':hashlib.sha256(data.csv_text.encode('utf-8')).hexdigest(),
+                'original_unchanged':True,'requires_new_review':True}
+
     @router.post('/api/bands/{band_id}/itinerary-imports',status_code=201)
     def create(band_id:int,data:ImportInput,request:Request):
         uid=actor(request);rows=parse_csv(data.csv_text);digest=hashlib.sha256(data.csv_text.encode('utf-8')).hexdigest()
