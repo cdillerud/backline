@@ -24,6 +24,7 @@ from .show_files import setup as setup_show_files, attach as attach_show_files
 from .tax_records import setup as setup_tax_records, attach as attach_tax_records
 from .tour_routes import setup as setup_tour_routes, attach as attach_tour_routes
 from .stage_plots import setup as setup_stage_plots, attach as attach_stage_plots
+from .venue_advance import setup as setup_venue_advance, attach as attach_venue_advance
 from .security import install_preview_auth
 install_preview_auth(app)
 from .accounts import account_tables, install_accounts, hash_password, verify_password, make_session, login_locked, login_failure, login_success
@@ -65,6 +66,7 @@ def init_db():
         setup_tax_records(c)
         setup_tour_routes(c)
         setup_stage_plots(c)
+        setup_venue_advance(c)
         if os.getenv('BACKLINE_DEMO_SEED')=='1' and os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
             from .demo_seed import seed
             seed(c)
@@ -406,4 +408,5 @@ app.include_router(attach_show_files(db))
 app.include_router(attach_tax_records(db))
 app.include_router(attach_tour_routes(db))
 app.include_router(attach_stage_plots(db))
+app.include_router(attach_venue_advance(db))
 init_db()
