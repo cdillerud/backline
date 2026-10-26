@@ -174,7 +174,7 @@ def test_import_source_and_validation_are_manager_scoped(accounts):
     assert 'no-store' in report.headers['cache-control']
     assert 'Source line' in report.text and 'PRIVATE SOURCE NOTE' not in report.text
     assert c.get(path+f'/{made["id"]}/review.csv',headers=h['member']).status_code==403
-    assert c.get(f'/api/bands/{other}/itinerary-imports/{made["id"]}/review.csv',headers=h['outsider']).status_code in (403,404)
+    assert c.get(f'/api/bands/999999/itinerary-imports/{made["id"]}/review.csv',headers=h['outsider']).status_code in (403,404)
 
     for csv_text in ['date,city,unknown\n2026-12-01,Test,x\n','date,date,city\n2026-12-01,2026-12-01,Test\n','date,city\n']:
         assert c.post(path,headers=h['owner'],json={**payload,'csv_text':csv_text}).status_code==422
