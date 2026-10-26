@@ -44,6 +44,7 @@ def test_stage_advancement_and_overnight_calls(preview_url,width):
         page.get_by_role('tab',name='Stage & inputs').wait_for()
         page.get_by_role('button',name='Edit stage setup').click()
         expect(page.get_by_role('dialog',name='Stage Designer')).to_be_visible()
+        assert page.locator('.stageDesigner').evaluate('(n)=>n.scrollWidth <= n.clientWidth'), 'Stage editor overflows horizontally'
         page.get_by_role('button',name='+ Equipment',exact=True).click()
         page.get_by_label('Equipment label',exact=True).fill('Keyboard guitar')
         page.get_by_label('Equipment label',exact=True).press('Tab')
