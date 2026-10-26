@@ -1,6 +1,7 @@
 """Unified scheduling and band-social navigation smoke coverage."""
 import pytest
 from playwright.sync_api import sync_playwright,expect
+from test_collaboration import accounts
 from test_browser_collaboration import account_server,sign_in
 
 @pytest.mark.parametrize("width",[1280,390])
