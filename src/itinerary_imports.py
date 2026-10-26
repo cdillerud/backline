@@ -1,9 +1,10 @@
 """Bounded CSV itinerary import: source evidence, validated draft, explicit atomic apply."""
 import csv
+import io
 import hashlib
 from io import StringIO
 import json
-from fastapi import APIRouter,HTTPException,Request
+from fastapi import APIRouter,HTTPException,Request,Response
 from pydantic import Field,ValidationError,field_validator
 from .collaboration import Strict,actor
 from .operations_audit import require_manager,record_change,check_revision,current_revision
@@ -97,6 +98,26 @@ def attach(db):
         with db() as con:
             require_manager(con,band_id,actor(request));row=get(con,band_id,import_id)
             return {'filename':row['filename'],'source_sha256':row['source_sha256'],'source_text':row['source_text']}
+    @router.get('/api/bands/{band_id}/itinerary-imports/{import_id}/review.csv')
+    def review_report(band_id:int,import_id:int,request:Request):
+        """Manager-only spreadsheet-safe issues report; never applies source data."""
+        with db() as con:
+            require_manager(con,band_id,actor(request))
+            draft=output(con,get(con,band_id,import_id))
+        buf=io.StringIO()
+        writer=csv.writer(buf)
+        writer.writerow(['Row','Source line','Status','Issue','Duplicate existing','Date','City','Venue'])
+        def safe(value):
+            value=str(value if value is not None else '')
+            return "'" + value if value.lstrip().startswith(('=','+','-','@')) else value
+        for row in draft['rows']:
+            data=row.get('data') or {}
+            writer.writerow([row['row_id'],row['source_line'],row['status'],
+                safe(row.get('error') or ''), 'Yes' if row.get('duplicate_existing') else 'No',
+                safe(data.get('date','')),safe(data.get('city','')),safe(data.get('venue',''))])
+        return Response(buf.getvalue(),media_type='text/csv; charset=utf-8',
+            headers={'Content-Disposition':f'attachment; filename="itinerary-review-{import_id}.csv"',
+                     'Cache-Control':'private, no-store', 'X-Content-Type-Options':'nosniff'})
     @router.post('/api/bands/{band_id}/itinerary-imports/{import_id}/apply')
     def apply(band_id:int,import_id:int,data:ApplyImport,request:Request):
         uid=actor(request)
