@@ -82,7 +82,7 @@ function touring(){
       ['Doors',timeline.doors],['Show',timeline.show_time],['Departure',stop.departure_time]
     ].filter(([_,time])=>Boolean(time));
     return '<article class="entry scheduleEntry"><div><strong>'+datePretty(stop.stop_date)+' · '+esc(stop.city)+'</strong><p>'+esc(stop.venue||'Venue to confirm')+' · '+esc(stop.status||'planned')+'</p>'+
-      '<p>'+esc(stop.lodging||'Lodging not recorded')+'</p><p class="sub">'+(linkedShow?'Linked show':'Travel / itinerary stop · no linked show')+'</p><div class="showDayCalls">'+calls.map(([label,value])=>'<span><strong>'+label+'</strong> '+esc(value)+'</span>').join('')+'</div>'+
+      '<p>'+esc(stop.lodging||'Lodging not recorded')+'</p>'+ (stop.travel_notes?'<p class="sub">Travel notes: '+esc(stop.travel_notes)+'</p>':'') +'<p class="sub">'+(linkedShow?'Linked show · '+esc(timeline.status||'Advance status not recorded'):'Travel / itinerary stop · no linked show')+'</p><div class="showDayCalls">'+calls.map(([label,value])=>'<span><strong>'+label+'</strong> '+esc(value)+'</span>').join('')+'</div>'+
       '<p class="sub">'+(linkedShow?'Times are shown as recorded; confirm local time zone with the advance.':'Travel times are shown as recorded; no production calls are inferred.')+'</p></div>'+
       '<div class="actions">'+(linkedShow?'<button data-show-gig="'+stop.event_id+'">Production</button><button data-tour-crew-gig="'+stop.event_id+'">Guests & crew</button>':'<button data-edit-stop="'+stop.id+'">Edit itinerary stop</button>')+'</div></article>';
   }).join('');
