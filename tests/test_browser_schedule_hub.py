@@ -22,6 +22,7 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
         expect(page.get_by_role("tab",name="Agenda",exact=True)).to_have_attribute("aria-selected","true")
         page.locator('[data-go="collaboration"]:visible').first.click()
         expect(page.get_by_role("heading",name="Your band, connected")).to_be_visible()
+        expect(page.get_by_role("heading",name="Recent conversations")).to_be_visible()
         expect(page.get_by_role("button",name="Photos & albums")).to_be_visible()
         page.locator('[data-go="touring"]:visible').first.click()
         expect(page.get_by_role("tab",name="Itinerary",exact=True)).to_be_visible()
