@@ -175,7 +175,7 @@ def test_shared_venue_and_calendar_subscription_ui(account_server,accounts,width
         expect(owner.get_by_text('Synthetic Shared Hall',exact=True)).to_be_visible()
         assert 'DO NOT SHARE' not in owner.locator('body').inner_text()
         owner.locator('#bandPicker:visible,#mobileBandPicker:visible').select_option(str(band))
-        navigate(owner,'calendars')
+        navigate(owner,'schedule')
         owner.get_by_role('button',name='Subscriptions',exact=True).click()
         dialog=owner.get_by_role('dialog',name='Calendar subscriptions')
         dialog.get_by_label('Calendar',exact=True).select_option(label='Selected dates')
