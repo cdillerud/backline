@@ -87,8 +87,14 @@ function touring(){
     if(linkedShow&&!timeline.doors)gaps.push('Doors');
     if(linkedShow&&!timeline.show_time)gaps.push('Show time');
     if(linkedShow&&!timeline.timezone)gaps.push('Time zone');
+    const readiness=linkedShow?[
+      ['Production calls',gaps.filter(g=>g!=='Time zone').length===0],
+      ['Venue time zone',Boolean(timeline.timezone)],
+      ['Advancement status recorded',Boolean(timeline.status)],
+      ['Lodging recorded',Boolean(stop.lodging)]
+    ]:[];
     return '<article class="entry scheduleEntry"><div><strong>'+datePretty(stop.stop_date)+' · '+esc(stop.city)+'</strong><p>'+esc(stop.venue||'Venue to confirm')+' · '+esc(stop.status||'planned')+'</p>'+
-      '<p><strong>Lodging:</strong> '+esc(stop.lodging||'Not recorded')+'</p>'+(gaps.length?'<p class="sub"><strong>Calls to confirm:</strong> '+esc(gaps.join(', '))+'</p>':'')+ (stop.travel_notes?'<p class="sub">Travel notes: '+esc(stop.travel_notes)+'</p>':'') +'<p class="sub">'+(linkedShow?'Linked show · '+esc(timeline.status||'Advance status not recorded'):'Travel / itinerary stop · no linked show')+'</p><div class="showDayCalls">'+(calls.length?calls.map(([label,value])=>'<span><strong>'+label+'</strong> '+esc(value)+'</span>').join(''):'<span class="sub">No call or travel times recorded</span>')+'</div>'+
+      '<p><strong>Lodging:</strong> '+esc(stop.lodging||'Not recorded')+'</p>'+(linkedShow?'<div class="showDayReadiness" aria-label="Recorded show-day details"><strong>Recorded details</strong><ul>'+readiness.map(([name,complete])=>'<li>'+esc(name)+': '+(complete?'Recorded':'Needs review')+'</li>').join('')+'</ul><p class="sub">These are record-presence checks, not confirmation that arrangements are approved or complete.</p></div>':'')+(gaps.length?'<p class="sub"><strong>Calls to confirm:</strong> '+esc(gaps.join(', '))+'</p>':'')+ (stop.travel_notes?'<p class="sub">Travel notes: '+esc(stop.travel_notes)+'</p>':'') +'<p class="sub">'+(linkedShow?'Linked show · '+esc(timeline.status||'Advance status not recorded'):'Travel / itinerary stop · no linked show')+'</p><div class="showDayCalls">'+(calls.length?calls.map(([label,value])=>'<span><strong>'+label+'</strong> '+esc(value)+'</span>').join(''):'<span class="sub">No call or travel times recorded</span>')+'</div>'+
       '<p class="sub">'+(linkedShow?'Show-call time zone: '+esc(timeline.timezone||'Not recorded — confirm with venue')+'. Times are shown as recorded.':'Travel times are shown as recorded; confirm local time zone. No production calls are inferred.')+'</p></div>'+
       '<div class="actions">'+(linkedShow?'<button data-show-gig="'+stop.event_id+'">Production</button><button data-tour-crew-gig="'+stop.event_id+'">Guests & crew</button>':'')+'<button data-edit-stop="'+stop.id+'">Edit itinerary stop</button></div></article>';
   }).join('');
