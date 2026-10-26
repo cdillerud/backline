@@ -5,6 +5,11 @@ def seed(con):
     if marker:return
     band=con.execute("INSERT INTO bands(name,genre,description) VALUES(?,?,?)",
         ("The Drunk Uncles (Demo)","Americana / rock","A sample workspace with entirely fictional show information.")).lastrowid
+    for name,instrument in [('Alex Example','Guitar / vocal'),('Sam Example','Bass'),('Pat Example','Drums'),('Morgan Example','Keys')]:
+        con.execute("INSERT INTO members(band_id,name,instrument) VALUES(?,?,?)",(band,name,instrument))
+    for title,key,bpm,duration in [('Example Opener','Am',120,180),('Example Ballad','C',72,240),('Example Closer','G',140,210)]:
+        con.execute("INSERT INTO songs(band_id,title,artist,song_key,bpm,duration_seconds) VALUES(?,?,?,?,?,?)",
+                    (band,title,'Synthetic Demo',key,bpm,duration))
     from datetime import date,timedelta
     first=(date.today()+timedelta(days=21)).isoformat()
     second=(date.today()+timedelta(days=22)).isoformat()

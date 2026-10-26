@@ -1,0 +1,94 @@
+/* Private venue, checklist and repertoire workflows. Existing account rules apply. */
+nav.splice(6,0,['venues','⌂','Venue Book'],['tasks','☑','Tasks']);
+const workspaceBase=()=>'/bands/'+state.band;
+const wsInput=(name,label,value='',type='text',required=false,max=200)=>'<label>'+label+'<input name="'+name+'" type="'+type+'" value="'+esc(value)+'" maxlength="'+max+'" '+(required?'required':'')+'></label>';
+const wsSelect=(name,label,items,value='')=>'<label>'+label+'<select aria-label="'+esc(label)+'" name="'+name+'">'+items.map(([id,text])=>'<option value="'+esc(id)+'" '+(String(id)===String(value)?'selected':'')+'>'+esc(text)+'</option>').join('')+'</select></label>';
+function workspaceDialog(title,content,save){
+ const modal=document.createElement('dialog');modal.className='timelineDialog';modal.setAttribute('aria-label',title);
+ modal.innerHTML='<form><h2>'+esc(title)+'</h2>'+content+'<p class="workspaceError" role="alert"></p><div class="actions"><button type="button" data-cancel-workspace>Cancel</button><button class="primary" type="submit">Save</button></div></form>';
+ document.body.append(modal);modal.addEventListener('close',()=>modal.remove());modal.querySelector('[data-cancel-workspace]').onclick=()=>modal.close();
+ modal.querySelector('form').onsubmit=async event=>{event.preventDefault();const button=event.submitter;button.disabled=true;try{await save(Object.fromEntries(new FormData(event.target)),modal);modal.close();await load();toast('Saved successfully')}catch(error){modal.querySelector('.workspaceError').textContent=error.message;button.disabled=false}};
+ modal.showModal();return modal;
+}
+function venueBook(){
+ const venues=get('venues');return panel('Private venue book','<p class="sub">Keep promoter and engineer contacts, access notes and curfews with the band. Link records to shows from Advances & riders.</p><button data-new-venue>+ Add venue</button><div class="list">'+venues.slice().sort((a,b)=>Number(b.favourite)-Number(a.favourite)||a.name.localeCompare(b.name)).map(v=>'<div class="entry"><div><strong>'+(v.favourite?'★ ':'')+esc(v.name)+'</strong><p>'+esc(v.address)+'</p><p>'+v.tags.map(esc).join(' · ')+'</p><p>'+v.contacts.map(c=>esc([c.name,c.role,c.email,c.phone].filter(Boolean).join(' · '))).join('<br>')+'</p><p>Load-in: '+esc(v.load_in_notes)+'</p><p>Curfew: '+esc(v.curfew_notes)+'</p><button data-edit-venue="'+v.id+'">Edit venue</button></div></div>').join('')+'</div>');
+}
+function editVenue(v={}){
+ const contacts=JSON.parse(JSON.stringify(v.contacts||[]));
+ const modal=workspaceDialog(v.id?'Edit venue':'Add venue','<div class="advanceGrid">'+wsInput('name','Venue name',v.name,'text',true,150)+wsInput('address','Address',v.address,'text',false,500)+wsInput('tags','Tags (comma separated)',(v.tags||[]).join(', '))+wsSelect('favourite','Favourite',[['0','No'],['1','Yes']],v.favourite?'1':'0')+wsInput('load_in_notes','Load-in and access notes',v.load_in_notes,'text',false,2000)+wsInput('curfew_notes','Curfew notes',v.curfew_notes,'text',false,1000)+'</div><h3>Venue contacts</h3><div id="venueContacts"></div><button type="button" id="addVenueContact">+ Contact</button>',async data=>{
+  data.contacts=contacts;data.tags=data.tags.split(',').map(t=>t.trim()).filter(Boolean);data.favourite=data.favourite==='1';
+  await api(workspaceBase()+'/venues'+(v.id?'/'+v.id:''),{method:v.id?'PUT':'POST',body:JSON.stringify(data)});
+ });
+ const draw=()=>{const list=modal.querySelector('#venueContacts');list.replaceChildren();contacts.forEach((contact,index)=>{const row=document.createElement('fieldset');row.innerHTML='<legend>Contact '+(index+1)+'</legend>';for(const [key,label,max] of [['name','Contact name',120],['role','Contact role',100],['email','Contact email',200],['phone','Contact phone',80]]){const wrap=document.createElement('label');wrap.textContent=label;const input=document.createElement('input');input.setAttribute('aria-label',label+' '+(index+1));input.value=contact[key]||'';input.maxLength=max;input.required=key==='name';input.type=key==='email'?'email':key==='phone'?'tel':'text';input.oninput=()=>contact[key]=input.value;wrap.append(input);row.append(wrap)}const remove=document.createElement('button');remove.type='button';remove.textContent='Remove contact '+(index+1);remove.onclick=()=>{contacts.splice(index,1);draw()};row.append(remove);list.append(row)})};
+ modal.querySelector('#addVenueContact').onclick=()=>{if(contacts.length>=30)return;contacts.push({name:'',role:'',email:'',phone:''});draw();modal.querySelector('#venueContacts fieldset:last-child input').focus()};draw();
+}
+function taskBoard(){
+ return panel('Band task checklists','<p class="sub">Assign work to band members and link it to shows, songs or sets. Due-tomorrow reminders appear here; outbound email is not enabled.</p><button data-new-task>+ Add task</button><div class="list">'+get('tasks').map(t=>{
+  const member=get('members').find(m=>m.id===t.assignee_id),event=get('events').find(e=>e.id===t.event_id),song=get('songs').find(s=>s.id===t.song_id),set=get('setlists').find(s=>s.id===t.setlist_id);
+  return '<div class="entry"><div><strong>'+esc(t.title)+'</strong> <span class="tag">'+esc(t.reminder.replaceAll('_',' ')||'Open')+'</span><p>'+esc(member?.name||'Unassigned')+' · '+esc(t.due_date||'No due date')+'</p><p>'+esc([event?.title,song?.title,set?.title].filter(Boolean).join(' · '))+'</p><p>'+esc(t.notes)+'</p><button data-edit-task="'+t.id+'">Edit task</button> <button data-toggle-task="'+t.id+'">'+(t.completed?'Reopen':'Complete')+'</button></div></div>'}).join('')+'</div>');
+}
+function editTask(t={}){
+ const options=(key)=>[['','None'],...get(key).map(x=>[x.id,x.name||x.title])];
+ workspaceDialog(t.id?'Edit task':'Add task','<div class="advanceGrid">'+wsInput('title','Task title',t.title,'text',true,200)+wsInput('due_date','Due date',t.due_date,'date')+wsSelect('assignee_id','Assignee',options('members'),t.assignee_id)+wsSelect('event_id','Linked event',options('events'),t.event_id)+wsSelect('song_id','Linked song',options('songs'),t.song_id)+wsSelect('setlist_id','Linked setlist',options('setlists'),t.setlist_id)+wsInput('notes','Task notes',t.notes,'text',false,3000)+'</div>',async data=>{for(const key of ['assignee_id','event_id','song_id','setlist_id'])data[key]=data[key]?Number(data[key]):null;data.due_date=data.due_date||null;data.completed=t.completed||false;await api(workspaceBase()+'/tasks'+(t.id?'/'+t.id:''),{method:t.id?'PUT':'POST',body:JSON.stringify(data)})});
+}
+function repertoireLibrary(){
+ return panel('Song library','<p class="sub">Musical cues, tags and a shared reference recording for each arrangement.</p><button data-action="song">+ Add song</button><div class="list">'+get('songs').map(s=>{const details=get('song-details').find(d=>d.song_id===s.id)||{};return '<div class="entry"><div><strong>'+esc(s.title)+'</strong><p>'+esc(s.artist)+' · '+esc(s.song_key||'Key TBC')+' · '+(s.bpm||'Tempo TBC')+' BPM · '+Math.floor(s.duration_seconds/60)+':'+String(s.duration_seconds%60).padStart(2,'0')+'</p><p>'+esc((details.tags||[]).join(' · '))+'</p>'+(details.reference_url?'<a href="'+esc(details.reference_url)+'" target="_blank" rel="noopener noreferrer">Reference recording</a> ':'')+'<button data-edit-song="'+s.id+'">Edit song</button></div></div>'}).join('')+'</div>');
+}
+function editRepertoire(s){
+ const details=get('song-details').find(d=>d.song_id===s.id)||{};
+ workspaceDialog('Edit song','<div class="advanceGrid">'+wsInput('title','Song title',s.title,'text',true,180)+wsInput('artist','Original artist',s.artist)+wsInput('song_key','Musical key',s.song_key)+wsInput('bpm','Tempo BPM',s.bpm||'','number')+wsInput('duration_seconds','Duration in seconds',s.duration_seconds,'number')+wsInput('tags','Song tags (comma separated)',(details.tags||[]).join(', '))+wsInput('reference_url','Reference recording HTTPS URL',details.reference_url,'url',false,1500)+wsInput('status','Readiness',s.status)+wsInput('notes','Arrangement notes',s.notes,'text',false,5000)+'</div>',async data=>{data.bpm=data.bpm?Number(data.bpm):null;data.duration_seconds=Number(data.duration_seconds);data.tags=data.tags.split(',').map(v=>v.trim()).filter(Boolean);await api(workspaceBase()+'/songs/'+s.id,{method:'PUT',body:JSON.stringify(data)})});
+}
+const runtime=songs=>{const seconds=songs.reduce((n,s)=>n+s.duration_seconds,0);return Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')};
+function setlistLibrary(){
+ return panel('Setlist studio','<p class="sub">Build a running order with musical cues and measured duration. Breaks and transitions are additional.</p><button data-new-setlist>+ Create setlist</button>'+get('setlists').map(s=>'<div class="panel"><h3>'+esc(s.title)+'</h3><p>'+s.songs.length+' songs · Runtime '+runtime(s.songs)+'</p><ol>'+s.songs.map(song=>'<li>'+esc(song.title)+' · '+esc(song.song_key)+' · '+(song.bpm||'—')+' BPM</li>').join('')+'</ol><button data-build-setlist="'+s.id+'">Edit running order</button> <button data-setlist-pdf="'+s.id+'">Download setlist PDF</button></div>').join(''));
+}
+function openSetlistBuilder(s={}){
+ const order=(s.songs||[]).map(song=>song.id);
+ const modal=workspaceDialog(s.id?'Edit setlist':'Create setlist',wsInput('title','Setlist title',s.title,'text',true,160)+wsSelect('event_id','Linked show',[['','None'],...get('events').filter(e=>e.kind==='Gig').map(e=>[e.id,e.title])],s.event_id)+
+ '<div class="actions"><select id="setlistSongPicker" aria-label="Song to add">'+get('songs').map(song=>'<option value="'+song.id+'">'+esc(song.title)+'</option>').join('')+'</select><button type="button" id="appendSetlistSong">+ Add song</button></div><p id="setlistRuntime" role="status"></p><ol id="setlistOrder"></ol>',async data=>{
+  data.event_id=data.event_id?Number(data.event_id):null;data.song_ids=order;
+  await api(workspaceBase()+'/setlists'+(s.id?'/'+s.id:''),{method:s.id?'PUT':'POST',body:JSON.stringify(data)});
+ });
+ const move=(from,to)=>{if(to<0||to>=order.length)return;const [id]=order.splice(from,1);order.splice(to,0,id);draw()};
+ const draw=()=>{const list=modal.querySelector('#setlistOrder');list.replaceChildren();const songs=order.map(id=>get('songs').find(song=>song.id===id));modal.querySelector('#setlistRuntime').textContent='Runtime '+runtime(songs)+' · '+songs.length+' songs'+(songs.some(song=>!song.duration_seconds)?' · Some durations are missing':'');songs.forEach((song,index)=>{const row=document.createElement('li');row.draggable=true;row.className='setlistOrderRow';const name=document.createElement('span');name.textContent=song.title+' · '+(song.song_key||'Key TBC')+' · '+(song.bpm||'—')+' BPM';row.append(name);row.ondragstart=event=>event.dataTransfer.setData('text/plain',String(index));row.ondragover=event=>event.preventDefault();row.ondrop=event=>{event.preventDefault();const from=Number(event.dataTransfer.getData('text/plain'));if(Number.isInteger(from)&&from>=0&&from<order.length)move(from,index)};for(const [label,delta] of [['Move song up',-1],['Move song down',1]]){const button=document.createElement('button');button.type='button';button.textContent=delta<0?'↑':'↓';button.setAttribute('aria-label',label+' '+(index+1));button.disabled=index+delta<0||index+delta>=order.length;button.onclick=()=>{move(index,index+delta);modal.querySelectorAll('.setlistOrderRow')[index+delta]?.querySelector('button')?.focus()};row.append(button)}const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';remove.setAttribute('aria-label','Remove song '+(index+1));remove.onclick=()=>{order.splice(index,1);draw()};row.append(remove);list.append(row)})};
+ modal.querySelector('#appendSetlistSong').onclick=()=>{const id=Number(modal.querySelector('#setlistSongPicker').value);if(id&&order.length<200){order.push(id);draw()}};draw();
+}
+async function workspaceDownload(path,filename){
+ const token=sessionStorage.getItem('backline_session'),response=await fetch('/api'+path,{headers:token?{Authorization:'Bearer '+token}:{}});if(!response.ok)throw Error('Download failed');const url=URL.createObjectURL(await response.blob()),link=document.createElement('a');link.href=url;link.download=filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+document.addEventListener('click',async event=>{const button=event.target.closest('[data-new-venue],[data-edit-venue],[data-new-task],[data-edit-task],[data-toggle-task],[data-edit-song],[data-new-setlist],[data-build-setlist],[data-setlist-pdf],[data-link-venue]');if(!button)return;try{
+ if(button.hasAttribute('data-new-venue'))editVenue();
+ if(button.dataset.editVenue)editVenue(get('venues').find(v=>String(v.id)===button.dataset.editVenue));
+ if(button.hasAttribute('data-new-task'))editTask();
+ if(button.dataset.editTask)editTask(get('tasks').find(t=>String(t.id)===button.dataset.editTask));
+ if(button.dataset.toggleTask){const t=get('tasks').find(t=>String(t.id)===button.dataset.toggleTask);await api(workspaceBase()+'/tasks/'+t.id,{method:'PUT',body:JSON.stringify({...t,completed:!t.completed})});await load()}
+ if(button.dataset.editSong)editRepertoire(get('songs').find(s=>String(s.id)===button.dataset.editSong));
+ if(button.hasAttribute('data-new-setlist'))openSetlistBuilder();
+ if(button.dataset.buildSetlist)openSetlistBuilder(get('setlists').find(s=>String(s.id)===button.dataset.buildSetlist));
+ if(button.dataset.setlistPdf)await workspaceDownload(workspaceBase()+'/setlists/'+button.dataset.setlistPdf+'/pdf','backline-setlist.pdf');
+ if(button.hasAttribute('data-link-venue')){const venue_id=Number(document.querySelector('#showVenueLink').value);if(!venue_id)throw Error('Choose a venue first');await api(workspaceBase()+'/events/'+state.showGig+'/venue',{method:'PUT',body:JSON.stringify({venue_id})});await openShowPacketGig(state.showGig);toast('Venue linked to show')}
+ }catch(error){toast(error.message,true)}});
+function venueLinkPanel(){
+ const v=state.data.showVenue;
+ return panel('Linked venue book record','<p class="sub">Directory details stay linked to the show. Review and confirm show-specific arrangements below.</p><label>Venue<select id="showVenueLink"><option value="">Select venue</option>'+get('venues').map(venue=>'<option value="'+venue.id+'" '+(venue.id===v?.id?'selected':'')+'>'+esc(venue.name)+'</option>').join('')+'</select></label> <button data-link-venue>Link venue to show</button>'+(v?'<h3>'+esc(v.name)+'</h3><p>'+esc(v.address)+'</p><p>'+v.contacts.map(c=>esc([c.name,c.role,c.email,c.phone].filter(Boolean).join(' · '))).join('<br>')+'</p><p>'+esc(v.load_in_notes)+'</p><p>'+esc(v.curfew_notes)+'</p>':''));
+}
+nav.splice(2,0,['calendars','▦','Calendars']);
+async function refreshCalendar(all=false){
+ const bands=all?state.bands:state.bands.filter(b=>b.id===state.band);
+ const results=await Promise.all(bands.map(async band=>{const events=await api('/bands/'+band.id+'/calendar/events');return events.map(event=>({...event,band_name:band.name}))}));
+ state.data.calendarEvents=results.flat().sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));state.data.bandCalendars=await api(workspaceBase()+'/calendars');state.calendarAll=all;render();
+}
+function calendarBoard(){
+ const month=state.calendarMonth||today().slice(0,7),rows=(state.data.calendarEvents||[]).filter(event=>event.date.startsWith(month));
+ const [year,m]=month.split('-').map(Number),days=new Date(year,m,0).getDate(),offset=(new Date(year,m-1,1).getDay()+6)%7;
+ let cells=Array.from({length:offset},()=>'<div></div>');
+ for(let day=1;day<=days;day++){const date=month+'-'+String(day).padStart(2,'0'),events=rows.filter(event=>event.date===date);cells.push('<div class="calendarDay"><strong>'+day+'</strong>'+events.map(event=>'<div class="calendarEvent" style="border-color:'+event.calendar_color+'"><strong>'+esc(event.title)+'</strong><small>'+esc(event.calendar_name)+' · '+esc(event.advance.show_time||event.time||'Time TBC')+'</small>'+(state.calendarAll?'<small>'+esc(event.band_name)+'</small>':'')+'</div>').join('')+'</div>')}
+ return panel('Band calendars','<div class="actions"><label>Month<input id="calendarMonth" type="month" value="'+esc(month)+'"></label><button data-calendar-all>'+(state.calendarAll?'This band only':'My bands combined')+'</button><button data-new-calendar>+ Calendar</button><button data-calendar-export>Download iCal</button></div><p class="sub">Named, colour-coded calendars for this band. Personal view combines only workspaces your account can access.</p><div class="calendarWrap"><div class="calendarGrid">'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day=>'<strong>'+day+'</strong>').join('')+cells.join('')+'</div></div><div class="list">'+rows.map(event=>'<div class="entry"><div><strong>'+esc(event.date)+' · '+esc(event.title)+'</strong><p>'+esc(event.calendar_name)+' · '+esc(event.venue)+'</p><p>Load-in '+esc(event.advance.load_in||'TBC')+' · Doors '+esc(event.advance.doors||'TBC')+' · Stage '+esc(event.advance.show_time||event.time||'TBC')+'</p>'+(event.band_id===state.band?'<button data-assign-calendar="'+event.id+'">Choose calendar</button>':'')+'</div></div>').join('')+'</div>');
+}
+document.addEventListener('change',event=>{if(event.target.id==='calendarMonth'){state.calendarMonth=event.target.value;render()}});
+document.addEventListener('click',async event=>{const b=event.target.closest('[data-calendar-all],[data-new-calendar],[data-calendar-export],[data-assign-calendar]');if(!b)return;try{
+ if(b.hasAttribute('data-calendar-all'))await refreshCalendar(!state.calendarAll);
+ if(b.hasAttribute('data-calendar-export'))await workspaceDownload(workspaceBase()+'/calendar.ics','backline-calendar.ics');
+ if(b.hasAttribute('data-new-calendar'))workspaceDialog('Create calendar',wsInput('name','Calendar name','','text',true,100)+wsInput('color','Calendar colour','#b9fb74','color'),async data=>{await api(workspaceBase()+'/calendars',{method:'POST',body:JSON.stringify(data)});await refreshCalendar(state.calendarAll)});
+ if(b.dataset.assignCalendar)workspaceDialog('Choose event calendar',wsSelect('calendar_id','Calendar',(state.data.bandCalendars||[]).map(c=>[c.id,c.name])),async data=>{if(!data.calendar_id)throw Error('Create a calendar first');await api(workspaceBase()+'/events/'+b.dataset.assignCalendar+'/calendar',{method:'PUT',body:JSON.stringify({calendar_id:Number(data.calendar_id)})});await refreshCalendar(state.calendarAll)});
+ }catch(error){toast(error.message,true)}});
