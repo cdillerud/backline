@@ -82,19 +82,21 @@ async function refreshCalendar(all=false){
 function scheduleBoard(){
  const mode=state.scheduleView||'calendar',views=[['calendar','Calendar'],['shows','Shows'],['rehearsals','Rehearsals'],['agenda','Agenda']];
  const buttons='<div class="showTabBar" role="tablist" aria-label="Schedule views">'+views.map(([key,label])=>'<button role="tab" aria-selected="'+(mode===key)+'" class="'+(mode===key?'selected':'')+'" data-schedule-view="'+key+'">'+label+'</button>').join('')+'</div>';
+ const selected=get('events').find(e=>e.id===state.scheduleSelected);
+ const details=selected?panel('Event details · '+esc(selected.title),'<div class="hubStats"><span><strong>'+esc(selected.kind)+'</strong> type</span><span><strong>'+datePretty(selected.date)+'</strong> date</span><span><strong>'+esc(selected.status||'Planned')+'</strong> status</span></div><p>'+esc(selected.time||'Time TBD')+' · '+esc(selected.venue||'Location TBD')+'</p><div class="actions"><button data-schedule-rsvp="'+selected.id+'">Availability & RSVPs</button>'+(selected.kind==='Gig'?'<button data-schedule-packet="'+selected.id+'">Show production</button>':'')+'<button data-schedule-close>Close details</button></div>'):'';
  const head='<div class="toolbar"><p>One shared home for shows, rehearsals and sessions.</p><button class="primary" data-action="event">+ Add event</button></div>';
- if(mode==='calendar')return head+buttons+calendarBoard();
+ if(mode==='calendar')return head+buttons+details+calendarBoard();
  const events=get('events').filter(e=>mode==='shows'?e.kind==='Gig':mode==='rehearsals'?e.kind==='Rehearsal':true).slice().sort((a,b)=>a.date.localeCompare(b.date)||String(a.time||'').localeCompare(String(b.time||'')));
- const content=events.length?'<div class="list">'+events.map(e=>'<article class="entry scheduleEntry"><div><span class="tag muted">'+esc(e.kind)+'</span> <strong>'+esc(e.title)+'</strong><p>'+datePretty(e.date)+' · '+esc(e.time||'Time to confirm')+' · '+esc(e.venue||'Location to confirm')+'</p><small>'+esc(e.status||'Planned')+'</small></div><div class="actions">'+(e.kind==='Gig'?'<button data-schedule-packet="'+e.id+'">Production</button>':'')+'<button data-schedule-rsvp="'+e.id+'">Availability</button></div></article>').join('')+'</div>':empty('No events in this view. Add one to get started.');
- return head+buttons+panel(mode==='shows'?'Shows':mode==='rehearsals'?'Rehearsals':'Upcoming and past commitments',content);
+ const content=events.length?'<div class="list">'+events.map(e=>'<article class="entry scheduleEntry"><div><span class="tag muted">'+esc(e.kind)+'</span> <strong>'+esc(e.title)+'</strong><p>'+datePretty(e.date)+' · '+esc(e.time||'Time to confirm')+' · '+esc(e.venue||'Location to confirm')+'</p><small>'+esc(e.status||'Planned')+'</small></div><div class="actions">'+(e.kind==='Gig'?'<button data-schedule-packet="'+e.id+'">Production</button>':'')+'<button data-schedule-details="'+e.id+'">Details</button><button data-schedule-rsvp="'+e.id+'">Availability</button></div></article>').join('')+'</div>':empty('No events in this view. Add one to get started.');
+ return head+buttons+details+panel(mode==='shows'?'Shows':mode==='rehearsals'?'Rehearsals':'Upcoming and past commitments',content);
 }
 document.addEventListener('click',async event=>{
- const b=event.target.closest('[data-schedule-view],[data-schedule-packet],[data-schedule-rsvp],[data-calendar-event]');if(!b)return;
+ const b=event.target.closest('[data-schedule-view],[data-schedule-packet],[data-schedule-rsvp],[data-calendar-event],[data-schedule-details],[data-schedule-close]');if(!b)return;
+ if(b.hasAttribute('data-schedule-close')){state.scheduleSelected=null;render();return}
+ if(b.dataset.scheduleDetails){state.scheduleSelected=Number(b.dataset.scheduleDetails);render();return}
  if(b.dataset.calendarEvent){
   const id=Number(b.dataset.calendarEvent);
-  if(b.dataset.calendarKind==='Gig'){await openShowPacketGig(id)}
-  else {state.rsvpEvent=id;state.section='collaboration';await refreshCollaboration()}
-  return
+  state.scheduleSelected=id;render();return
  }
  if(b.dataset.scheduleView){state.scheduleView=b.dataset.scheduleView;render();return}
  if(b.dataset.schedulePacket){await openShowPacketGig(Number(b.dataset.schedulePacket));return}
