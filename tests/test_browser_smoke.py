@@ -64,6 +64,10 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             assert page.get_by_text('Contracts and show files').count()>0
             page.locator("[data-go='touring']").first.click()
             page.get_by_role("heading",name="Tour Routing",exact=True).wait_for(state="visible",timeout=15000)
+            page.get_by_role("tab",name="Day of show").click()
+            expect(page.get_by_text("Tour day sheets",exact=True)).to_be_visible()
+            expect(page.get_by_text("Show days and travel stops in chronological order",exact=False)).to_be_visible()
+            page.get_by_role("tab",name="Itinerary",exact=True).click()
             assert not errors,errors
             browser.close()
     finally:
