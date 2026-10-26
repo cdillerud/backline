@@ -174,3 +174,34 @@ Final regression refinements keep test show dates relative to the fixture data,
 keep unfiled photos accessible through Photo library, select newly created albums,
 and align RSVP avatar/name rows. The complete suite remains 84 passing tests;
 focused desktop/mobile gallery acceptance also passed after the library refinement.
+
+
+## RoadOps-inspired operations — v0.4.0-rc.3
+
+Chad instructed continuation of change history/urgent acknowledgements, guest lists,
+structured hotel rooming and reviewed imports. Implemented the shared operations
+audit/version layer, exact-path own guest-request writes, manager approval/privacy
+boundaries, private exports and review-only CSV-to-tour-stop flow.
+
+`docs/OPERATIONS_RC3.md` describes the detailed behavior, role matrix, additive data
+compatibility and remaining work. Public-page/feed allowlists and default-off
+exposure are unchanged. There is no live sender, push provider, production merge,
+deployment or production-data access. The browser now waits for all feature scripts
+to load before initial rendering, avoiding cross-script initialization races.
+
+Box-office and multi-page rooming PDFs were rendered and visually reviewed for
+spacing, repeated headers, timestamps and pagination. Newly added desktop/mobile
+cases cover guest approval/export, urgent acknowledgement/history, assigned-room
+privacy and reviewed source import/application.
+
+RC3 validation: the complete local suite passed 99 tests, followed by the added
+stale-session/privacy case and a fresh combined run of all **19 browser cases**.
+There are now **100 collected tests**. Focused operations/API/PDF regressions also
+passed after cancellation/export refinements. All syntax, compilation and whitespace
+checks passed, and the production dependency audit reports no known vulnerabilities.
+Final full-tree GitHub Actions results are recorded on draft PR #5.
+
+The JSON API wrapper rejects late responses after an account or workspace change;
+operations additionally guard their grouped refresh and live-alert callbacks. The
+new browser regression deliberately holds a private response until after logout and
+verifies that the signed-out screen and cleared state remain intact.

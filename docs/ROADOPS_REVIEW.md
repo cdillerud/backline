@@ -15,6 +15,13 @@ Source: https://www.roadops.app/ (public marketing site; signed-in behavior was 
 Backline priority recommendation: change history and urgent alerts first; guest lists
 and structured lodging second; reviewed imports third. Maps/contact shortcuts and
 copying day templates are useful smaller improvements. Keep broad offline editing,
-airline integrations and AI-agent access behind later technical review. These are
-proposals, not implemented features or claims of RoadOps equivalence. BandBrief’s
-minimum-feature checklist remains the immediate acceptance baseline.
+airline integrations and AI-agent access behind later technical review. The original review above was a proposal, not a product-equivalence claim.
+BandBrief’s minimum-feature checklist remains the acceptance baseline.
+
+## Implementation follow-up
+
+v0.4.0-rc.3 now implements scoped change history, in-app urgent acknowledgements,
+guest requests/approvals and box-office PDFs, structured hotel rooming with private
+PDFs, and reviewed CSV itinerary drafts. See `OPERATIONS_RC3.md` for behavior and
+limits. Browser push, offline access/editing, travel-party sharing, confirmation
+PDF/email/AI extraction and provider integrations remain proposed future work.

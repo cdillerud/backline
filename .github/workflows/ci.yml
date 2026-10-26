@@ -26,6 +26,7 @@ jobs:
           node --check src/static/media.js
           node --check src/static/sharing.js
           node --check src/static/pwa.js
+          node --check src/static/operations.js
           node --check src/static/service-worker.js
       - name: Audit production dependencies
         run: python -m pip_audit -r requirements.txt
