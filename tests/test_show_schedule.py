@@ -37,7 +37,7 @@ def test_overnight_schedule_and_confirmed_pdf(show):
     # API export must use the saved advance even without generated template documents.
     response=client.get(path+'/packet.pdf')
     assert response.status_code==200
-    text='\n'.join(page.extract_text() for page in PdfReader(BytesIO(response.content)).pages)
+    text=' '.join(' '.join(page.extract_text() for page in PdfReader(BytesIO(response.content)).pages).split())
     for expected in ['America/Chicago','Pat Example','555-0100','Rear loading dock','Synthetic Hotel',
                      'Merch count','Sam Example','Lobby','Count shirts & posters <together>','01:00 (+1)']:
         assert expected in text

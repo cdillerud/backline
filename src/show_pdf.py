@@ -1,5 +1,9 @@
 """Printable, band-scoped show production packet PDF."""
 from io import BytesIO
+from pathlib import Path
+import reportlab
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from .show_schedule import show_timeline
 from xml.sax.saxutils import escape
 from reportlab.lib import colors
@@ -7,6 +11,14 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, KeepTogether, Flowable, Table, TableStyle
+
+
+# Embed the fonts bundled with ReportLab for consistent spacing on every PDF viewer.
+_FONT_DIR = Path(reportlab.__file__).parent / 'fonts'
+for _name, _file in (('BacklineSans','Vera.ttf'),('BacklineSans-Bold','VeraBd.ttf')):
+    if _name not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(TTFont(_name,str(_FONT_DIR / _file)))
+pdfmetrics.registerFontFamily('BacklineSans',normal='BacklineSans',bold='BacklineSans-Bold')
 
 class StageDiagram(Flowable):
     """Vector stage plot embedded directly in the PDF, no external images."""
@@ -21,7 +33,7 @@ class StageDiagram(Flowable):
         c.setStrokeColor(colors.HexColor('#71849b'))
         c.setFillColor(colors.HexColor('#f0f5f9'))
         c.roundRect(4,20,492,265,12,stroke=1,fill=1)
-        c.setFont('Helvetica-Bold',9)
+        c.setFont('BacklineSans-Bold',9)
         c.setFillColor(colors.HexColor('#36506a'))
         c.drawCentredString(250,273,'UPSTAGE')
         c.drawCentredString(250,7,'AUDIENCE / DOWNSTAGE')
@@ -31,7 +43,7 @@ class StageDiagram(Flowable):
             c.setFillColor(colors.HexColor('#d1f3a9'))
             c.circle(x,y,12,stroke=1,fill=1)
             c.setFillColor(colors.HexColor('#203448'))
-            c.setFont('Helvetica',8)
+            c.setFont('BacklineSans',8)
             label=str(item.get('label',''))[:32]
             c.drawCentredString(x,max(24,y-24),label)
 
@@ -42,10 +54,12 @@ def create_show_pdf(band, gig, packets, stage=None, advance=None):
         topMargin=57,bottomMargin=59,title=f"{gig['title']} - Show Packet",
         author=str(band['name']))
     base=getSampleStyleSheet()
+    for style in base.byName.values():
+        style.fontName='BacklineSans-Bold' if style.name.startswith(('Heading','Title')) else 'BacklineSans'
     base.add(ParagraphStyle(name='CoverEyebrowX',parent=base['Normal'],
         fontSize=11,leading=17,textColor=colors.HexColor('#6c852b'),alignment=TA_CENTER))
     base.add(ParagraphStyle(name='CoverTitleX',parent=base['Heading1'],
-        fontSize=30,leading=38,spaceAfter=16,alignment=TA_CENTER,
+        fontSize=25,leading=33,spaceAfter=16,alignment=TA_CENTER,
         textColor=colors.HexColor('#162535')))
     base.add(ParagraphStyle(name='TitleX',parent=base['Heading1'],
         fontSize=20,leading=26,spaceAfter=18,textColor=colors.HexColor('#1c3043')))
@@ -103,7 +117,7 @@ def create_show_pdf(band, gig, packets, stage=None, advance=None):
                       ('hospitality','Meals and hospitality'),('settlement','Settlement arrangements'),
                       ('open_questions','Outstanding questions')):
         if advance.get(key):story.extend([para(label,'SectionX'),para(advance[key])])
-    story.append(para('Day-of-show timeline','SectionX'))
+    story.extend([PageBreak(),para('Day-of-show timeline','TitleX'),para('Venue time zone: '+(timeline['timezone'] or 'To confirm')),para('STATUS: '+advance.get('status','draft').upper())])
     story.append(para('Day +1 and +2 are calendar days after the show date. Times are local to the venue.'))
     if timeline['entries']:
         rows=[[para(h) for h in ('Local time','Activity','Owner / location','Notes')]]
@@ -150,7 +164,7 @@ def create_show_pdf(band, gig, packets, stage=None, advance=None):
         width,_=document.pagesize
         canvas.setStrokeColor(colors.HexColor('#b7c6d4'))
         canvas.line(53,43,width-53,43)
-        canvas.setFont('Helvetica',8)
+        canvas.setFont('BacklineSans',8)
         canvas.setFillColor(colors.HexColor('#526579'))
         canvas.drawString(53,30,str(band['name'])[:65])
         canvas.drawRightString(width-53,30,f"Show packet  |  Page {document.page}")
