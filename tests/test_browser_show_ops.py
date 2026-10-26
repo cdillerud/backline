@@ -177,7 +177,7 @@ def test_venue_tasks_and_setlist_builder(preview_url,width,tmp_path):
             card.get_by_role('button',name='Download setlist PDF',exact=True).click()
         path=tmp_path/'setlist.pdf';exported.value.save_as(path)
         assert 'Synthetic running order' in PdfReader(path).pages[0].extract_text()
-        page.locator('[data-go="calendars"]:visible').first.click()
+        page.locator('[data-go="schedule"]:visible').first.click()
         page.get_by_role('button',name='+ Calendar',exact=True).click()
         dialog=page.get_by_role('dialog',name='Create calendar')
         dialog.get_by_label('Calendar name',exact=True).fill('Synthetic tour dates')
