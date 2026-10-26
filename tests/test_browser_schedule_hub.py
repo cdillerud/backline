@@ -16,6 +16,10 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
         expect(page.get_by_role("tab",name="Calendar",exact=True)).to_be_visible()
         page.get_by_role("tab",name="Shows",exact=True).click()
         expect(page.get_by_role("heading",name="Shows",exact=True)).to_be_visible()
+        if page.locator('[data-schedule-details]').count():
+            page.locator('[data-schedule-details]').first.click()
+            expect(page.get_by_role("heading",name="Event details",exact=False)).to_be_visible()
+            page.get_by_role("button",name="Close details").click()
         page.get_by_role("tab",name="Rehearsals",exact=True).click()
         expect(page.get_by_role("heading",name="Rehearsals",exact=True)).to_be_visible()
         page.get_by_role("tab",name="Agenda",exact=True).click()
