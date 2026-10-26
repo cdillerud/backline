@@ -69,7 +69,7 @@ function touring(){
  const selected=state.tourTab||'itinerary';
  const tabbar='<div class="showTabBar" role="tablist" aria-label="Tour workspace views">'+tabs.map(([key,label])=>'<button role="tab" aria-selected="'+(key===selected)+'" class="'+(key===selected?'selected':'')+'" data-tour-tab="'+key+'">'+label+'</button>').join('')+'</div>';
  const tourSummary=route&&state.selectedTour?panel('Current tour · '+esc(route.tour.name),
-  '<div class="hubStats"><span><strong>'+route.stops.length+'</strong> itinerary stops</span><span><strong>'+route.stops.filter(stop=>stop.event_id).length+'</strong> linked shows</span><span><strong>'+route.warnings.length+'</strong> routing flags</span></div>'+
+  '<div class="hubStats"><span><strong>'+route.stops.length+'</strong> itinerary stops</span><span><strong>'+route.stops.filter(stop=>stop.event_id).length+'</strong> linked shows</span><span><strong>'+route.stops.filter(stop=>!stop.event_id).length+'</strong> travel / unlinked stops</span><span><strong>'+route.warnings.length+'</strong> routing flags</span></div>'+
   '<p class="sub">All changes stay attached to the existing tour and show records. Select Itinerary to edit stops.</p>'):'';
  const linked=route?.stops.filter(stop=>stop.event_id)||[];
  const showActions=linked.length?'<div class="list">'+linked.map(stop=>'<div class="entry"><div><strong>'+esc(stop.city)+' · '+datePretty(stop.stop_date)+'</strong><p>'+esc(stop.venue||'Venue TBC')+' · '+esc(stop.status)+'</p><p>Advance: '+esc(stop.advance?.timeline?.status||'Not linked')+'</p></div><button data-show-gig="'+stop.event_id+'">Open production</button></div>').join('')+'</div>':empty('Link gigs to tour stops to open their production details here.');
