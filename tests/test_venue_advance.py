@@ -15,7 +15,7 @@ def test_advancement_status_and_scope(tmp_path,monkeypatch):
     assert client.get(path).json()["status"]=="draft"
     assert client.get(f"/api/bands/{other}/gigs/{gig}/advance").status_code==404
     assert client.put(path,json={"status":"confirmed"}).status_code==422
-    pending={"status":"awaiting_venue","venue_contact":"Pat",
+    pending={"timezone":"America/Chicago","status":"awaiting_venue","venue_contact":"Pat",
              "load_in":"17:00","soundcheck":"18:00","doors":"19:00",
              "show_time":"20:00","open_questions":"Is parking available?"}
     assert client.put(path,json=pending).status_code==200

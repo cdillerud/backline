@@ -1,5 +1,6 @@
 """Printable, band-scoped show production packet PDF."""
 from io import BytesIO
+from .show_schedule import show_timeline
 from xml.sax.saxutils import escape
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -34,7 +35,7 @@ class StageDiagram(Flowable):
             label=str(item.get('label',''))[:32]
             c.drawCentredString(x,max(24,y-24),label)
 
-def create_show_pdf(band, gig, packets, stage=None):
+def create_show_pdf(band, gig, packets, stage=None, advance=None):
     """Render a PDF from already-authorized band/gig records."""
     output=BytesIO()
     doc=SimpleDocTemplate(output,pagesize=(612,792),rightMargin=53,leftMargin=53,
@@ -59,7 +60,9 @@ def create_show_pdf(band, gig, packets, stage=None):
     def para(value,style='TextX'):
         return Paragraph(e(value).replace('\n','<br/>'),base[style])
     stage=stage or {'items':[],'inputs':[],'notes':''}
-    notes=[]
+    advance=advance or {}
+    timeline=show_timeline(advance)
+    notes=list(timeline["warnings"])
     if not stage.get('items'):notes.append('Stage plot has no equipment positions.')
     if not stage.get('inputs'):notes.append('Audio input list has no channels.')
     if not packets:notes.append('No show documents have been created.')
@@ -83,6 +86,7 @@ def create_show_pdf(band, gig, packets, stage=None):
     if notes:
         story.append(para('WORKING DRAFT — review missing or unconfirmed details before distribution.','NoticeX'))
     story.extend([PageBreak(),para('Contents','TitleX')])
+    story.append(para('Venue contacts, logistics and day-of-show timeline'))
     story.append(para('Stage plot and audio inputs'))
     for n,packet in enumerate(packets,1):
         story.append(para(f"{n}. {packet['title']} — {packet['status'].upper()}"))
@@ -90,6 +94,28 @@ def create_show_pdf(band, gig, packets, stage=None):
         story.extend([Spacer(1,.28*inch),para('Items requiring confirmation','SectionX')])
         for note in notes:
             story.append(para('• '+note,'NoticeX'))
+    story.extend([PageBreak(),para('Venue advancement','TitleX'),
+                  para('STATUS: '+advance.get('status','draft').upper()),
+                  para('Venue time zone: '+(timeline['timezone'] or 'To confirm'))])
+    for key,label in (('venue_contact','Venue contact'),('production_contact','Production contact'),
+                      ('contact_email','Email'),('contact_phone','Phone'),('venue_address','Venue address'),
+                      ('parking','Parking and access'),('lodging','Lodging'),
+                      ('hospitality','Meals and hospitality'),('settlement','Settlement arrangements'),
+                      ('open_questions','Outstanding questions')):
+        if advance.get(key):story.extend([para(label,'SectionX'),para(advance[key])])
+    story.append(para('Day-of-show timeline','SectionX'))
+    story.append(para('Day +1 and +2 are calendar days after the show date. Times are local to the venue.'))
+    if timeline['entries']:
+        rows=[[para(h) for h in ('Local time','Activity','Owner / location','Notes')]]
+        for entry in timeline['entries']:
+            day=f" (+{entry['day_offset']})" if entry['day_offset'] else ''
+            rows.append([para(entry['time']+day),para(entry['title']),
+                         para(' / '.join(filter(None,[entry.get('owner'),entry.get('location')]))),para(entry.get('notes',''))])
+        table=Table(rows,colWidths=[70,120,130,180],repeatRows=1,hAlign='LEFT')
+        table.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),colors.HexColor('#e8eef3')),
+                                  ('VALIGN',(0,0),(-1,-1),'TOP'),('BOTTOMPADDING',(0,0),(-1,-1),8)]))
+        story.append(table)
+    else:story.append(para('No schedule times recorded.','NoticeX'))
     if stage.get('items') or stage.get('inputs'):
         story.extend([PageBreak(),para('Stage plot and audio inputs','TitleX')])
         if stage.get('items'):
