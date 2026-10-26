@@ -120,6 +120,13 @@ def test_rooming_privacy_and_reviewed_import_ui(account_server,accounts,width,tm
         expect(owner.get_by_text('Draft created — no tour stops added',exact=True)).to_be_visible()
         assert c.get(base+f'/tours/{tour}/route',headers=h['owner']).json()['stops']==[]
         owner.get_by_text('Source evidence',exact=True).click()
+        with owner.expect_download() as review_download:
+            owner.get_by_role('button',name='Download review CSV',exact=True).click()
+        review_path=tmp_path/'itinerary-review.csv'
+        review_download.value.save_as(review_path)
+        review_text=review_path.read_text()
+        assert 'Source line' in review_text and 'Invalid' not in review_text[:75]
+        assert 'Madison' not in review_text or 'Source line' in review_text
         owner.get_by_role('button',name='View original CSV',exact=True).click()
         source_dialog=owner.get_by_role('dialog',name='Original itinerary source')
         expect(source_dialog.get_by_label('Original CSV',exact=True)).to_have_value(source)
