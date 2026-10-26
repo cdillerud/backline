@@ -116,3 +116,56 @@ JavaScript files passed syntax checks; Python compilation and Git whitespace che
 passed. The setlist PDF was rendered and visually reviewed. Tests use fake contacts,
 fictional venues and disposable databases. The earlier show-operations PR workflow
 also passed in GitHub Actions; final follow-up runs are verified separately.
+
+## Approved collaboration, media and sharing — v0.4.0-rc.2
+
+Chad approved sections A/B/C of the security proposal on October 26, 2026.
+Implemented and exercised only with synthetic local accounts and data:
+
+- Session-bound RSVP/availability and scoped band/song/setlist discussions, own-reply
+  editing, explicit mentions, expiring typing indicators and two-second updates.
+- Owner/manager account-to-roster links; consistent stage names, instruments and
+  profile photos across band contexts. Personal notifications/read states, category
+  preferences, timezone-aware daily queue grouping and once-per-day task reminders.
+  A fake-transport dispatcher is testable; there is no live sender or scheduled
+  delivery worker. Real-provider crash/idempotency behavior still needs certification.
+- Validated JPEG/PNG and PCM WAV media. Images are re-encoded without EXIF, capped
+  at 12 megapixels/5 MB and 2400px output; audio is re-encoded PCM WAV, at most 25 MB
+  and 20 minutes. Per-band media quota is 100 MB. No arbitrary URL fetching.
+- Private albums/lightbox, recording attachments/playback, draft public-page preview,
+  explicit publication/revocation and selected public images/gigs only. Adding photos
+  to already-published albums requires additional explicit confirmation.
+- Cross-band venue shares require manager rights in both workspaces, selected-field
+  preview and confirmation. Destination views and show PDFs resolve only those
+  fields; revocation removes future access. No shared production advancement data.
+- Revocable, hashed calendar subscriptions for one selected calendar, minimized
+  public fields and token redaction in Uvicorn access logs. Reverse-proxy/provider
+  logs and retained calendar copies need operational review before live activation.
+- Installable online PWA shell and mobile workspace switching. The root-scoped worker
+  has no fetch handler or private caches. Logout/session loss clears local app state
+  and revokes authenticated media object URLs. Actual-device installation acceptance
+  remains. This is not offline editing or offline access.
+- Session events use an additive classification table over the legacy non-gig event
+  storage type, preserving event IDs, RSVP and calendar behavior without rebuilding
+  the existing CHECK-constrained events table. A future canonical schema migration
+  should replace that compatibility layer during a separately rehearsed release.
+- Role-aware app loading fixes member login failures caused by eager finance reads.
+  Dashboard/event/calendar responses no longer leak fees or financial totals to
+  member/viewer roles; treasurers retain their existing financial reads/writes.
+- Application/API health identify `0.4.0-rc.2`; optional `BACKLINE_BUILD_SHA` records a
+  deployment's source commit. Pillow is constrained to patched 13.x after auditing.
+
+`BACKLINE_PUBLIC_SHARING_ENABLED` defaults off. Tests explicitly enable it for
+fictional band pages and feeds on loopback only. Nothing here authorizes production
+merge, deployment, real publication or live email delivery. No production source
+branch, data, credentials or service has been modified.
+
+RoadOps was reviewed for additional product ideas. `docs/ROADOPS_REVIEW.md` records
+proposed change history, urgent alerts, guest lists, structured rooming and reviewed
+imports. Those RoadOps additions remain proposals, not claimed implementations.
+
+Approved-batch validation: **84 tests passed**, including twelve Chromium cases
+across desktop and 390px mobile workflows. JavaScript syntax, Python compilation
+and whitespace checks passed. The resolved production dependency audit reports no
+known vulnerabilities with Pillow 13.0.0. An upstream Starlette/httpx deprecation
+warning remains non-failing. Final GitHub Actions results are recorded on draft PR #5.

@@ -1,7 +1,9 @@
-# Approval request: private collaboration and explicit public sharing
+# Approved development scope: private collaboration and explicit public sharing
 
-Prepared for Chad Dillerud, October 26, 2026. This is a reviewable development
-proposal. None of the permission changes or public endpoints below are enabled.
+Prepared for Chad Dillerud, October 26, 2026. Chad approved A, B and C in this
+conversation on October 26. Implementation is confined to development and synthetic
+testing. Public-page/feed exposure defaults off behind
+`BACKLINE_PUBLIC_SHARING_ENABLED`; no live email transport is configured.
 Production branch, deployment, database and secrets remain outside authorization.
 
 ## A. Authenticated member collaboration
@@ -57,10 +59,10 @@ this design is approved. PWA work will avoid caching private API responses or
 media; logout must clear any app-owned private state, and service-worker scope and
 updates require regression coverage.
 
-## Requested authorization
+## Authorization record
 
-Approve implementing and testing A, B and C on `integration/backline-v0-4-rc` and
+Approved: implementing and testing A, B and C on `integration/backline-v0-4-rc` and
 synthetic local/isolated preview data only. This does not authorize production
 merge, production deployment, live email delivery, changing production roles/data,
-or publishing real band pages or media. Existing account/visibility policies stay
-unchanged until approval is received.
+or publishing real band pages or media. Only the enumerated member self-service writes and explicitly enabled public
+capabilities change the existing policy. Production is still excluded.
