@@ -104,3 +104,8 @@ rooming change notifications, richer guest edits/bulk guest tools, spreadsheet
 mapping/import correction, provider/AI confirmation drafts, and offline conflict
 handling remain follow-up work. Guest-request and CSV workflows are usable here,
 but this remains a development release pending independent security/recovery review.
+
+
+## Post-RC3 import mapping preview
+
+Authenticated managers can POST a source-to-target column mapping to `/api/bands/{band_id}/itinerary-imports/{import_id}/map-preview`. The mapping requires unique target fields, including `date` and `city`, and each source header must exist in the retained original. The response contains canonical CSV, per-row validation results, and the SHA-256 of the unmodified original. It makes no database edits and cannot directly create tour stops; the canonical output must be uploaded as a new draft, reviewed and explicitly applied. No live spreadsheet provider or automatic correction is integrated. The UI for choosing mappings is still outstanding.
