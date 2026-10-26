@@ -79,6 +79,18 @@ def test_browser_navigation_and_gig_studio(tmp_path):
                 page.get_by_role("dialog").press("Escape")
             page.get_by_role("tab",name="Itinerary",exact=True).click()
             assert not errors,errors
+            mobile=browser.new_page(viewport={"width":390,"height":844},is_mobile=True,has_touch=True)
+            mobile_errors=[]
+            mobile.on("pageerror",lambda error:mobile_errors.append(str(error)))
+            mobile.goto(url,wait_until="networkidle")
+            mobile.locator(".mobileNav").wait_for(state="visible")
+            assert mobile.locator(".mobileNav > button").count()==6
+            mobile.locator(".mobileNav [data-go='songs']").click()
+            mobile.get_by_role("heading",name="Song Library",exact=True).wait_for(state="visible",timeout=15000)
+            mobile.locator(".mobileNav [data-go='touring']").click()
+            mobile.get_by_role("heading",name="Tour Routing",exact=True).wait_for(state="visible",timeout=15000)
+            assert not mobile_errors,mobile_errors
+            mobile.close()
             browser.close()
     finally:
         server.terminate()
