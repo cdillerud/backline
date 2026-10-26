@@ -42,7 +42,7 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             page.locator("[data-go='studio']").first.click()
             assert page.get_by_text("AI Gig Studio").count()>0
             page.locator("[data-go='schedule']").first.click()
-            assert page.get_by_text("Shows & Rehearsals").count()>0
+            assert page.get_by_role("heading",name="Schedule",exact=True).count()>0
             page.locator("[data-go='showops']").first.click()
             assert page.get_by_text("Show Packets").count()>0
             page.get_by_role('tab',name='Stage & inputs').wait_for(state='visible',timeout=10000)
