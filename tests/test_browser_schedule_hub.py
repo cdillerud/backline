@@ -26,8 +26,8 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
         page.locator('[data-go="touring"]:visible').first.click()
         expect(page.get_by_role("tab",name="Itinerary",exact=True)).to_be_visible()
         page.get_by_role("tab",name="Show production",exact=True).click()
-        expect(page.get_by_role("button",name="Open show production")).to_be_visible()
+        expect(page.get_by_role("button",name="All show packets")).to_be_visible()
         page.get_by_role("tab",name="Crew & logistics",exact=True).click()
-        expect(page.get_by_role("button",name="Open crew operations")).to_be_visible()
+        expect(page.get_by_role("button",name="All crew operations")).to_be_visible()
         assert not errors,errors
         browser.close()
