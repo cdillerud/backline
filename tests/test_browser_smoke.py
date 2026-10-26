@@ -11,7 +11,7 @@ import urllib.request
 from pathlib import Path
 
 def test_browser_navigation_and_gig_studio(tmp_path):
-    from playwright.sync_api import sync_playwright
+    from playwright.sync_api import sync_playwright, expect
     with socket.socket() as sock:
         sock.bind(("127.0.0.1",0))
         port=sock.getsockname()[1]
@@ -53,7 +53,7 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             page.locator('#packetTitle').fill('Revised production rider')
             page.locator('#packetSave').click()
             page.locator('#packetEditor').wait_for(state='detached')
-            assert page.get_by_text('Revised production rider').count()>0
+            expect(page.get_by_text('Revised production rider',exact=True)).to_be_visible()
             with page.expect_popup() as printed:
                 page.locator('[data-print-packet]').click()
             packet_window=printed.value

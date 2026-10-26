@@ -27,3 +27,21 @@ def test_stage_plot_and_inputs_are_scoped_and_validated(tmp_path,monkeypatch):
     assert client.put(endpoint,json={**stage,"items":[{**stage["items"][0],"x":101}]}).status_code==422
     assert client.get(f"/api/bands/{other}/gigs/{gig}/stage").status_code==404
     assert client.put(f"/api/bands/{other}/gigs/{gig}/stage",json=stage).status_code==404
+
+def test_export_escapes_markup_and_spreadsheet_formulas(tmp_path,monkeypatch):
+    monkeypatch.setenv('BACKLINE_DB',str(tmp_path/'escaped-stage.db'))
+    monkeypatch.setenv('BACKLINE_LOCAL_DEV','1')
+    import src.app as module
+    importlib.reload(module)
+    client=TestClient(module.app)
+    band=client.post('/api/bands',json={'name':'Synthetic Export'}).json()['id']
+    gig=client.post(f'/api/bands/{band}/events',json={'kind':'Gig','title':'Export Test','date':'2026-11-15'}).json()['id']
+    base=f'/api/bands/{band}/gigs/{gig}'
+    body={'items':[{'label':'<script>alert(1)</script> & guitar','kind':'guitar','x':50,'y':50}],
+          'inputs':[{'channel':1,'source':'=1+1','microphone':'+2','stand':'@SUM(1)','notes':'  -1'}]}
+    assert client.put(base+'/stage',json=body).status_code==200
+    svg=client.get(base+'/stage.svg').text
+    assert '<script>' not in svg and '&lt;script&gt;' in svg and '&amp; guitar' in svg
+    import csv,io
+    rows=list(csv.reader(io.StringIO(client.get(base+'/inputs.csv').text)))
+    assert rows[1]==['1',"'=1+1","'+2","'@SUM(1)","'  -1"]
