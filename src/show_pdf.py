@@ -47,7 +47,7 @@ class StageDiagram(Flowable):
             label=str(item.get('label',''))[:32]
             c.drawCentredString(x,max(24,y-24),label)
 
-def create_show_pdf(band, gig, packets, stage=None, advance=None):
+def create_show_pdf(band, gig, packets, stage=None, advance=None, venue_details=None):
     """Render a PDF from already-authorized band/gig records."""
     output=BytesIO()
     doc=SimpleDocTemplate(output,pagesize=(612,792),rightMargin=53,leftMargin=53,
@@ -117,6 +117,13 @@ def create_show_pdf(band, gig, packets, stage=None, advance=None):
                       ('hospitality','Meals and hospitality'),('settlement','Settlement arrangements'),
                       ('open_questions','Outstanding questions')):
         if advance.get(key):story.extend([para(label,'SectionX'),para(advance[key])])
+    if venue_details:
+        story.extend([para('Linked venue book - reference details','SectionX'),para(venue_details['name']),
+                      para(venue_details.get('address',''))])
+        for contact in venue_details.get('contacts',[]):
+            story.append(para(' / '.join(filter(None,[contact.get('name'),contact.get('role'),contact.get('email'),contact.get('phone')]))))
+        for key,label in (('load_in_notes','Venue load-in notes'),('curfew_notes','Venue curfew notes')):
+            if venue_details.get(key):story.extend([para(label,'SectionX'),para(venue_details[key])])
     story.extend([PageBreak(),para('Day-of-show timeline','TitleX'),para('Venue time zone: '+(timeline['timezone'] or 'To confirm')),para('STATUS: '+advance.get('status','draft').upper())])
     story.append(para('Day +1 and +2 are calendar days after the show date. Times are local to the venue.'))
     if timeline['entries']:
@@ -170,4 +177,31 @@ def create_show_pdf(band, gig, packets, stage=None, advance=None):
         canvas.drawRightString(width-53,30,f"Show packet  |  Page {document.page}")
         canvas.restoreState()
     doc.build(story,onFirstPage=footer,onLaterPages=footer)
+    return output.getvalue()
+
+
+def create_setlist_pdf(band_name, setlist, songs):
+    """Readable performance setlist with musical cues and a measured runtime."""
+    output=BytesIO()
+    doc=SimpleDocTemplate(output,pagesize=(612,792),leftMargin=45,rightMargin=45,topMargin=45,bottomMargin=45)
+    styles=getSampleStyleSheet()
+    styles['Title'].fontName='BacklineSans-Bold'
+    styles['BodyText'].fontName='BacklineSans'
+    styles['BodyText'].fontSize=12
+    styles['BodyText'].leading=18
+    def para(value):return Paragraph(escape(str(value or '')),styles['BodyText'])
+    total=sum(song['duration_seconds'] for song in songs)
+    story=[Paragraph(escape(setlist['title']),styles['Title']),para(band_name),Spacer(1,12),
+           para(f"{len(songs)} songs | Runtime {total//60}:{total%60:02d} (excludes breaks)"),Spacer(1,20)]
+    rows=[[para(v) for v in ('#','Song / artist','Key / BPM','Time')]]
+    for index,song in enumerate(songs,1):
+        rows.append([para(index),para(song['title']+' / '+song['artist']),
+                     para(f"{song['song_key'] or '-'} / {song['bpm'] or '-'}"),
+                     para(f"{song['duration_seconds']//60}:{song['duration_seconds']%60:02d}")])
+    table=Table(rows,colWidths=[32,296,124,70],repeatRows=1)
+    table.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('BACKGROUND',(0,0),(-1,0),colors.HexColor('#e8eef3')),
+                               ('TOPPADDING',(0,0),(-1,-1),10),('BOTTOMPADDING',(0,0),(-1,-1),10),
+                               ('LINEBELOW',(0,0),(-1,-1),.3,colors.HexColor('#b7c6d4'))]))
+    story.append(table)
+    doc.build(story)
     return output.getvalue()

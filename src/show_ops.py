@@ -97,7 +97,11 @@ def attach(db):
             stage=json.loads(stage_row["body_json"]) if stage_row else {"items":[],"inputs":[],"notes":""}
             advance_row=con.execute("SELECT body_json FROM venue_advances WHERE band_id=? AND event_id=?",(band_id,event_id)).fetchone()
             advance=json.loads(advance_row["body_json"]) if advance_row else {}
-        payload=create_show_pdf(band_record,event,documents,stage=stage,advance=advance)
+            venue_row=con.execute("""SELECT v.body_json FROM event_venues e
+                JOIN workspace_venues v ON v.id=e.venue_id AND v.band_id=e.band_id
+                WHERE e.band_id=? AND e.event_id=?""",(band_id,event_id)).fetchone()
+            venue=json.loads(venue_row["body_json"]) if venue_row else None
+        payload=create_show_pdf(band_record,event,documents,stage=stage,advance=advance,venue_details=venue)
         return Response(content=payload,media_type="application/pdf",
             headers={"Content-Disposition":f'attachment; filename="backline-show-{event_id}.pdf"',
                      "Cache-Control":"no-store"})
