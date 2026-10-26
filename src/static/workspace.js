@@ -83,15 +83,46 @@ function scheduleBoard(){
  const mode=state.scheduleView||'calendar',views=[['calendar','Calendar'],['shows','Shows'],['rehearsals','Rehearsals'],['agenda','Agenda']];
  const buttons='<div class="showTabBar" role="tablist" aria-label="Schedule views">'+views.map(([key,label])=>'<button role="tab" aria-selected="'+(mode===key)+'" class="'+(mode===key?'selected':'')+'" data-schedule-view="'+key+'">'+label+'</button>').join('')+'</div>';
  const selected=get('events').find(e=>e.id===state.scheduleSelected);
- const details=selected?panel('Event details · '+esc(selected.title),'<div class="hubStats"><span><strong>'+esc(selected.kind)+'</strong> type</span><span><strong>'+datePretty(selected.date)+'</strong> date</span><span><strong>'+esc(selected.status||'Planned')+'</strong> status</span></div><p>'+esc(selected.time||'Time TBD')+' · '+esc(selected.venue||'Location TBD')+'</p><div class="actions"><button data-schedule-rsvp="'+selected.id+'">Availability & RSVPs</button>'+(selected.kind==='Gig'?'<button data-schedule-packet="'+selected.id+'">Show production</button>':'<button data-go="songs">Songs to practice</button><button data-go="setlists">Rehearsal repertoire</button><button data-go="tasks">Preparation tasks</button>')+'<button data-schedule-close>Close details</button></div>'):'';
+ const details=selected?panel('Event details · '+esc(selected.title),'<div class="hubStats"><span><strong>'+esc(selected.kind)+'</strong> type</span><span><strong>'+datePretty(selected.date)+'</strong> date</span><span><strong>'+esc(selected.status||'Planned')+'</strong> status</span></div><p>'+esc(selected.time||'Time TBD')+' · '+esc(selected.venue||'Location TBD')+'</p><div class="actions"><button data-schedule-rsvp="'+selected.id+'">Availability & RSVPs</button>'+(selected.kind==='Gig'?'<button data-schedule-packet="'+selected.id+'">Show production</button>':'<button data-rehearsal-plan="'+selected.id+'">Objectives & notes</button><button data-go="songs">Songs to practice</button><button data-go="setlists">Rehearsal repertoire</button><button data-go="tasks">Preparation tasks</button>')+'<button data-schedule-close>Close details</button></div>'):'';
  const head='<div class="toolbar"><p>One shared home for shows, rehearsals and sessions.</p><button class="primary" data-action="event">+ Add event</button></div>';
  if(mode==='calendar')return head+buttons+details+calendarBoard();
  const events=get('events').filter(e=>mode==='shows'?e.kind==='Gig':mode==='rehearsals'?e.kind==='Rehearsal':true).slice().sort((a,b)=>a.date.localeCompare(b.date)||String(a.time||'').localeCompare(String(b.time||'')));
  const content=events.length?'<div class="list">'+events.map(e=>'<article class="entry scheduleEntry"><div><span class="tag muted">'+esc(e.kind)+'</span> <strong>'+esc(e.title)+'</strong><p>'+datePretty(e.date)+' · '+esc(e.time||'Time to confirm')+' · '+esc(e.venue||'Location to confirm')+'</p><small>'+esc(e.status||'Planned')+'</small></div><div class="actions">'+(e.kind==='Gig'?'<button data-schedule-packet="'+e.id+'">Production</button>':'')+'<button data-schedule-details="'+e.id+'">'+(e.kind==='Rehearsal'?'Prepare':'Details')+'</button><button data-schedule-rsvp="'+e.id+'">Availability</button></div></article>').join('')+'</div>':empty('No events in this view. Add one to get started.');
  return head+buttons+details+panel(mode==='shows'?'Shows':mode==='rehearsals'?'Rehearsals':'Upcoming and past commitments',content);
 }
+async function openRehearsalPlan(id){
+ const base=workspaceBase()+'/rehearsals/'+id+'/plan';
+ const plan=await api(base);
+ const info=state.data.collaboration;
+ const permitted=['owner','manager'].includes(info?.role||state.accountRole);
+ const dialog=document.createElement('dialog');
+ dialog.className='timelineDialog';
+ dialog.setAttribute('aria-label','Rehearsal objectives and notes');
+ const safeText=v=>esc(v||'');
+ dialog.innerHTML='<form><h2>Rehearsal objectives & notes</h2>'+
+  '<p class="sub">Private to the band. Managers can update preparation plans.</p>'+
+  '<label>Objectives<textarea name="objectives" rows="4" maxlength="4000" '+(permitted?'':'readonly')+'>'+safeText(plan.objectives)+'</textarea></label>'+
+  '<label>Preparation notes<textarea name="notes" rows="5" maxlength="8000" '+(permitted?'':'readonly')+'>'+safeText(plan.notes)+'</textarea></label>'+
+  '<p role="alert"></p><div class="actions"><button type="button" data-close-plan>Close</button>'+
+  (permitted?'<button class="primary" type="submit">Save plan</button>':'')+'</div></form>';
+ document.body.append(dialog);
+ dialog.addEventListener('close',()=>dialog.remove());
+ dialog.querySelector('[data-close-plan]').onclick=()=>dialog.close();
+ dialog.querySelector('form').onsubmit=async event=>{
+  event.preventDefault();
+  if(!permitted)return;
+  const button=dialog.querySelector('[type="submit"]');button.disabled=true;
+  try{
+   const data=Object.fromEntries(new FormData(event.target));
+   await api(base,{method:'PUT',body:JSON.stringify(data)});
+   dialog.close();toast('Rehearsal plan saved');
+  }catch(error){dialog.querySelector('[role="alert"]').textContent=error.message;button.disabled=false}
+ };
+ dialog.showModal();
+}
 document.addEventListener('click',async event=>{
- const b=event.target.closest('[data-schedule-view],[data-schedule-packet],[data-schedule-rsvp],[data-calendar-event],[data-schedule-details],[data-schedule-close]');if(!b)return;
+ const b=event.target.closest('[data-schedule-view],[data-schedule-packet],[data-schedule-rsvp],[data-calendar-event],[data-schedule-details],[data-schedule-close],[data-rehearsal-plan]');if(!b)return;
+ if(b.dataset.rehearsalPlan){try{await openRehearsalPlan(Number(b.dataset.rehearsalPlan))}catch(error){toast(error.message,true)}return}
  if(b.hasAttribute('data-schedule-close')){state.scheduleSelected=null;render();return}
  if(b.dataset.scheduleDetails){state.scheduleSelected=Number(b.dataset.scheduleDetails);render();return}
  if(b.dataset.calendarEvent){
