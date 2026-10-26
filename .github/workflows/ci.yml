@@ -14,9 +14,12 @@ jobs:
         with:
           node-version: '22'
       - run: python -m pip install -r requirements-dev.txt
-      - run: python -m playwright install --with-deps chromium
+      - name: Install Chromium
+        timeout-minutes: 10
+        run: python -m playwright install --with-deps --only-shell chromium
       - run: BACKLINE_LOCAL_DEV=1 python -m pytest -q
       - run: node --check src/static/app.js
+      - run: node --check src/static/workspace.js
       - name: Audit production dependencies
         run: python -m pip_audit -r requirements.txt
       - name: Compile application modules

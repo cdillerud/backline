@@ -82,3 +82,37 @@ JavaScript syntax and Python compilation passed. Production requirement audit
 reported no known vulnerabilities. PDF cover, contacts and timeline were rendered
 and visually reviewed. The environment emits one upstream Starlette/httpx
 compatibility deprecation warning; it does not fail the suite.
+
+## BandBrief minimum-feature follow-up
+
+Chad supplied the BandBrief feature list as the minimum acceptance checklist.
+`docs/BANDBRIEF_PARITY.md` records each requested capability as implemented,
+partial or missing. This release must not be described as full feature parity.
+
+Implemented next: private per-band venue records with multiple contacts, tags,
+favourites and live show links; linked venue details in production PDFs; assigned
+tasks with due flags and validated gig/song/set links; editable musical metadata,
+tags and HTTPS recording references; persisted drag/keyboard setlist ordering,
+live runtime and setlist PDFs; named colour-coded calendars, a monthly grid,
+combined authorized-band view and authenticated iCalendar downloads.
+
+This follow-up adds only new SQLite tables; it does not rebuild existing tables or
+alter production data. Tables are initialized only when the new source is started
+against the selected development/test database. Back up and rehearse migration
+before any future production launch. Recording links are external references;
+media hosting, anonymous pages and subscription feeds are not enabled.
+
+The existing account authorization middleware is unchanged. Self-service RSVP,
+member discussions, personal notifications, uploads and public sharing remain
+pending the concrete authorization proposal in
+`docs/SECURITY_CHANGE_PROPOSAL.md`, as required by the user's operating rules.
+
+CI installs only the Chromium headless shell needed by the tests and gives browser
+installation a ten-minute limit, to make stalled dependency installs diagnosable.
+The new workspace script also receives a JavaScript syntax check.
+
+Follow-up validation: **64 tests passed**, including six Chromium cases. Both
+JavaScript files passed syntax checks; Python compilation and Git whitespace checks
+passed. The setlist PDF was rendered and visually reviewed. Tests use fake contacts,
+fictional venues and disposable databases. The earlier show-operations PR workflow
+also passed in GitHub Actions; final follow-up runs are verified separately.
