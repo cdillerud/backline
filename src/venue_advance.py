@@ -1,6 +1,7 @@
 """Band- and gig-scoped venue advancement confirmations."""
 import json
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from .operations_audit import current_revision,check_revision,record_change,urgent_advance_change,user_id
 from pydantic import BaseModel, Field, field_validator
 from .show_schedule import MILESTONES, TIME_PATTERN, valid_timezone, show_timeline
 
@@ -20,6 +21,8 @@ class ScheduleEntry(BaseModel):
         return value.strip()
 
 class Advance(BaseModel):
+    revision:int|None=Field(default=None,ge=0)
+    change_reason:str=Field(default="",max_length=500)
     venue_contact:str=Field(default="",max_length=150)
     production_contact:str=Field(default="",max_length=150)
     contact_email:str=Field(default="",max_length=200)
@@ -75,15 +78,17 @@ def attach(db):
     @router.get("/api/bands/{band_id}/gigs/{event_id}/advance")
     def read_advance(band_id:int,event_id:int):
         with db() as con:
+            con.execute('BEGIN')
             check(con,band_id,event_id)
             row=con.execute("SELECT body_json FROM venue_advances WHERE band_id=? AND event_id=?",
                             (band_id,event_id)).fetchone()
-            return json.loads(row["body_json"]) if row else Advance().model_dump()
+            body=json.loads(row["body_json"]) if row else Advance().model_dump(exclude={"revision","change_reason"})
+            return body|{"revision":current_revision(con,band_id,"advance",event_id)}
     @router.get("/api/bands/{band_id}/gigs/{event_id}/timeline")
     def timeline(band_id:int,event_id:int):
         return show_timeline(read_advance(band_id,event_id))
     @router.put("/api/bands/{band_id}/gigs/{event_id}/advance")
-    def save_advance(band_id:int,event_id:int,data:Advance):
+    def save_advance(band_id:int,event_id:int,data:Advance,request:Request):
         if data.status=="confirmed" and (not data.venue_contact.strip() or not data.load_in.strip()
             or not data.soundcheck.strip() or not data.doors.strip() or not data.show_time.strip()
             or data.open_questions.strip()):
@@ -92,9 +97,16 @@ def attach(db):
             warnings=show_timeline(data.model_dump())["warnings"]
             if warnings:raise HTTPException(422," ".join(warnings))
         with db() as con:
+            con.execute('BEGIN IMMEDIATE')
             check(con,band_id,event_id)
+            check_revision(con,band_id,'advance',event_id,data.revision)
+            previous=con.execute('SELECT body_json FROM venue_advances WHERE band_id=? AND event_id=?',(band_id,event_id)).fetchone()
+            before=json.loads(previous['body_json']) if previous else None
+            after=data.model_dump(exclude={'revision','change_reason'})
+            history_id=record_change(con,band_id,'advance',event_id,before,after,user_id(request),event_id,data.change_reason)
+            urgent_advance_change(con,band_id,event_id,history_id,before,after)
             con.execute("""INSERT INTO venue_advances(event_id,band_id,body_json)
                 VALUES(?,?,?) ON CONFLICT(event_id) DO UPDATE SET body_json=excluded.body_json,
-                updated_at=CURRENT_TIMESTAMP""",(event_id,band_id,data.model_dump_json()))
-            return {"saved":True,"status":data.status}
+                updated_at=CURRENT_TIMESTAMP""",(event_id,band_id,json.dumps(after)))
+            return {"saved":True,"status":data.status,"revision":current_revision(con,band_id,"advance",event_id)}
     return router

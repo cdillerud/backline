@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from .show_schedule import valid_timezone
 
 router=APIRouter()
-CATEGORIES=('task','rsvp','mention')
+CATEGORIES=('task','rsvp','mention','operations')
 class Strict(BaseModel):
     model_config=ConfigDict(extra='forbid')
 class RSVP(Strict):
@@ -31,6 +31,7 @@ class Preferences(Strict):
     task:str=Field(default='immediate',pattern='^(immediate|daily|none)$')
     rsvp:str=Field(default='immediate',pattern='^(immediate|daily|none)$')
     mention:str=Field(default='immediate',pattern='^(immediate|daily|none)$')
+    operations:str=Field(default='immediate',pattern='^(immediate|daily|none)$')
     timezone:str=Field(default='America/Chicago',max_length=100)
     @field_validator('timezone')
     @classmethod
@@ -79,7 +80,7 @@ def actor(request):
 
 def preferences(con,user_id):
     row=con.execute('SELECT body_json FROM notification_preferences WHERE user_id=?',(user_id,)).fetchone()
-    return json.loads(row['body_json']) if row else Preferences().model_dump()
+    return Preferences().model_dump() | (json.loads(row['body_json']) if row else {})
 
 def delivery_time(prefs,category,now):
     if prefs[category]=='none':return None

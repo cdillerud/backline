@@ -6,13 +6,16 @@ provider and are intentionally not guessed here.
 import datetime
 import json
 from .show_schedule import TIME_PATTERN, show_timeline
-from fastapi import APIRouter,HTTPException
+from fastapi import APIRouter,HTTPException,Request
+from .operations_audit import record_change,current_revision,check_revision,user_id
 from pydantic import BaseModel,Field,field_validator
 router=APIRouter()
 class TourInput(BaseModel):
     name:str=Field(min_length=1,max_length=140)
     notes:str=Field(default='',max_length=2000)
 class StopInput(BaseModel):
+    revision:int|None=Field(default=None,ge=0)
+    change_reason:str=Field(default="",max_length=500)
     date:datetime.date
     city:str=Field(min_length=1,max_length=120)
     region:str=Field(default='',max_length=80)
@@ -75,7 +78,7 @@ def attach(db):
                 raise HTTPException(404,"Band not found")
             return [dict(row) for row in con.execute("SELECT * FROM tours WHERE band_id=? ORDER BY id DESC",(band_id,))]
     @router.post('/api/bands/{band_id}/tours/{tour_id}/stops',status_code=201)
-    def add_stop(band_id:int,tour_id:int,data:StopInput):
+    def add_stop(band_id:int,tour_id:int,data:StopInput,request:Request):
         with db() as con:
             tour(con,band_id,tour_id)
             validate_link(con,band_id,data)
@@ -88,14 +91,21 @@ def attach(db):
             except Exception as exc:
                 if "UNIQUE constraint" in str(exc):raise HTTPException(409,"Gig already linked to tour") from None
                 raise
+            record_change(con,band_id,'tour_stop',row.lastrowid,None,data.model_dump(mode='json',exclude={'revision','change_reason'}),user_id(request),data.event_id,data.change_reason)
             return {"id":row.lastrowid}
     @router.put('/api/bands/{band_id}/tours/{tour_id}/stops/{stop_id}')
-    def edit_stop(band_id:int,tour_id:int,stop_id:int,data:StopInput):
+    def edit_stop(band_id:int,tour_id:int,stop_id:int,data:StopInput,request:Request):
         with db() as con:
+            con.execute('BEGIN IMMEDIATE')
             tour(con,band_id,tour_id)
+            check_revision(con,band_id,'tour_stop',stop_id,data.revision)
+            previous=con.execute('SELECT * FROM tour_stops WHERE id=? AND tour_id=? AND band_id=?',(stop_id,tour_id,band_id)).fetchone()
             if not con.execute("SELECT 1 FROM tour_stops WHERE id=? AND tour_id=? AND band_id=?",
                                (stop_id,tour_id,band_id)).fetchone():raise HTTPException(404,"Stop not found")
             validate_link(con,band_id,data)
+            before={key:previous[key] for key in ('city','region','venue','event_id','status','arrival_time','departure_time','lodging','travel_notes')}
+            before['date']=previous['stop_date']
+            record_change(con,band_id,'tour_stop',stop_id,before,data.model_dump(mode='json',exclude={'revision','change_reason'}),user_id(request),data.event_id,data.change_reason)
             try:
                 con.execute("""UPDATE tour_stops SET event_id=?,stop_date=?,city=?,region=?,venue=?,status=?,
                     arrival_time=?,departure_time=?,lodging=?,travel_notes=? WHERE id=? AND tour_id=? AND band_id=?""",
@@ -108,10 +118,12 @@ def attach(db):
     @router.get('/api/bands/{band_id}/tours/{tour_id}/route')
     def route(band_id:int,tour_id:int):
         with db() as con:
+            con.execute('BEGIN')
             info=dict(tour(con,band_id,tour_id))
             stops=[dict(r) for r in con.execute("""SELECT * FROM tour_stops
                 WHERE band_id=? AND tour_id=? ORDER BY stop_date,id""",(band_id,tour_id))]
             for stop in stops:
+                stop["revision"]=current_revision(con,band_id,"tour_stop",stop["id"])
                 stop["advance"]=None
                 if stop["event_id"] is not None:
                     row=con.execute("""SELECT e.date,e.venue,e.title,a.body_json FROM events e

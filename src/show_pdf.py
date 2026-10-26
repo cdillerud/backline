@@ -1,5 +1,6 @@
 """Printable, band-scoped show production packet PDF."""
 from io import BytesIO
+import datetime
 from pathlib import Path
 import reportlab
 from reportlab.pdfbase import pdfmetrics
@@ -204,4 +205,27 @@ def create_setlist_pdf(band_name, setlist, songs):
                                ('LINEBELOW',(0,0),(-1,-1),.3,colors.HexColor('#b7c6d4'))]))
     story.append(table)
     doc.build(story)
+    return output.getvalue()
+
+
+def create_operations_pdf(title,subtitle,columns,rows,summary=''):
+    """Standalone operational list; callers authorize and explicitly select columns."""
+    output=BytesIO();styles=getSampleStyleSheet()
+    for style in styles.byName.values():
+        style.fontName='BacklineSans-Bold' if style.name in ('Title','Heading1') else 'BacklineSans'
+    styles['BodyText'].leading=15
+    p=lambda value:Paragraph(escape(str(value if value is not None else '')),styles['BodyText'])
+    story=[Paragraph(escape(title),styles['Title']),p(subtitle),Spacer(1,15)]
+    if summary:story.extend([p(summary),Spacer(1,12)])
+    data=[[p(v) for v in columns]]+[[p(v) for v in row] for row in rows]
+    table=Table(data,colWidths=[510/len(columns)]*len(columns),repeatRows=1)
+    table.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),colors.HexColor('#e8eef3')),('VALIGN',(0,0),(-1,-1),'TOP'),
+        ('TOPPADDING',(0,0),(-1,-1),9),('BOTTOMPADDING',(0,0),(-1,-1),9),('LINEBELOW',(0,0),(-1,-1),.3,colors.HexColor('#b7c6d4'))]))
+    story.insert(2,p('Generated '+datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M UTC')+' - confirm changes before sharing.'))
+    story.append(table)
+    if not rows:story.extend([Spacer(1,12),p('No entries to include.')])
+    def footer(canvas,document):
+        canvas.saveState();canvas.setFont('BacklineSans',8);canvas.setFillColor(colors.HexColor('#526579'))
+        canvas.drawString(51,26,title[:64]);canvas.drawRightString(561,26,'Page '+str(document.page));canvas.restoreState()
+    SimpleDocTemplate(output,pagesize=(612,792),leftMargin=51,rightMargin=51,topMargin=45,bottomMargin=45,title=title,author='Backline').build(story,onFirstPage=footer,onLaterPages=footer)
     return output.getvalue()

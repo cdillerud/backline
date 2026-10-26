@@ -26,6 +26,9 @@ from .show_files import setup as setup_show_files, attach as attach_show_files
 from .tax_records import setup as setup_tax_records, attach as attach_tax_records
 from .tour_routes import setup as setup_tour_routes, attach as attach_tour_routes
 from .stage_plots import setup as setup_stage_plots, attach as attach_stage_plots
+from .itinerary_imports import setup as setup_itinerary_imports, attach as attach_itinerary_imports
+from .show_logistics import setup as setup_show_logistics, attach as attach_show_logistics
+from .operations_audit import setup as setup_operations_audit, attach as attach_operations_audit
 from .sharing import setup as setup_sharing, attach as attach_sharing
 from .media_pages import setup as setup_media_pages, attach as attach_media_pages
 from .collaboration import setup as setup_collaboration, attach as attach_collaboration
@@ -79,6 +82,9 @@ def init_db():
         setup_collaboration(c)
         setup_media_pages(c)
         setup_sharing(c)
+        setup_operations_audit(c)
+        setup_show_logistics(c)
+        setup_itinerary_imports(c)
         if os.getenv('BACKLINE_DEMO_SEED')=='1' and os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
             from .demo_seed import seed
             seed(c)
@@ -447,4 +453,7 @@ app.include_router(attach_calendars(db))
 app.include_router(attach_collaboration(db))
 app.include_router(attach_media_pages(db))
 app.include_router(attach_sharing(db))
+app.include_router(attach_operations_audit(db))
+app.include_router(attach_show_logistics(db))
+app.include_router(attach_itinerary_imports(db))
 init_db()

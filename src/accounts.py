@@ -125,6 +125,7 @@ def authorized(con, user_id, band_id, method, path):
         # These exact paths derive actor identity from the authenticated session.
         prefix=rf"/api/bands/{band_id}"
         if method=='PUT' and re.fullmatch(prefix+r"/events/\d+/rsvp",path):return True
+        if method=='POST' and re.fullmatch(prefix+r"/gigs/\d+/guest-requests(?:/\d+/cancel)?",path):return True
         if method=='POST' and re.fullmatch(prefix+r"/discussions/\d+/(posts|typing)",path):return True
         if method=='PUT' and re.fullmatch(prefix+r"/discussions/\d+/posts/\d+",path):return True
     # Viewers remain read-only; other member writes remain denied.
