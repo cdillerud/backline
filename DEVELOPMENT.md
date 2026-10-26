@@ -169,3 +169,8 @@ across desktop and 390px mobile workflows. JavaScript syntax, Python compilation
 and whitespace checks passed. The resolved production dependency audit reports no
 known vulnerabilities with Pillow 13.0.0. An upstream Starlette/httpx deprecation
 warning remains non-failing. Final GitHub Actions results are recorded on draft PR #5.
+
+Final regression refinements keep test show dates relative to the fixture data,
+keep unfiled photos accessible through Photo library, select newly created albums,
+and align RSVP avatar/name rows. The complete suite remains 84 passing tests;
+focused desktop/mobile gallery acceptance also passed after the library refinement.

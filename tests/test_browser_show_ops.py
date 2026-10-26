@@ -183,7 +183,9 @@ def test_venue_tasks_and_setlist_builder(preview_url,width,tmp_path):
         dialog.get_by_label('Calendar name',exact=True).fill('Synthetic tour dates')
         dialog.get_by_role('button',name='Save',exact=True).click()
         expect(dialog).to_have_count(0)
-        page.locator('#calendarMonth').fill('2026-11')
+        demo=next(b for b in page.request.get(preview_url+'/api/bands').json() if b['name']=='The Drunk Uncles (Demo)')
+        month=page.request.get(preview_url+'/api/bands/'+str(demo['id'])+'/events').json()[0]['date'][:7]
+        page.locator('#calendarMonth').fill(month)
         page.get_by_role('button',name='Choose calendar',exact=True).first.click()
         dialog=page.get_by_role('dialog',name='Choose event calendar')
         dialog.get_by_label('Calendar',exact=True).select_option(label='Synthetic tour dates')

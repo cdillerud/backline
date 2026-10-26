@@ -1,5 +1,6 @@
 """Adversarial role and identity coverage for approved private collaboration."""
 import importlib
+import datetime
 import time
 import pytest
 from fastapi.testclient import TestClient
@@ -22,7 +23,7 @@ def accounts(tmp_path,monkeypatch):
             users[role]=uid;headers[role]={'Authorization':'Bearer '+make_session(con,uid)}
         member=con.execute("INSERT INTO members(band_id,name,instrument) VALUES(?,'Stage Name','Guitar')",(b,)).lastrowid
     c=TestClient(app.app);base=f'/api/bands/{b}'
-    gig=c.post(base+'/events',headers=headers['owner'],json={'kind':'Gig','title':'Synthetic Show','date':'2026-11-15'}).json()['id']
+    gig=c.post(base+'/events',headers=headers['owner'],json={'kind':'Gig','title':'Synthetic Show','date':str(datetime.date.today()+datetime.timedelta(days=21))}).json()['id']
     song=c.post(base+'/songs',headers=headers['owner'],json={'title':'Synthetic Song'}).json()['id']
     thread=c.post(base+'/discussions',headers=headers['owner'],json={'title':'Show planning','scope':'song','scope_id':song}).json()['id']
     yield app,c,b,other,base,users,headers,gig,member,thread
