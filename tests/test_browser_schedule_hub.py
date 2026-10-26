@@ -1,16 +1,16 @@
 """Unified scheduling and band-social navigation smoke coverage."""
 import pytest
 from playwright.sync_api import sync_playwright,expect
-from test_browser_show_ops import preview_url
+from test_browser_collaboration import account_server,sign_in
 
 @pytest.mark.parametrize("width",[1280,390])
-def test_schedule_and_band_hub_navigation(preview_url,width):
+def test_schedule_and_band_hub_navigation(account_server,accounts,width):
     with sync_playwright() as p:
         browser=p.chromium.launch()
         page=browser.new_page(viewport={"width":width,"height":900})
         errors=[]
         page.on("pageerror",lambda err:errors.append(str(err)))
-        page.goto(preview_url,wait_until="networkidle")
+        sign_in(page,account_server,"owner")
         page.locator('[data-go="schedule"]:visible').first.click()
         expect(page.get_by_role("tab",name="Calendar",exact=True)).to_be_visible()
         page.get_by_role("tab",name="Shows",exact=True).click()
