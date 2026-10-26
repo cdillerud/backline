@@ -180,6 +180,28 @@ def test_import_source_and_validation_are_manager_scoped(accounts):
         assert c.post(path,headers=h['owner'],json={**payload,'csv_text':csv_text}).status_code==422
     assert c.post(path,headers=h['owner'],json={**payload,'csv_text':'date,city\n'+'2026-12-01,City\n'*201}).status_code==422
 
+def test_import_mapping_preview_requires_new_review_and_preserves_original(accounts):
+    _,c,_,_,base,_,h,_,_,_=accounts
+    tour=c.post(base+'/tours',headers=h['owner'],json={'name':'Mapped Tour'}).json()['id']
+    path=base+'/itinerary-imports'
+    raw='Day,Town,Stage,Private note\\n2026-12-01,Minneapolis,Sample Hall,DO NOT DISTRIBUTE\\n'
+    # Raw nonstandard headings are not accepted as a directly applicable import.
+    assert c.post(path,headers=h['owner'],json={'tour_id':tour,'filename':'nonstandard.csv','csv_text':raw}).status_code==422
+    seed='date,city,venue\\n2026-12-01,Minneapolis,Sample Hall\\n'
+    draft=c.post(path,headers=h['owner'],json={'tour_id':tour,'filename':'original.csv','csv_text':seed}).json()
+    ident=draft['id']
+    endpoint=path+f'/{ident}/map-preview'
+    mapping={'date':'date','city':'city','venue':'venue'}
+    preview=c.post(endpoint,headers=h['owner'],json={'mapping':mapping})
+    assert preview.status_code==200,preview.text
+    assert preview.json()['requires_new_review'] is True
+    assert preview.json()['source_sha256']==draft['source_sha256']
+    assert preview.json()['canonical_csv'].startswith('city,date,venue')
+    assert c.get(path+f'/{ident}/source',headers=h['owner']).json()['source_text']==seed
+    assert c.get(base+f'/tours/{tour}/route',headers=h['owner']).json()['stops']==[]
+    assert c.post(endpoint,headers=h['owner'],json={'mapping':{'date':'date','city':'date'}}).status_code==422
+    assert c.post(endpoint,headers=h['member'],json={'mapping':mapping}).status_code==403
+
 def test_urgent_alerts_cover_an_explicit_after_midnight_show_window(accounts):
     app,_,band,_,_,users,_,gig,_,_=accounts
     from src.operations_audit import record_change,urgent_advance_change
