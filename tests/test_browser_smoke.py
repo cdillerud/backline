@@ -40,6 +40,10 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             assert page.locator("#app").is_visible()
             assert page.get_by_text("Dashboard",exact=True).count()>0
             assert page.locator("nav[aria-label='Primary workspaces'] > button").count()==6
+            page.get_by_role("heading",name="What needs attention",exact=True).wait_for(state="visible")
+            page.get_by_role("button",name="Open Band Hub",exact=True).click()
+            page.get_by_role("heading",name="Band Hub",exact=True).wait_for(state="visible")
+            page.locator("[data-go='dashboard']").first.click()
             page.locator("[data-go='collaboration']").first.click()
             page.get_by_role("heading",name="Band Hub",exact=True).wait_for(state="visible")
             page.get_by_text("Coming up",exact=True).first.wait_for(state="visible")
