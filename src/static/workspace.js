@@ -80,15 +80,10 @@ async function refreshCalendar(all=false){
  state.data.calendarEvents=results.flat().sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));state.data.bandCalendars=await api(workspaceBase()+'/calendars');state.calendarAll=all;render();
 }
 function scheduleBoard(){
- const mode=state.scheduleView||'calendar',views=[['calendar','Calendar'],['shows','Shows'],['rehearsals','Rehearsals'],['agenda','Agenda']];
- const buttons='<div class="showTabBar" role="tablist" aria-label="Schedule views">'+views.map(([key,label])=>'<button role="tab" aria-selected="'+(mode===key)+'" class="'+(mode===key?'selected':'')+'" data-schedule-view="'+key+'">'+label+'</button>').join('')+'</div>';
  const selected=get('events').find(e=>e.id===state.scheduleSelected);
  const details=selected?panel('Event details · '+esc(selected.title),'<div class="hubStats"><span><strong>'+esc(selected.kind)+'</strong> type</span><span><strong>'+datePretty(selected.date)+'</strong> date</span><span><strong>'+esc(selected.status||'Planned')+'</strong> status</span></div><p>'+esc(selected.time||'Time TBD')+' · '+esc(selected.venue||'Location TBD')+'</p><div class="actions"><button data-schedule-move="'+selected.id+'">Change date</button><button data-schedule-edit="'+selected.id+'">Edit event</button><button data-schedule-rsvp="'+selected.id+'">Availability & RSVPs</button>'+(selected.kind==='Gig'?'<button data-schedule-packet="'+selected.id+'">Show production</button>':selected.kind==='Rehearsal'?'<button data-rehearsal-plan="'+selected.id+'">Objectives & notes</button><button data-go="songs">Songs to practice</button><button data-go="setlists">Rehearsal repertoire</button><button data-go="tasks">Preparation tasks</button>':'<button data-go="tasks">Meeting preparation tasks</button>')+'<button data-schedule-close>Close details</button></div>'):'';
- const head='<div class="toolbar"><p>One shared home for shows, rehearsals and sessions.</p><button class="primary" data-action="event">+ Add event</button></div>';
- if(mode==='calendar')return head+buttons+details+calendarBoard();
- const events=get('events').filter(e=>mode==='shows'?e.kind==='Gig':mode==='rehearsals'?e.kind==='Rehearsal':true).slice().sort((a,b)=>a.date.localeCompare(b.date)||String(a.time||'').localeCompare(String(b.time||'')));
- const content=events.length?'<div class="list">'+events.map(e=>'<article class="entry scheduleEntry"><div><span class="tag muted">'+esc(e.kind)+'</span> <strong>'+esc(e.title)+'</strong><p>'+datePretty(e.date)+' · '+esc(e.time||'Time to confirm')+' · '+esc(e.venue||'Location to confirm')+'</p><small>'+esc(e.status||'Planned')+'</small></div><div class="actions">'+(e.kind==='Gig'?'<button data-schedule-packet="'+e.id+'">Production</button>':'')+'<button data-schedule-details="'+e.id+'">'+(e.kind==='Rehearsal'?'Prepare':'Details')+'</button><button data-schedule-rsvp="'+e.id+'">Availability</button></div></article>').join('')+'</div>':empty('No events in this view. Add one to get started.');
- return head+buttons+details+panel(mode==='shows'?'Shows':mode==='rehearsals'?'Rehearsals':'Upcoming and past commitments',content);
+ const head='<div class="toolbar"><p>Shows, rehearsals, meetings, and sessions all live on this calendar. Select an entry for details.</p><button class="primary" data-action="event">+ Add event</button></div>';
+ return head+details+calendarBoard();
 }
 async function openRehearsalPlan(id){
  const base=workspaceBase()+'/rehearsals/'+id+'/plan';
@@ -121,7 +116,7 @@ async function openRehearsalPlan(id){
  dialog.showModal();
 }
 document.addEventListener('click',async event=>{
- const b=event.target.closest('[data-schedule-view],[data-schedule-packet],[data-schedule-rsvp],[data-calendar-event],[data-schedule-details],[data-schedule-move],[data-schedule-edit],[data-schedule-close],[data-rehearsal-plan]');if(!b)return;
+ const b=event.target.closest('[data-schedule-packet],[data-schedule-rsvp],[data-calendar-event],[data-schedule-details],[data-schedule-move],[data-schedule-edit],[data-schedule-close],[data-rehearsal-plan]');if(!b)return;
  if(b.dataset.rehearsalPlan){try{await openRehearsalPlan(Number(b.dataset.rehearsalPlan))}catch(error){toast(error.message,true)}return}
  if(b.hasAttribute('data-schedule-close')){state.scheduleSelected=null;render();return}
  if(b.dataset.scheduleMove){
@@ -142,7 +137,6 @@ document.addEventListener('click',async event=>{
   const id=Number(b.dataset.calendarEvent);
   state.scheduleSelected=id;render();return
  }
- if(b.dataset.scheduleView){state.scheduleView=b.dataset.scheduleView;render();return}
  if(b.dataset.schedulePacket){await openShowPacketGig(Number(b.dataset.schedulePacket));return}
  if(b.dataset.scheduleRsvp){state.rsvpEvent=Number(b.dataset.scheduleRsvp);state.hubTab='availability';state.section='collaboration';await refreshCollaboration();return}
 });
