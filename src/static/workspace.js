@@ -204,7 +204,7 @@ document.addEventListener('click',event=>{
 });
 document.addEventListener('dblclick',event=>{
  const day=event.target.closest('[data-calendar-day]');
- if(day&&!event.target.closest('[data-calendar-event]'))createEventOnCalendarDate(day.dataset.calendarDay);
+ if(day&&!event.target.closest('[data-calendar-event],[data-calendar-add]'))createEventOnCalendarDate(day.dataset.calendarDay);
 });
 let draggedCalendarEvent=null;
 document.addEventListener('dragstart',event=>{
