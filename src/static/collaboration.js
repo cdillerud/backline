@@ -15,7 +15,17 @@ async function refreshCollaboration(){
  }catch(error){state.data.collaborationNotice=error.message;render()}
 }
 function collaborationBoard(){
- const info=state.data.collaboration;if(!info)return panel('Your band, connected','<p class="sub">Coordinate rehearsals and gigs, prepare setlists and stay close to the people making the music.</p><div class="hubShortcuts"><button data-go="schedule">Explore schedule</button><button data-go="songs">Songs & setlists</button><button data-go="touring">Shows & tours</button></div>')+panel('Conversations & availability','<p class="sub">'+esc(state.data.collaborationNotice||'Sign in with an individual band account to access private conversations, RSVPs and notifications.')+'</p><p class="sub">Band discussions, member notifications and RSVPs are private. Preview access alone does not unlock them.</p>');
+ const info=state.data.collaboration;
+ if(!info){
+  const upcoming=(get('events')||[]).filter(e=>e.date>=today()).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,4);
+  const people=(get('members')||[]).filter(m=>m.active!==0).slice(0,8);
+  return panel('Your band, connected','<p class="sub">Your shared home for shows, rehearsals, music and the people behind them.</p><div class="hubShortcuts"><button data-go="schedule">Schedule</button><button data-go="songs">Songs & setlists</button><button data-go="touring">Shows & tours</button></div>')+
+   '<div class="panels">'+
+   panel('Coming up',upcoming.length?'<div class="list">'+upcoming.map(e=>item(e.title,datePretty(e.date)+' · '+(e.time||'Time to confirm')+' · '+(e.venue||'Venue to confirm'),e.kind)).join('')+'</div>':empty('Nothing scheduled yet.'),'<button class="small" data-go="schedule">Open schedule</button>')+
+   panel('Bandmates',people.length?'<div class="list">'+people.map(m=>item(m.name,m.instrument||'Band member')).join('')+'</div>':empty('Add your bandmates to get started.'),'<button class="small" data-go="members">View members</button>')+
+   '</div>'+
+   panel('Private conversations and RSVPs','<p class="sub">'+esc(state.data.collaborationNotice||'Individual band sign-in is required for private conversations, RSVPs and notifications.')+'</p><p class="sub">The shared overview uses existing band records; private collaboration remains protected.</p>');
+ }
  const event=get('events').find(e=>e.id===state.rsvpEvent),own=get('rsvps').find(r=>r.user_id===info.user_id),thread=get('discussions').find(t=>t.id===state.discussionThread);
  const hubIntro=panel('Your band, connected','<p class="sub">Conversations, shared memories and planning live together. Schedule owns dates; Band Hub keeps everyone in the loop.</p><div class="hubShortcuts"><button data-go="notifications">Notifications</button><button data-go="media">Photos & albums</button><button data-go="tasks">Assigned tasks</button><button data-go="schedule">Schedule</button></div><div class="hubStats"><span><strong>'+get('discussions').length+'</strong> discussion threads</span><span><strong>'+info.members.length+'</strong> bandmates</span><span><strong>'+get('events').length+'</strong> scheduled events</span></div>');
  const recentThreads=get('discussions').slice().sort((a,b)=>Number(b.updated_at||b.created_at||0)-Number(a.updated_at||a.created_at||0)).slice(0,5);
