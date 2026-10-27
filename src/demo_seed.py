@@ -28,6 +28,18 @@ def seed(con):
         (band,'Regional showcase — demo set',gig1)).lastrowid
     for position,song in enumerate(con.execute("SELECT id FROM songs WHERE band_id=? ORDER BY id",(band,)).fetchall(),1):
         con.execute("INSERT INTO setlist_songs(setlist_id,song_id,position) VALUES(?,?,?)",(setlist,song[0],position))
+    # Real, linked checklist records drive Dashboard's "What needs attention".
+    for title,days,event_id,assignee in [
+        ('Confirm showcase stage plot (demo)',5,gig1,'Alex Example'),
+        ('Finalize rehearsal set transitions (demo)',3,None,'Sam Example'),
+    ]:
+        member_id=con.execute("SELECT id FROM members WHERE band_id=? AND name=?",
+            (band,assignee)).fetchone()[0]
+        payload={"title":title,"notes":"Synthetic preparation checklist",
+            "assignee_id":member_id,"due_date":(date.today()+timedelta(days=days)).isoformat(),
+            "event_id":event_id,"song_id":None,"setlist_id":None,"completed":False}
+        con.execute("INSERT INTO workspace_tasks(band_id,body_json) VALUES(?,?)",
+            (band,json.dumps(payload)))
     tour=con.execute("INSERT INTO tours(band_id,name,notes) VALUES(?,?,?)",
         (band,'Upper Midwest Weekend — DEMO','Illustrative only. Not real bookings.')).lastrowid
     for event,day,city,region,venue,status in (
