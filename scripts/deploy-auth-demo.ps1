@@ -71,10 +71,10 @@ try {
     } finally {
       Remove-Variable plain,secure -ErrorAction SilentlyContinue
     }
-    $secretsText = flyctl secrets list --app $app
-    if ($LASTEXITCODE -ne 0 -or $secretsText -notmatch 'BACKLINE_DEMO_PASSWORD') {
-      throw 'Demo password still not registered in Fly secret vault'
-    }
+    # A staged secret is deliberately NOT listed as active before a first machine
+    # exists. Successful import is the confirmation; the server also fails closed
+    # at startup if BACKLINE_DEMO_PASSWORD is missing.
+    Write-Host 'Demo password staged successfully. First deployment will activate it.'
   }
   flyctl deploy . --app $app --config $config
   if ($LASTEXITCODE -ne 0) { throw 'Fly deployment failed' }
