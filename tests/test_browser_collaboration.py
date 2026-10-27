@@ -39,7 +39,19 @@ def sign_in(page,url,role):
     page.get_by_role('button',name='Sign in',exact=True).click()
     expect(page.get_by_role('heading',name='Overview',exact=True)).to_be_visible()
 
-def navigate(page,key):page.locator('[data-go="'+key+'"]:visible').first.click()
+def navigate(page,key):
+    target=page.locator('[data-go="'+key+'"]:visible')
+    if target.count()==0:
+        # v0.5 groups related tools inside their primary workspace.
+        groups={
+            'media':'collaboration','notifications':'collaboration',
+            'tasks':'collaboration','members':'collaboration',
+            'calendars':'schedule','events':'schedule',
+            'venues':'touring','bookings':'touring','showops':'touring','operations':'touring',
+            'setlists':'songs','studio':'songs'}
+        if key in groups:
+            page.locator('[data-go="'+groups[key]+'"]:visible').first.click()
+    page.locator('[data-go="'+key+'"]:visible').first.click()
 
 @pytest.mark.parametrize('width',[1280,390])
 def test_member_collaboration_live_updates_and_notifications(account_server,accounts,width):
