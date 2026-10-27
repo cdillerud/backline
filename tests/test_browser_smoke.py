@@ -97,6 +97,29 @@ def test_browser_navigation_and_gig_studio(tmp_path):
                 print("Calendar page messages",page.locator(".toast,[role='alert']").all_text_contents())
                 raise
             assert page.locator('[data-calendar-day="'+old_date+'"] [data-calendar-event="'+moved_id+'"]').count()==0
+            # Navigating the month must not require a browser reload.
+            month_before=page.locator("#calendarMonth").input_value()
+            page.get_by_role("button",name="Next month").click()
+            assert page.locator("#calendarMonth").input_value()!=month_before
+            page.get_by_role("button",name="Previous month").click()
+            assert page.locator("#calendarMonth").input_value()==month_before
+            page.reload(wait_until="networkidle")
+            page.locator("[data-go='schedule']").first.click()
+            page.locator('[data-calendar-day="'+new_date+'"] [data-calendar-event="'+moved_id+'"]').wait_for(state="visible",timeout=15000)
+            # Rejecting a second proposed move must leave the saved date unchanged.
+            page.once("dialog",lambda dialog:dialog.dismiss())
+            page.evaluate("""({eventId, targetDate}) => {
+                const source=document.querySelector('[data-calendar-event="'+eventId+'"]');
+                const target=document.querySelector('[data-calendar-day="'+targetDate+'"]');
+                const transfer=new DataTransfer();
+                source.dispatchEvent(new DragEvent('dragstart',{bubbles:true,cancelable:true,dataTransfer:transfer}));
+                target.dispatchEvent(new DragEvent('dragover',{bubbles:true,cancelable:true,dataTransfer:transfer}));
+                target.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer}));
+                source.dispatchEvent(new DragEvent('dragend',{bubbles:true,dataTransfer:transfer}));
+            }""",{"eventId":moved_id,"targetDate":old_date})
+            assert page.locator('[data-calendar-day="'+new_date+'"] [data-calendar-event="'+moved_id+'"]').count()==1
+            assert page.locator('[data-calendar-day="'+old_date+'"] [data-calendar-event="'+moved_id+'"]').count()==0
+
 
 
             page.locator("[data-go='touring']").first.click()
