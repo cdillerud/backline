@@ -57,6 +57,17 @@ def test_authenticated_demo_requires_secret_and_fresh_database(tmp_path,monkeypa
     updated=client.get(f"/api/bands/{band_id}/events",headers=headers).json()
     assert next(e for e in updated if e["id"]==meeting_id)["date"]=="2026-11-12"
     assert next(e for e in updated if e["id"]==meeting_id)["kind"]=="Meeting"
+    edit=client.put(f"/api/bands/{band_id}/events/{meeting_id}",headers=headers,json={
+        "kind":"Meeting","title":"Updated synthetic planning meeting",
+        "date":"2026-11-13","venue":"Revised room","time":"18:30","status":"Confirmed"})
+    assert edit.status_code==200,edit.text
+    updated=client.get(f"/api/bands/{band_id}/events",headers=headers).json()
+    saved=next(e for e in updated if e["id"]==meeting_id)
+    assert (saved["title"],saved["date"],saved["kind"],saved["status"]) == (
+        "Updated synthetic planning meeting","2026-11-13","Meeting","Confirmed")
+    assert client.put(f"/api/bands/{band_id}/events/{meeting_id}",json={
+        "kind":"Meeting","title":"Forbidden","date":"2026-11-14"}).status_code==401
+
     assert client.put(f"/api/bands/{band_id}/events/999999/reschedule",
         headers=headers,json={"date":"2026-11-12"}).status_code==404
     app.init_db()  # restart does not duplicate accounts or tasks
