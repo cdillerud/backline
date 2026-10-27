@@ -332,6 +332,24 @@ def add_event(band_id:int,data:EventInput):
         cur=c.execute('INSERT INTO events(band_id,kind,title,venue,date,time,status,notes,fee_cents) VALUES(?,?,?,?,?,?,?,?,?)',(band_id,'Rehearsal' if data.kind in ('Session','Meeting') else data.kind,data.title,data.venue,str(data.date),data.time,data.status,data.notes,cents(data.fee)))
         if data.kind in ('Session','Meeting'):c.execute("INSERT INTO event_classifications(event_id,band_id,kind) VALUES(?,?,?)",(cur.lastrowid,band_id,data.kind))
         return {'id':cur.lastrowid}
+@app.put('/api/bands/{band_id}/events/{event_id}')
+def edit_event(band_id:int,event_id:int,data:EventInput):
+    band_exists(band_id)
+    if data.kind not in ('Gig','Rehearsal','Meeting','Session'):
+        raise HTTPException(422,'Invalid event kind')
+    with db() as c:
+        current=c.execute('SELECT id FROM events WHERE id=? AND band_id=?',(event_id,band_id)).fetchone()
+        if not current:raise HTTPException(404,'Event not found in this band')
+        stored_kind='Rehearsal' if data.kind in ('Session','Meeting') else data.kind
+        c.execute('''UPDATE events SET kind=?,title=?,venue=?,date=?,time=?,status=?,notes=?,fee_cents=?
+            WHERE id=? AND band_id=?''',(stored_kind,data.title.strip(),data.venue,str(data.date),
+            data.time,data.status,data.notes,cents(data.fee),event_id,band_id))
+        c.execute('DELETE FROM event_classifications WHERE event_id=? AND band_id=?',(event_id,band_id))
+        if data.kind in ('Session','Meeting'):
+            c.execute('INSERT INTO event_classifications(event_id,band_id,kind) VALUES(?,?,?)',
+                (event_id,band_id,data.kind))
+    return {'id':event_id,'ok':True}
+
 class EventReschedule(BaseModel):
     date: datetime.date
 
