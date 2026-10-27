@@ -39,6 +39,8 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             page.locator("[data-go='collaboration']").first.click()
             page.get_by_text("Weekend show preparation (demo)").first.wait_for(state="visible",timeout=15000)
             assert page.get_by_text("Demo: confirm stage plot and arrival time",exact=False).count()>0
+            page.get_by_role("heading",name="Availability and RSVP",exact=True).wait_for(state="visible")
+            assert page.locator(".rsvpBoard .entry").count()==1
             assert not errors,errors
             page.locator("#logoutButton").click()
             page.locator("#loginForm").wait_for(state="visible",timeout=15000)
