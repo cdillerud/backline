@@ -38,6 +38,9 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             page.locator("nav[aria-label='Primary workspaces']").wait_for(state="visible",timeout=15000)
             page.locator("[data-go='collaboration']").first.click()
             page.get_by_text("Weekend show preparation (demo)").first.wait_for(state="visible",timeout=15000)
+            page.get_by_text("Coming up",exact=True).first.wait_for(state="visible",timeout=15000)
+            assert page.locator(".hubUpcomingItem").count()==3
+            assert page.get_by_text("4 roster members",exact=False).count()>0
             assert page.get_by_text("Demo: confirm stage plot and arrival time",exact=False).count()>0
             page.get_by_role("heading",name="Availability and RSVP",exact=True).wait_for(state="visible")
             assert page.locator(".rsvpBoard .entry").count()==1
