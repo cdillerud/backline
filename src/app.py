@@ -85,7 +85,14 @@ def init_db():
         setup_operations_audit(c)
         setup_show_logistics(c)
         setup_itinerary_imports(c)
-        if os.getenv('BACKLINE_DEMO_SEED')=='1' and os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
+        if os.getenv('BACKLINE_DEMO_ACCOUNTS')=='1':
+            # Explicit opt-in for a disposable, fresh database. Never retrofit legacy data.
+            if os.getenv('BACKLINE_DEMO_SEED')!='1' or os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
+                raise RuntimeError('Authenticated demo requires demo seeding and account authorization enabled')
+            password=os.getenv('BACKLINE_DEMO_PASSWORD','')
+            from .demo_seed import seed_accounts
+            seed_accounts(c,password)
+        elif os.getenv('BACKLINE_DEMO_SEED')=='1' and os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
             from .demo_seed import seed
             seed(c)
         if not c.execute('SELECT 1 FROM bands LIMIT 1').fetchone():
