@@ -163,7 +163,8 @@ document.addEventListener('dragover',event=>{
  }
 });
 document.addEventListener('drop',async event=>{
- const day=event.target.closest('[data-calendar-day]'),id=draggedCalendarEvent;
+ const day=event.target.closest('[data-calendar-day]');
+ const id=Number(event.dataTransfer?.getData('text/plain'))||draggedCalendarEvent;
  draggedCalendarEvent=null;
  if(!day||!id)return;
  event.preventDefault();
