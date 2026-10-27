@@ -127,7 +127,12 @@ def test_browser_navigation_and_gig_studio(tmp_path):
 
             # A selected event opens a prefilled editor and refreshes on save.
             page.locator('[data-calendar-event="'+moved_id+'"]').click()
-            page.locator('[data-schedule-edit="'+moved_id+'"]').click()
+            details=page.get_by_role("dialog",name="Event details: Synthetic calendar move test")
+            details.wait_for(state="visible")
+            assert details.get_by_text("Meeting",exact=True).count()>0
+            assert details.get_by_role("button",name="Change date").count()==1
+            assert details.get_by_role("button",name="Availability & RSVPs").count()==1
+            details.get_by_role("button",name="Edit event").click()
             editor=page.locator("#entryForm")
             assert editor.locator('[name="title"]').input_value()=="Synthetic calendar move test"
             assert editor.locator('[name="date"]').input_value()==new_date
