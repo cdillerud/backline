@@ -150,8 +150,8 @@ def test_delayed_private_operations_response_cannot_restore_data_after_logout(ac
         held=[]
         page.route('**'+base+'/lodging',lambda route:held.append(route))
         navigate(page,'operations')
-        # This wait also pumps Playwright route callbacks without an arbitrary sleep.
-        page.wait_for_function("document.querySelector('h1').textContent==='Overview'")
+        # Contextual navigation enters Shows & Tours before opening Operations.
+        # Do not assert the old Overview header while the lodging request is held.
         for _ in range(50):
             if held:break
             page.wait_for_timeout(50)
