@@ -40,6 +40,22 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             page.get_by_text("Weekend show preparation (demo)").first.wait_for(state="visible",timeout=15000)
             assert page.get_by_text("Demo: confirm stage plot and arrival time",exact=False).count()>0
             assert not errors,errors
+            page.locator("#logoutButton").click()
+            page.locator("#loginForm").wait_for(state="visible",timeout=15000)
+            page.reload(wait_until="networkidle")
+            page.locator("#loginForm").wait_for(state="visible",timeout=15000)
+            mobile=browser.new_page(viewport={"width":390,"height":844},is_mobile=True,has_touch=True)
+            mobile_errors=[]
+            mobile.on("pageerror",lambda error:mobile_errors.append(str(error)))
+            mobile.goto(url,wait_until="networkidle")
+            mobile.locator("#loginEmail").fill("demo-owner@example.test")
+            mobile.locator("#loginPassword").fill("synthetic-browser-demo-password-123")
+            mobile.locator("#loginForm button[type='submit']").click()
+            mobile.locator(".mobileNav [data-go='collaboration']").wait_for(state="visible",timeout=15000)
+            mobile.locator(".mobileNav [data-go='collaboration']").click()
+            mobile.get_by_text("Weekend show preparation (demo)").first.wait_for(state="visible",timeout=15000)
+            assert not mobile_errors,mobile_errors
+            mobile.close()
             browser.close()
     finally:
         server.terminate()
