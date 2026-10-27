@@ -21,6 +21,7 @@ def test_authenticated_demo_requires_secret_and_fresh_database(tmp_path,monkeypa
         assert con.execute("SELECT count(*) FROM events WHERE kind='Rehearsal'").fetchone()[0]==1
         assert con.execute("SELECT count(*) FROM setlists").fetchone()[0]==1
         assert con.execute("SELECT count(*) FROM setlist_songs").fetchone()[0]==3
+        assert con.execute("SELECT count(*) FROM workspace_tasks").fetchone()[0]==2
     client=TestClient(app.app)
     assert client.get("/api/bands").status_code==401
     login=client.post("/api/auth/login",json={"email":"demo-owner@example.test","password":"synthetic-password-not-for-production"})
