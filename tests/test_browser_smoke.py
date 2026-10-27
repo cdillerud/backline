@@ -65,6 +65,20 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             assert page.locator("#entryForm select[name='kind']").input_value()=="Meeting"
 
             page.locator("[data-action='close']").first.click()
+            # Moving an existing entry must repaint both calendar cells without reload.
+            calendar_entry=page.locator("[data-calendar-event]").first
+            moved_id=calendar_entry.get_attribute("data-calendar-event")
+            source=calendar_entry.locator("xpath=ancestor::*[@data-calendar-day]").first
+            old_date=source.get_attribute("data-calendar-day")
+            destination=page.locator("[data-calendar-day]").last
+            new_date=destination.get_attribute("data-calendar-day")
+            if new_date==old_date:destination=page.locator("[data-calendar-day]").first
+            new_date=destination.get_attribute("data-calendar-day")
+            page.once("dialog",lambda dialog:dialog.accept())
+            calendar_entry.drag_to(destination)
+            page.locator('[data-calendar-day="'+new_date+'"] [data-calendar-event="'+moved_id+'"]').wait_for(state="visible",timeout=15000)
+            assert page.locator('[data-calendar-day="'+old_date+'"] [data-calendar-event="'+moved_id+'"]').count()==0
+
 
             page.locator("[data-go='touring']").first.click()
             page.locator("[data-go='showops']").first.click()
