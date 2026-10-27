@@ -13,7 +13,7 @@ def test_preview_seeding_is_opt_in_and_idempotent(tmp_path,monkeypatch):
     demo=next(b for b in bands if b['name']=='The Drunk Uncles (Demo)')
     gigs=client.get(f"/api/bands/{demo['id']}/events").json()
     assert len([g for g in gigs if g['kind']=='Gig'])==2
-    stage=client.get(f"/api/bands/{demo['id']}/gigs/{gigs[0]['id']}/stage")
+    stage=client.get(f"/api/bands/{demo['id']}/gigs/{next(g['id'] for g in gigs if g['kind']=='Gig')}/stage")
     assert stage.status_code==200
     assert len(stage.json()['items'])==6
     assert len(client.get(f"/api/bands/{demo['id']}/tours").json())==1
