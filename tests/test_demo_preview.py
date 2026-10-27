@@ -18,7 +18,8 @@ def test_preview_seeding_is_opt_in_and_idempotent(tmp_path,monkeypatch):
     assert len(stage.json()['items'])==6
     assert len(client.get(f"/api/bands/{demo['id']}/tours").json())==1
     module.init_db()
-    assert len(client.get(f"/api/bands/{demo['id']}/events").json())==2
+    assert len(client.get(f"/api/bands/{demo['id']}/events").json())==3
+    assert len(client.get(f"/api/bands/{demo['id']}/setlists").json())==1
 
 def test_default_install_does_not_seed_demo(tmp_path,monkeypatch):
     monkeypatch.setenv('BACKLINE_DB',str(tmp_path/'no_demo.db'))
