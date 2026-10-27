@@ -43,9 +43,10 @@ def test_authenticated_demo_requires_secret_and_fresh_database(tmp_path,monkeypa
     rsvps=client.get(f"/api/bands/{band_id}/events/{events.json()[0]['id']}/rsvps",headers=headers)
     assert rsvps.status_code==200,rsvps.text
     assert len(rsvps.json())==1
-    app.init_db()  # restart does not duplicate accounts, nor reset session
+    app.init_db()  # restart does not duplicate accounts or tasks
     with app.db() as con:
         assert con.execute("SELECT count(*) FROM users").fetchone()[0]==1
+        assert con.execute("SELECT count(*) FROM workspace_tasks").fetchone()[0]==2
     assert client.get("/api/bands",headers={"Authorization":"Bearer "+token}).status_code==200
 
 def test_authenticated_demo_rejects_legacy_bands(tmp_path,monkeypatch):
