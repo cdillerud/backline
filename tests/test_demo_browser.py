@@ -42,7 +42,8 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             page.get_by_role("heading",name="Availability and RSVP",exact=True).wait_for(state="visible")
             assert page.locator(".rsvpBoard .entry").count()==1
             page.locator("[data-go='schedule']").first.click()
-            page.get_by_text("Full-band rehearsal (demo)").first.wait_for(state="visible",timeout=15000)
+            page.get_by_role("tab",name="Rehearsals",exact=True).click()
+            page.locator(".scheduleEntry").get_by_text("Full-band rehearsal (demo)",exact=True).wait_for(state="visible",timeout=15000)
             page.locator("[data-go='songs']").first.click()
             page.get_by_text("Example Opener").first.wait_for(state="visible",timeout=15000)
             assert not errors,errors
