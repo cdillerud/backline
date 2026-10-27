@@ -79,7 +79,17 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             if new_date==old_date:destination=page.locator("[data-calendar-day]").first
             new_date=destination.get_attribute("data-calendar-day")
             page.once("dialog",lambda dialog:dialog.accept())
-            calendar_entry.drag_to(destination)
+            # Dispatch a complete native HTML5 drag sequence with a shared
+            # DataTransfer, avoiding headless Chromium's flaky pointer drags.
+            page.evaluate("""({eventId, targetDate}) => {
+                const source=document.querySelector('[data-calendar-event="'+eventId+'"]');
+                const target=document.querySelector('[data-calendar-day="'+targetDate+'"]');
+                const transfer=new DataTransfer();
+                source.dispatchEvent(new DragEvent('dragstart',{bubbles:true,cancelable:true,dataTransfer:transfer}));
+                target.dispatchEvent(new DragEvent('dragover',{bubbles:true,cancelable:true,dataTransfer:transfer}));
+                target.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer}));
+                source.dispatchEvent(new DragEvent('dragend',{bubbles:true,dataTransfer:transfer}));
+            }""",{"eventId":moved_id,"targetDate":new_date})
             try:
                 page.locator('[data-calendar-day="'+new_date+'"] [data-calendar-event="'+moved_id+'"]').wait_for(state="visible",timeout=15000)
             except Exception:
