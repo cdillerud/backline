@@ -1,5 +1,26 @@
 """Synthetic sample content for a dedicated disposable Backline visual preview only."""
 import json
+def ensure_demo_tasks(con, band):
+    """Add missing synthetic checklist examples without resetting existing decisions."""
+    from datetime import date, timedelta
+    first_gig=con.execute("SELECT id FROM events WHERE band_id=? AND kind='Gig' ORDER BY date LIMIT 1",(band,)).fetchone()
+    if not first_gig:return
+    existing={json.loads(row[0]).get("title") for row in con.execute(
+        "SELECT body_json FROM workspace_tasks WHERE band_id=?",(band,))}
+    for title,days,event_id,assignee in [
+        ("Confirm showcase stage plot (demo)",5,first_gig[0],"Alex Example"),
+        ("Finalize rehearsal set transitions (demo)",3,None,"Sam Example"),
+    ]:
+        if title in existing:continue
+        member=con.execute("SELECT id FROM members WHERE band_id=? AND name=?",
+            (band,assignee)).fetchone()
+        payload={"title":title,"notes":"Synthetic preparation checklist",
+            "assignee_id":member[0] if member else None,
+            "due_date":(date.today()+timedelta(days=days)).isoformat(),
+            "event_id":event_id,"song_id":None,"setlist_id":None,"completed":False}
+        con.execute("INSERT INTO workspace_tasks(band_id,body_json) VALUES(?,?)",
+            (band,json.dumps(payload)))
+
 def seed(con):
     marker=con.execute("SELECT 1 FROM bands WHERE name='The Drunk Uncles (Demo)'").fetchone()
     if marker:return
@@ -28,18 +49,7 @@ def seed(con):
         (band,'Regional showcase — demo set',gig1)).lastrowid
     for position,song in enumerate(con.execute("SELECT id FROM songs WHERE band_id=? ORDER BY id",(band,)).fetchall(),1):
         con.execute("INSERT INTO setlist_songs(setlist_id,song_id,position) VALUES(?,?,?)",(setlist,song[0],position))
-    # Real, linked checklist records drive Dashboard's "What needs attention".
-    for title,days,event_id,assignee in [
-        ('Confirm showcase stage plot (demo)',5,gig1,'Alex Example'),
-        ('Finalize rehearsal set transitions (demo)',3,None,'Sam Example'),
-    ]:
-        member_id=con.execute("SELECT id FROM members WHERE band_id=? AND name=?",
-            (band,assignee)).fetchone()[0]
-        payload={"title":title,"notes":"Synthetic preparation checklist",
-            "assignee_id":member_id,"due_date":(date.today()+timedelta(days=days)).isoformat(),
-            "event_id":event_id,"song_id":None,"setlist_id":None,"completed":False}
-        con.execute("INSERT INTO workspace_tasks(band_id,body_json) VALUES(?,?)",
-            (band,json.dumps(payload)))
+    ensure_demo_tasks(con,band)
     tour=con.execute("INSERT INTO tours(band_id,name,notes) VALUES(?,?,?)",
         (band,'Upper Midwest Weekend — DEMO','Illustrative only. Not real bookings.')).lastrowid
     for event,day,city,region,venue,status in (
@@ -81,6 +91,7 @@ def seed_accounts(con, password):
             len(users)==1 and users[0]["email"]=="demo-owner@example.test" and
             con.execute("SELECT role FROM band_users WHERE band_id=? AND user_id=?",
                 (bands[0]["id"],users[0]["id"])).fetchone()["role"]=="owner"):
+            ensure_demo_tasks(con,bands[0]["id"])
             return
         raise RuntimeError("Authenticated demo initialization refuses existing non-demo data")
     seed(con)
