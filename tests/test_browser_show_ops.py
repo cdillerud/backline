@@ -8,6 +8,14 @@ import urllib.request
 import pytest
 from playwright.sync_api import sync_playwright, expect
 
+def navigate(page,key):
+    groups={'showops':'touring','venues':'touring','tasks':'collaboration',
+            'setlists':'songs'}
+    target=page.locator('[data-go="'+key+'"]:visible')
+    if target.count()==0 and key in groups:
+        navigate(page,''+groups[key]+'')
+    navigate(page,''+key+'')
+
 @pytest.fixture
 def preview_url(tmp_path):
     with socket.socket() as sock:
@@ -40,7 +48,7 @@ def test_stage_advancement_and_overnight_calls(preview_url,width):
         errors=[]
         page.on('pageerror',lambda error:errors.append(str(error)))
         page.goto(preview_url,wait_until='networkidle')
-        page.locator('[data-go="showops"]:visible').first.click()
+        navigate(page,'showops')
         page.get_by_role('tab',name='Stage & inputs').wait_for()
         page.get_by_role('button',name='Edit stage setup').click()
         expect(page.get_by_role('dialog',name='Stage Designer')).to_be_visible()
@@ -99,7 +107,7 @@ def test_tour_stop_editor_round_trip(preview_url):
         browser=p.chromium.launch()
         page=browser.new_page(viewport={'width':390,'height':844})
         page.goto(preview_url,wait_until='networkidle')
-        page.locator('[data-go="touring"]:visible').first.click()
+        navigate(page,'touring')
         page.get_by_role('button',name='Edit stop',exact=True).first.click()
         dialog=page.get_by_role('dialog',name='Edit tour stop')
         dialog.get_by_label('Lodging',exact=True).fill('Fictional Touring Hotel')
@@ -121,7 +129,7 @@ def test_venue_tasks_and_setlist_builder(preview_url,width,tmp_path):
         errors=[]
         page.on('pageerror',lambda error:errors.append(str(error)))
         page.goto(preview_url,wait_until='networkidle')
-        page.locator('[data-go="venues"]:visible').first.click()
+        navigate(page,'venues')
         page.get_by_role('button',name='+ Add venue',exact=True).click()
         dialog=page.get_by_role('dialog',name='Add venue')
         dialog.get_by_label('Venue name',exact=True).fill('Synthetic Venue Book Hall')
@@ -132,13 +140,13 @@ def test_venue_tasks_and_setlist_builder(preview_url,width,tmp_path):
         dialog.get_by_label('Contact phone 1',exact=True).fill('555-0110')
         dialog.get_by_role('button',name='Save',exact=True).click()
         expect(page.get_by_text('Synthetic Venue Book Hall',exact=True)).to_be_visible()
-        page.locator('[data-go="showops"]:visible').first.click()
+        navigate(page,'showops')
         page.get_by_role('tab',name='Advances & riders',exact=True).click()
         page.locator('#showVenueLink').select_option(label='Synthetic Venue Book Hall')
         page.get_by_role('button',name='Link venue to show',exact=True).click()
         expect(page.get_by_text('Venue linked to show',exact=True)).to_be_visible()
         expect(page.get_by_text('Synthetic Engineer · Sound engineer · 555-0110',exact=True)).to_be_visible()
-        page.locator('[data-go="tasks"]:visible').first.click()
+        navigate(page,'tasks')
         page.get_by_role('button',name='+ Add task',exact=True).click()
         dialog=page.get_by_role('dialog',name='Add task')
         dialog.get_by_label('Task title',exact=True).fill('Print synthetic setlists')
@@ -149,7 +157,7 @@ def test_venue_tasks_and_setlist_builder(preview_url,width,tmp_path):
         expect(page.get_by_text('due tomorrow',exact=True)).to_be_visible()
         page.get_by_role('button',name='Complete',exact=True).click()
         expect(page.get_by_role('button',name='Reopen',exact=True)).to_be_visible()
-        page.locator('[data-go="songs"]:visible').first.click()
+        navigate(page,'songs')
         page.get_by_role('button',name='Edit song',exact=True).first.click()
         song_dialog=page.get_by_role('dialog',name='Edit song')
         song_dialog.get_by_label('Song tags (comma separated)',exact=True).fill('cover, acoustic')
@@ -157,7 +165,7 @@ def test_venue_tasks_and_setlist_builder(preview_url,width,tmp_path):
         song_dialog.get_by_role('button',name='Save',exact=True).click()
         expect(page.get_by_role('link',name='Reference recording',exact=True)).to_be_visible()
         expect(page.get_by_text('cover · acoustic',exact=True)).to_be_visible()
-        page.locator('[data-go="setlists"]:visible').first.click()
+        navigate(page,'setlists')
         page.get_by_role('button',name='+ Create setlist',exact=True).click()
         dialog=page.get_by_role('dialog',name='Create setlist')
         dialog.get_by_label('Setlist title',exact=True).fill('Synthetic running order')
@@ -177,7 +185,7 @@ def test_venue_tasks_and_setlist_builder(preview_url,width,tmp_path):
             card.get_by_role('button',name='Download setlist PDF',exact=True).click()
         path=tmp_path/'setlist.pdf';exported.value.save_as(path)
         assert 'Synthetic running order' in PdfReader(path).pages[0].extract_text()
-        page.locator('[data-go="schedule"]:visible').first.click()
+        navigate(page,'schedule')
         page.get_by_role('button',name='+ Calendar',exact=True).click()
         dialog=page.get_by_role('dialog',name='Create calendar')
         dialog.get_by_label('Calendar name',exact=True).fill('Synthetic tour dates')
