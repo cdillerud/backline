@@ -43,3 +43,22 @@ def seed(con):
         con.execute("""INSERT INTO show_packets(band_id,event_id,kind,title,sections_json)
             VALUES(?,?,?,?,?)""",
             (band,gig1,kind,details["title"],json.dumps(details["sections"])))
+
+def seed_accounts(con, password):
+    """Create a synthetic band owner only in an empty, explicitly opted-in demo DB.
+
+    Never grant access to an existing band, user, or session.
+    Password must be provided through deployment secrets, not source control.
+    """
+    if len(password) < 12:
+        raise ValueError("Synthetic demo password must contain at least 12 characters")
+    if con.execute("SELECT 1 FROM bands LIMIT 1").fetchone() or con.execute("SELECT 1 FROM users LIMIT 1").fetchone():
+        raise RuntimeError("Authenticated demo initialization requires an entirely empty database")
+    seed(con)
+    band=con.execute("SELECT id FROM bands WHERE name='The Drunk Uncles (Demo)'").fetchone()
+    if not band:
+        raise RuntimeError("Synthetic demo band missing")
+    from .accounts import hash_password
+    uid=con.execute("INSERT INTO users(email,display_name,password_hash) VALUES(?,?,?)",
+        ("demo-owner@example.test","Demo Band Manager",hash_password(password))).lastrowid
+    con.execute("INSERT INTO band_users(band_id,user_id,role) VALUES(?,?,'owner')",(band[0],uid))
