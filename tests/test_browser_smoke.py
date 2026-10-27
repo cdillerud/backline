@@ -80,7 +80,12 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             new_date=destination.get_attribute("data-calendar-day")
             page.once("dialog",lambda dialog:dialog.accept())
             calendar_entry.drag_to(destination)
-            page.locator('[data-calendar-day="'+new_date+'"] [data-calendar-event="'+moved_id+'"]').wait_for(state="visible",timeout=15000)
+            try:
+                page.locator('[data-calendar-day="'+new_date+'"] [data-calendar-event="'+moved_id+'"]').wait_for(state="visible",timeout=15000)
+            except Exception:
+                print("Calendar drag diagnostic",page.locator("[data-calendar-day]").evaluate_all("(els) => els.filter(x => x.querySelector('[data-calendar-event]')).map(x => ({day:x.dataset.calendarDay,ids:[...x.querySelectorAll('[data-calendar-event]')].map(y=>y.dataset.calendarEvent)}))"))
+                print("Calendar page messages",page.locator(".toast,[role='alert']").all_text_contents())
+                raise
             assert page.locator('[data-calendar-day="'+old_date+'"] [data-calendar-event="'+moved_id+'"]').count()==0
 
 
