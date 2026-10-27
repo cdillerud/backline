@@ -75,6 +75,16 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             # Moving a real saved entry must repaint both cells without reload.
             calendar_entry=page.locator("[data-calendar-event]").filter(has_text="Synthetic calendar move test").first
             moved_id=calendar_entry.get_attribute("data-calendar-event")
+            # The unified calendar opens a native details dialog, supports Escape,
+            # and returns keyboard focus to the selected event after dismissal.
+            calendar_entry.click()
+            details=page.locator("#calendarEventDialog")
+            details.wait_for(state="visible")
+            assert details.get_attribute("aria-label")=="Event details: Synthetic calendar move test"
+            details.get_by_role("button",name="Change date").wait_for(state="visible")
+            page.keyboard.press("Escape")
+            details.wait_for(state="detached")
+            assert page.evaluate("document.activeElement?.getAttribute('data-calendar-event')")==moved_id
             source=calendar_entry.locator("xpath=ancestor::*[@data-calendar-day]").first
             old_date=source.get_attribute("data-calendar-day")
             destination=page.locator("[data-calendar-day]").last
