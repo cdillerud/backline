@@ -61,6 +61,9 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             page.locator("#entryForm input[name='date']").wait_for(state="visible")
             assert page.locator("#entryForm input[name='date']").input_value()==selected_date
             assert page.get_by_label("Event type").locator("option",has_text="Meeting").count()==1
+            page.locator("#entryForm select[name='kind']").select_option("Meeting")
+            assert page.locator("#entryForm select[name='kind']").input_value()=="Meeting"
+
             page.locator("[data-action='close']").first.click()
 
             page.locator("[data-go='touring']").first.click()
