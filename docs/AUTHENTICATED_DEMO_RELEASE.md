@@ -66,3 +66,7 @@ Because no volume is attached, Fly machine replacement may reset the demonstrati
 Open the new app's HTTPS URL; the initial view must show individual-account login. `/api/health` may be public, but `/api/bands` must deny unsigned requests. Sign in with `demo-owner@example.test` and the newly generated secret; check Band Hub conversations/RSVP, Schedule rehearsal, Music songs/setlist, and Shows & Tours. Sign out and verify private records are no longer accessible. Do not share the new demo with real bands or enter real information.
 
 **No background or automatic deployment occurs from adding this configuration.**
+
+## SQLite demo consistency
+
+The demo intentionally runs without volumes; SQLite data is **per Machine**, not shared or durable. Fly's first deploy may create two Machines by default. The script now uses `--ha=false` to prevent that default on future first deployments, but this does **not** remove extra Machines already created. Before any interactive testing that writes data, an operator should inspect `flyctl status --app backline-auth-demo`, then reduce the isolated demo to one Machine using `flyctl scale count 1 --app backline-auth-demo` after confirming all its data is disposable. This discards one Machine and whatever synthetic data was on it. Never run this on the existing visual preview or production. Persistent multi-user operation requires a shared managed database; single-Machine ephemeral SQLite is only appropriate for the disposable demo.
