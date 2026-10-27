@@ -25,6 +25,12 @@ Do not migrate or import data into this disposable app. Roll back to the prior i
 ## Known limitations
 The authenticated bootstrap intentionally rejects existing non-demo datasets. It currently seeds a single owner and one discussion/RSVP; richer member roles, messaging, full mobile acceptance, and operational security review remain outstanding. A passing HTTP health check alone does not prove UX acceptance.
 
+## Guarded release helper
+
+From a clean checkout on the integration branch, run `pwsh ./scripts/deploy-auth-demo.ps1` to verify GitHub CI for the exact HEAD, repository cleanliness, and demo config isolation. This is **preflight only**.
+
+Use `pwsh ./scripts/deploy-auth-demo.ps1 -Deploy -CreateApp` to create the dedicated Fly app when absent; the script stops before deployment to require secret setup. Configure a unique `BACKLINE_DEMO_PASSWORD` through that app's Fly dashboard secrets, then use `pwsh ./scripts/deploy-auth-demo.ps1 -Deploy`. The script checks signed-out API denial and HTTP health after deployment. It never targets `backline` or `backline-visual-preview`.
+
 ## Operator sequence — Windows PowerShell (never production)
 
 Only after the exact commit's GitHub CI succeeds:
