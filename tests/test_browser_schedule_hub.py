@@ -17,6 +17,12 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
         assert page.get_by_role("tablist",name="Schedule views").count()==0
         assert page.locator("[data-calendar-day]").count()>=28
         expect(page.get_by_role("button",name="+ Add event")).to_be_visible()
+        # Single-tap event creation works in both desktop and mobile layouts.
+        first_day=page.locator("[data-calendar-day]").first
+        selected_date=first_day.get_attribute("data-calendar-day")
+        first_day.get_by_role("button",name="Add event on "+selected_date).click()
+        expect(page.locator("#entryForm input[name='date']")).to_have_value(selected_date)
+        page.locator("#entryForm [data-action='close']").click()
         # All event types are available directly on the single calendar.
         page.get_by_role("button",name="+ Add event").click()
         expect(page.get_by_label("Event type")).to_be_visible()
