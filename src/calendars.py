@@ -20,12 +20,30 @@ class Assignment(BaseModel):
 
 def setup(con):
     con.executescript('''CREATE TABLE IF NOT EXISTS event_classifications(
-        event_id INTEGER PRIMARY KEY REFERENCES events(id),band_id INTEGER NOT NULL REFERENCES bands(id),kind TEXT NOT NULL CHECK(kind='Session'));
+        event_id INTEGER PRIMARY KEY REFERENCES events(id),band_id INTEGER NOT NULL REFERENCES bands(id),kind TEXT NOT NULL CHECK(kind IN ('Session','Meeting')));
         CREATE TABLE IF NOT EXISTS band_calendars(
         id INTEGER PRIMARY KEY,band_id INTEGER NOT NULL REFERENCES bands(id),name TEXT NOT NULL,color TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS event_calendars(
         event_id INTEGER PRIMARY KEY REFERENCES events(id),band_id INTEGER NOT NULL REFERENCES bands(id),
         calendar_id INTEGER NOT NULL REFERENCES band_calendars(id));''')
+    ensure_meeting_classification(con)
+
+def ensure_meeting_classification(con):
+    """Upgrade older SQLite demo files while preserving existing session assignments."""
+    row=con.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='event_classifications'").fetchone()
+    if not row or "kind='Session'" not in row[0]:return
+    con.executescript("""
+    BEGIN IMMEDIATE;
+    CREATE TABLE event_classifications_upgrade(
+        event_id INTEGER PRIMARY KEY REFERENCES events(id),
+        band_id INTEGER NOT NULL REFERENCES bands(id),
+        kind TEXT NOT NULL CHECK(kind IN ('Session','Meeting')));
+    INSERT INTO event_classifications_upgrade(event_id,band_id,kind)
+        SELECT event_id,band_id,kind FROM event_classifications;
+    DROP TABLE event_classifications;
+    ALTER TABLE event_classifications_upgrade RENAME TO event_classifications;
+    COMMIT;
+    """)
 
 def ical_escape(value):
     return str(value or '').replace('\\','\\\\').replace('\r\n','\n').replace('\r','\n').replace('\n',r'\n').replace(';',r'\;').replace(',',r'\,')
