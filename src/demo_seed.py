@@ -26,8 +26,8 @@ def seed(con):
          'Synthetic rehearsal: run the opening set and confirm transitions.'))
     setlist=con.execute("INSERT INTO setlists(band_id,title,event_id) VALUES(?,?,?)",
         (band,'Regional showcase — demo set',gig1)).lastrowid
-    for song in con.execute("SELECT id FROM songs WHERE band_id=? ORDER BY id",(band,)).fetchall():
-        con.execute("INSERT INTO setlist_songs(setlist_id,song_id) VALUES(?,?)",(setlist,song[0]))
+    for position,song in enumerate(con.execute("SELECT id FROM songs WHERE band_id=? ORDER BY id",(band,)).fetchall(),1):
+        con.execute("INSERT INTO setlist_songs(setlist_id,song_id,position) VALUES(?,?,?)",(setlist,song[0],position))
     tour=con.execute("INSERT INTO tours(band_id,name,notes) VALUES(?,?,?)",
         (band,'Upper Midwest Weekend — DEMO','Illustrative only. Not real bookings.')).lastrowid
     for event,day,city,region,venue,status in (
