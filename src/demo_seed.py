@@ -52,8 +52,16 @@ def seed_accounts(con, password):
     """
     if len(password) < 12:
         raise ValueError("Synthetic demo password must contain at least 12 characters")
-    if con.execute("SELECT 1 FROM bands LIMIT 1").fetchone() or con.execute("SELECT 1 FROM users LIMIT 1").fetchone():
-        raise RuntimeError("Authenticated demo initialization requires an entirely empty database")
+    bands=con.execute("SELECT id,name FROM bands").fetchall()
+    users=con.execute("SELECT id,email FROM users").fetchall()
+    if bands or users:
+        # Idempotent restart is allowed only for our one dedicated demo account and band.
+        if (len(bands)==1 and bands[0]["name"]=="The Drunk Uncles (Demo)" and
+            len(users)==1 and users[0]["email"]=="demo-owner@example.test" and
+            con.execute("SELECT role FROM band_users WHERE band_id=? AND user_id=?",
+                (bands[0]["id"],users[0]["id"])).fetchone()["role"]=="owner"):
+            return
+        raise RuntimeError("Authenticated demo initialization refuses existing non-demo data")
     seed(con)
     band=con.execute("SELECT id FROM bands WHERE name='The Drunk Uncles (Demo)'").fetchone()
     if not band:
