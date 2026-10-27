@@ -329,8 +329,8 @@ def add_event(band_id:int,data:EventInput):
     band_exists(band_id)
     if data.kind not in ('Gig','Rehearsal','Meeting','Session'):raise HTTPException(422,'Invalid event kind')
     with db() as c:
-        cur=c.execute('INSERT INTO events(band_id,kind,title,venue,date,time,status,notes,fee_cents) VALUES(?,?,?,?,?,?,?,?,?)',(band_id,'Rehearsal' if data.kind=='Session' else data.kind,data.title,data.venue,str(data.date),data.time,data.status,data.notes,cents(data.fee)))
-        if data.kind=='Session':c.execute("INSERT INTO event_classifications(event_id,band_id,kind) VALUES(?,?,'Session')",(cur.lastrowid,band_id))
+        cur=c.execute('INSERT INTO events(band_id,kind,title,venue,date,time,status,notes,fee_cents) VALUES(?,?,?,?,?,?,?,?,?)',(band_id,'Rehearsal' if data.kind in ('Session','Meeting') else data.kind,data.title,data.venue,str(data.date),data.time,data.status,data.notes,cents(data.fee)))
+        if data.kind in ('Session','Meeting'):c.execute("INSERT INTO event_classifications(event_id,band_id,kind) VALUES(?,?,?)",(cur.lastrowid,band_id,data.kind))
         return {'id':cur.lastrowid}
 class EventReschedule(BaseModel):
     date: datetime.date
