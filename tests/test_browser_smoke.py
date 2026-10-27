@@ -145,7 +145,7 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             assert refreshed.get_by_text("Edited calendar meeting").count()>0
             refreshed.get_by_role("button",name="Close event details").click()
             assert page.get_by_role("dialog",name="Event details: Edited calendar meeting").count()==0
-            assert page.locator('[data-calendar-event="'+moved_id+'"]').is_focused()
+            expect(page.locator('[data-calendar-event="'+moved_id+'"]')).to_be_focused()
 
 
             page.locator("[data-go='touring']").first.click()
