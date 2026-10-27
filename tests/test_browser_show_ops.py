@@ -13,8 +13,8 @@ def navigate(page,key):
             'setlists':'songs'}
     target=page.locator('[data-go="'+key+'"]:visible')
     if target.count()==0 and key in groups:
-        navigate(page,''+groups[key]+'')
-    navigate(page,''+key+'')
+        page.locator('[data-go="'+groups[key]+'"]:visible').first.click()
+    page.locator('[data-go="'+key+'"]:visible').first.click()
 
 @pytest.fixture
 def preview_url(tmp_path):
