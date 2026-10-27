@@ -30,6 +30,16 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
         page.locator('[data-go="collaboration"]:visible').first.click()
         expect(page.get_by_role("heading",name="Your band, connected")).to_be_visible()
         expect(page.get_by_role("heading",name="Recent conversations")).to_be_visible()
+        # Discussions use a vertically scrolling conversation and a bottom composer.
+        conversation=page.locator(".messenger")
+        if conversation.count():
+            expect(conversation.locator("#threadPosts[role='log']")).to_be_visible()
+            expect(conversation.locator(".messengerHeader")).to_be_visible()
+            if conversation.locator("#discussionForm").count():
+                expect(conversation.locator("#discussionReply")).to_be_visible()
+                assert conversation.locator(".messengerComposer").evaluate(
+                    "(el) => el.getBoundingClientRect().top >= document.querySelector('#threadPosts').getBoundingClientRect().bottom"
+                )
         expect(page.get_by_role("button",name="Photos & albums")).to_be_visible()
         page.locator('[data-go="touring"]:visible').first.click()
         expect(page.get_by_role("tab",name="Itinerary",exact=True)).to_be_visible()
