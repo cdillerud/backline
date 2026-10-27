@@ -21,8 +21,10 @@ Push-Location $RepoRoot
 try {
   $current = (git branch --show-current).Trim()
   if ($current -ne $branch) { throw "Wrong branch: $current (expected $branch)" }
-  $dirty = @(git status --porcelain)
-  if ($dirty.Count -ne 0) { throw 'Working tree is not clean. Inspect git status before release.' }
+  # Untracked local preview config/files are intentionally preserved; only tracked changes block release.
+  $trackedChanges = @(git status --porcelain --untracked-files=no | Where-Object { $_ -and $_.Trim() })
+  if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect tracked working tree changes.' }
+  if ($trackedChanges.Count -ne 0) { throw 'Tracked files contain local modifications. Commit or restore them before release.' }
   $head = (git rev-parse HEAD).Trim()
   git fetch origin $branch | Out-Null
   $remote = (git rev-parse "origin/$branch").Trim()
