@@ -54,6 +54,15 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             assert page.get_by_text("AI Gig Studio").count()>0
             page.locator("[data-go='schedule']").first.click()
             page.get_by_role("heading",name="Schedule",exact=True).wait_for(state="visible",timeout=15000)
+            # Calendar day creation mirrors desktop calendar double-click.
+            day=page.locator("[data-calendar-day]").first
+            selected_date=day.get_attribute("data-calendar-day")
+            day.dblclick(position={"x":18,"y":18})
+            page.locator("#entryForm input[name='date']").wait_for(state="visible")
+            assert page.locator("#entryForm input[name='date']").input_value()==selected_date
+            assert page.get_by_label("Event type").locator("option",has_text="Meeting").count()==1
+            page.locator("[data-action='close']").first.click()
+
             page.locator("[data-go='touring']").first.click()
             page.locator("[data-go='showops']").first.click()
             assert page.get_by_text("Show Packets").count()>0
