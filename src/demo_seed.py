@@ -21,7 +21,7 @@ def seed(con):
         (band,'Weekend club date (demo)','Fictional Club',second)).lastrowid
     rehearsal=(date.today()+timedelta(days=7)).isoformat()
     con.execute("""INSERT INTO events(band_id,kind,title,venue,date,time,status,notes)
-        VALUES(?,'Rehearsal',?,?,?,'Confirmed',?)""",
+        VALUES(?,'Rehearsal',?,?,?,?,'Confirmed',?)""",
         (band,'Full-band rehearsal (demo)','Example Practice Room',rehearsal,'19:00',
          'Synthetic rehearsal: run the opening set and confirm transitions.'))
     setlist=con.execute("INSERT INTO setlists(band_id,title,event_id) VALUES(?,?,?)",
