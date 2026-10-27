@@ -11,12 +11,13 @@ $ErrorActionPreference = 'Stop'
 $repo = 'cdillerud/backline'
 $app = 'backline-auth-demo'
 $branch = 'integration/backline-v0-4-rc'
-$config = Join-Path $PSScriptRoot 'fly.auth-demo.toml'
+$RepoRoot = Split-Path -Parent $PSScriptRoot
+$config = Join-Path $RepoRoot 'fly.auth-demo.toml'
 if (!(Test-Path $config)) { throw 'Missing fly.auth-demo.toml' }
 foreach ($exe in @('git','gh','flyctl')) {
   if (!(Get-Command $exe -ErrorAction SilentlyContinue)) { throw "Missing required command: $exe" }
 }
-Push-Location $PSScriptRoot
+Push-Location $RepoRoot
 try {
   $current = (git branch --show-current).Trim()
   if ($current -ne $branch) { throw "Wrong branch: $current (expected $branch)" }
