@@ -121,9 +121,17 @@ async function openRehearsalPlan(id){
  dialog.showModal();
 }
 document.addEventListener('click',async event=>{
- const b=event.target.closest('[data-schedule-view],[data-schedule-packet],[data-schedule-rsvp],[data-calendar-event],[data-schedule-details],[data-schedule-edit],[data-schedule-close],[data-rehearsal-plan]');if(!b)return;
+ const b=event.target.closest('[data-schedule-view],[data-schedule-packet],[data-schedule-rsvp],[data-calendar-event],[data-schedule-details],[data-schedule-move],[data-schedule-edit],[data-schedule-close],[data-rehearsal-plan]');if(!b)return;
  if(b.dataset.rehearsalPlan){try{await openRehearsalPlan(Number(b.dataset.rehearsalPlan))}catch(error){toast(error.message,true)}return}
  if(b.hasAttribute('data-schedule-close')){state.scheduleSelected=null;render();return}
+ if(b.dataset.scheduleMove){
+  const item=get('events').find(e=>e.id===Number(b.dataset.scheduleMove));
+  if(item)workspaceDialog('Move '+item.title,'<label class="field">New date<input type="date" name="date" required value="'+esc(item.date)+'"></label>',async data=>{
+   await api(workspaceBase()+'/events/'+item.id+'/reschedule',{method:'PUT',body:JSON.stringify({date:data.date})});
+   await refreshCalendar(state.calendarAll===true);
+  });
+  return;
+ }
  if(b.dataset.scheduleEdit){
   const selected=get('events').find(e=>e.id===Number(b.dataset.scheduleEdit));
   if(selected){state.eventEdit=selected.id;state.eventDraftDate=null;state.modal='event';render()}
