@@ -140,6 +140,13 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             editor.locator('[name="title"]').fill("Edited calendar meeting")
             editor.locator('button[type="submit"]').click()
             page.locator('[data-calendar-event="'+moved_id+'"]').filter(has_text="Edited calendar meeting").wait_for(state="visible",timeout=15000)
+            refreshed=page.get_by_role("dialog",name="Event details: Edited calendar meeting")
+            refreshed.wait_for(state="visible",timeout=15000)
+            assert refreshed.get_by_text("Edited calendar meeting").count()>0
+            refreshed.get_by_role("button",name="Close event details").click()
+            assert page.get_by_role("dialog",name="Event details: Edited calendar meeting").count()==0
+            assert page.locator('[data-calendar-event="'+moved_id+'"]').is_focused()
+
 
             page.locator("[data-go='touring']").first.click()
             page.locator("[data-go='showops']").first.click()
