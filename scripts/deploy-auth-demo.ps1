@@ -49,9 +49,32 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Fly app creation failed' }
     throw "Created $app. Configure BACKLINE_DEMO_PASSWORD securely in Fly dashboard, then rerun with -Deploy."
   }
+  # Newly created Fly apps have no machines. Dashboard-staged secrets can remain
+  # invisible to the CLI until imported/synced; do not call 'secrets deploy' yet.
   $secretsText = flyctl secrets list --app $app
-  if ($LASTEXITCODE -ne 0 -or $secretsText -notmatch 'BACKLINE_DEMO_PASSWORD') {
-    throw "BACKLINE_DEMO_PASSWORD not configured on $app. Add it via Fly dashboard."
+  if ($LASTEXITCODE -ne 0) { throw 'Unable to list demo application secrets' }
+  if ($secretsText -notmatch 'BACKLINE_DEMO_PASSWORD') {
+    Write-Host 'Password not visible in Fly CLI; syncing dashboard-staged secrets.'
+    flyctl secrets sync --stage --app $app
+    if ($LASTEXITCODE -ne 0) { throw 'Fly secrets sync failed' }
+    $secretsText = flyctl secrets list --app $app
+    if ($LASTEXITCODE -ne 0) { throw 'Unable to verify synced secrets' }
+  }
+  if ($secretsText -notmatch 'BACKLINE_DEMO_PASSWORD') {
+    Write-Host 'Enter the existing demo password securely. Input is hidden and is not passed as a command-line argument.'
+    $secure = Read-Host 'BACKLINE_DEMO_PASSWORD' -AsSecureString
+    $plain = ConvertFrom-SecureString -SecureString $secure -AsPlainText
+    if ($plain.Length -lt 12) { throw 'Demo password must be at least 12 characters' }
+    try {
+      "BACKLINE_DEMO_PASSWORD=$plain" | flyctl secrets import --stage --app $app
+      if ($LASTEXITCODE -ne 0) { throw 'Fly staged secret import failed' }
+    } finally {
+      Remove-Variable plain,secure -ErrorAction SilentlyContinue
+    }
+    $secretsText = flyctl secrets list --app $app
+    if ($LASTEXITCODE -ne 0 -or $secretsText -notmatch 'BACKLINE_DEMO_PASSWORD') {
+      throw 'Demo password still not registered in Fly secret vault'
+    }
   }
   flyctl deploy . --app $app --config $config
   if ($LASTEXITCODE -ne 0) { throw 'Fly deployment failed' }
