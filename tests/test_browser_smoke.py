@@ -54,6 +54,9 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             assert page.get_by_text("AI Gig Studio").count()>0
             page.locator("[data-go='schedule']").first.click()
             page.get_by_role("heading",name="Schedule",exact=True).wait_for(state="visible",timeout=15000)
+            assert page.get_by_role("tablist",name="Schedule views").count()==0
+            assert page.locator("[data-calendar-day]").count()>=28
+            assert page.locator("[data-action='event']").count()>=1
             # Calendar day creation mirrors desktop calendar double-click.
             day=page.locator("[data-calendar-day]").first
             selected_date=day.get_attribute("data-calendar-day")
