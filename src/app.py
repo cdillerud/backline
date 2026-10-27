@@ -332,6 +332,18 @@ def add_event(band_id:int,data:EventInput):
         cur=c.execute('INSERT INTO events(band_id,kind,title,venue,date,time,status,notes,fee_cents) VALUES(?,?,?,?,?,?,?,?,?)',(band_id,'Rehearsal' if data.kind=='Session' else data.kind,data.title,data.venue,str(data.date),data.time,data.status,data.notes,cents(data.fee)))
         if data.kind=='Session':c.execute("INSERT INTO event_classifications(event_id,band_id,kind) VALUES(?,?,'Session')",(cur.lastrowid,band_id))
         return {'id':cur.lastrowid}
+class EventReschedule(BaseModel):
+    date: datetime.date
+
+@app.put('/api/bands/{band_id}/events/{event_id}/reschedule')
+def reschedule_event(band_id:int,event_id:int,data:EventReschedule):
+    band_exists(band_id)
+    with db() as c:
+        event=c.execute('SELECT id,date,title FROM events WHERE band_id=? AND id=?',(band_id,event_id)).fetchone()
+        if not event:raise HTTPException(404,'Event not found in this band')
+        c.execute('UPDATE events SET date=? WHERE id=? AND band_id=?',(str(data.date),event_id,band_id))
+    return {'id':event_id,'date':str(data.date)}
+
 @app.get('/api/bands/{band_id}/songs')
 def songs(band_id:int):
     band_exists(band_id);return fetchall('SELECT * FROM songs WHERE band_id=? ORDER BY title',(band_id,))
