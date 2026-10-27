@@ -76,7 +76,8 @@ try {
     # at startup if BACKLINE_DEMO_PASSWORD is missing.
     Write-Host 'Demo password staged successfully. First deployment will activate it.'
   }
-  flyctl deploy . --app $app --config $config
+  # Prevent automatic redundant machines with independent, unreplicated SQLite files.
+  flyctl deploy . --app $app --config $config --ha=false
   if ($LASTEXITCODE -ne 0) { throw 'Fly deployment failed' }
   flyctl status --app $app
   $health = Invoke-WebRequest "https://$app.fly.dev/api/health" -SkipHttpErrorCheck -TimeoutSec 20
