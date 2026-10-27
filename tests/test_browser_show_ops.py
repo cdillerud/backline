@@ -203,6 +203,13 @@ def test_venue_tasks_and_setlist_builder(preview_url,width,tmp_path):
         dialog.get_by_role('button',name='Save',exact=True).click()
         expect(dialog).to_have_count(0)
         expect(page.locator('.calendarEvent').filter(has_text='Synthetic tour dates')).to_have_count(1)
+        # Calendar reassignment deliberately returns to the event details dialog.
+        # Close it before operating the underlying calendar toolbar.
+        details=page.locator('#calendarEventDialog')
+        expect(details).to_be_visible()
+        expect(details).to_contain_text('Synthetic tour dates')
+        details.get_by_role('button',name='Close event details').click()
+        expect(details).to_have_count(0)
         with page.expect_download() as downloaded:
             page.get_by_role('button',name='Download iCal',exact=True).click()
         path=tmp_path/'calendar.ics';downloaded.value.save_as(path)
