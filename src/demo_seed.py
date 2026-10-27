@@ -70,3 +70,18 @@ def seed_accounts(con, password):
     uid=con.execute("INSERT INTO users(email,display_name,password_hash) VALUES(?,?,?)",
         ("demo-owner@example.test","Demo Band Manager",hash_password(password))).lastrowid
     con.execute("INSERT INTO band_users(band_id,user_id,role) VALUES(?,?,'owner')",(band[0],uid))
+    # Private collaboration examples are accessible only to the synthetic owner.
+    import time
+    now=int(time.time())
+    event=con.execute("SELECT id FROM events WHERE band_id=? ORDER BY date LIMIT 1",(band[0],)).fetchone()
+    member=con.execute("SELECT id FROM members WHERE band_id=? ORDER BY id LIMIT 1",(band[0],)).fetchone()
+    if member:
+        con.execute("INSERT INTO roster_accounts(band_id,member_id,user_id) VALUES(?,?,?)",
+            (band[0],member[0],uid))
+    if event:
+        con.execute("INSERT INTO event_rsvps(band_id,event_id,user_id,response,note,updated_at) VALUES(?,?,?,?,?,?)",
+            (band[0],event[0],uid,'yes','Demo RSVP — synthetic data',now))
+    thread=con.execute("INSERT INTO discussion_threads(band_id,title,scope,scope_id,created_by) VALUES(?,?,?,?,?)",
+        (band[0],'Weekend show preparation (demo)','band',None,uid)).lastrowid
+    con.execute("INSERT INTO discussion_posts(band_id,thread_id,user_id,body,mentions_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?)",
+        (band[0],thread,uid,'Demo: confirm stage plot and arrival time before the weekend.','[]',now,now))
