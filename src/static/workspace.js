@@ -80,10 +80,45 @@ async function refreshCalendar(all=false){
  state.data.calendarEvents=results.flat().sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));state.data.bandCalendars=await api(workspaceBase()+'/calendars');state.calendarAll=all;render();
 }
 function scheduleBoard(){
- const selected=get('events').find(e=>e.id===state.scheduleSelected);
- const details=selected?panel('Event details · '+esc(selected.title),'<div class="hubStats"><span><strong>'+esc(selected.kind)+'</strong> type</span><span><strong>'+datePretty(selected.date)+'</strong> date</span><span><strong>'+esc(selected.status||'Planned')+'</strong> status</span></div><p>'+esc(selected.time||'Time TBD')+' · '+esc(selected.venue||'Location TBD')+'</p><div class="actions"><button data-schedule-move="'+selected.id+'">Change date</button><button data-schedule-edit="'+selected.id+'">Edit event</button><button data-assign-calendar="'+selected.id+'">Choose calendar</button><button data-schedule-rsvp="'+selected.id+'">Availability & RSVPs</button>'+(selected.kind==='Gig'?'<button data-schedule-packet="'+selected.id+'">Show production</button>':selected.kind==='Rehearsal'?'<button data-rehearsal-plan="'+selected.id+'">Objectives & notes</button><button data-go="songs">Songs to practice</button><button data-go="setlists">Rehearsal repertoire</button><button data-go="tasks">Preparation tasks</button>':'<button data-go="tasks">Meeting preparation tasks</button>')+'<button data-schedule-close>Close details</button></div>'):'';
  const head='<div class="toolbar"><p>Shows, rehearsals, meetings, and sessions all live on this calendar. Select an entry for details.</p><button class="primary" data-action="event">+ Add event</button></div>';
- return head+details+calendarBoard();
+ return head+calendarBoard();
+}
+function openCalendarEventDialog(id){
+ const item=get('events').find(e=>e.id===id);
+ if(!item)return;
+ document.querySelector('#calendarEventDialog')?.close();
+ const calendar=(state.data.calendarEvents||[]).find(e=>e.id===id&&e.band_id===state.band);
+ const kind=item.kind||'Event';
+ const modal=document.createElement('dialog');
+ modal.id='calendarEventDialog';
+ modal.className='timelineDialog calendarEventDialog';
+ modal.setAttribute('aria-label','Event details: '+item.title);
+ const action=(name,label)=>'<button type="button" '+name+'="'+id+'">'+label+'</button>';
+ const extras=kind==='Gig'?action('data-schedule-packet','Show production'):
+  kind==='Rehearsal'?action('data-rehearsal-plan','Objectives & notes')+
+   '<button type="button" data-go="songs">Songs to practice</button>'+
+   '<button type="button" data-go="setlists">Rehearsal repertoire</button>'+
+   '<button type="button" data-go="tasks">Preparation tasks</button>':
+   '<button type="button" data-go="tasks">Preparation tasks</button>';
+ modal.innerHTML='<header class="calendarDialogHeader"><div><span class="tag muted">'+esc(kind)+'</span><h2>'+esc(item.title)+'</h2></div><button type="button" data-schedule-close aria-label="Close event details">×</button></header>'+
+  '<dl class="calendarEventFacts"><div><dt>Date</dt><dd>'+datePretty(item.date)+'</dd></div>'+
+  '<div><dt>Time</dt><dd>'+esc(item.time||'Time TBD')+'</dd></div>'+
+  '<div><dt>Location</dt><dd>'+esc(item.venue||'Location TBD')+'</dd></div>'+
+  '<div><dt>Status</dt><dd>'+esc(item.status||'Planned')+'</dd></div>'+
+  (calendar?'<div><dt>Calendar</dt><dd>'+esc(calendar.calendar_name||kind)+'</dd></div>':'')+'</dl>'+
+  (item.notes?'<section class="calendarEventNotes"><h3>Notes</h3><p>'+esc(item.notes)+'</p></section>':'')+
+  '<div class="actions calendarDialogActions">'+action('data-schedule-edit','Edit event')+
+  action('data-schedule-move','Change date')+action('data-assign-calendar','Choose calendar')+
+  action('data-schedule-rsvp','Availability & RSVPs')+extras+'</div>';
+ document.body.append(modal);
+ modal.addEventListener('close',()=>modal.remove(),{once:true});
+ modal.addEventListener('click',event=>{
+  if(event.target===modal||event.target.closest('[data-schedule-close]')){modal.close();return}
+  if(event.target.closest('[data-schedule-edit],[data-schedule-move],[data-assign-calendar],[data-schedule-rsvp],[data-schedule-packet],[data-rehearsal-plan],[data-go]')){
+   modal.close();
+  }
+ });
+ modal.showModal();
 }
 async function openRehearsalPlan(id){
  const base=workspaceBase()+'/rehearsals/'+id+'/plan';
@@ -118,7 +153,7 @@ async function openRehearsalPlan(id){
 document.addEventListener('click',async event=>{
  const b=event.target.closest('[data-schedule-packet],[data-schedule-rsvp],[data-calendar-event],[data-schedule-details],[data-schedule-move],[data-schedule-edit],[data-schedule-close],[data-rehearsal-plan]');if(!b)return;
  if(b.dataset.rehearsalPlan){try{await openRehearsalPlan(Number(b.dataset.rehearsalPlan))}catch(error){toast(error.message,true)}return}
- if(b.hasAttribute('data-schedule-close')){state.scheduleSelected=null;render();return}
+ if(b.hasAttribute('data-schedule-close')){document.querySelector('#calendarEventDialog')?.close();state.scheduleSelected=null;return}
  if(b.dataset.scheduleMove){
   const item=get('events').find(e=>e.id===Number(b.dataset.scheduleMove));
   if(item)workspaceDialog('Move '+item.title,'<label class="field">New date<input type="date" name="date" required value="'+esc(item.date)+'"></label>',async data=>{
@@ -132,10 +167,10 @@ document.addEventListener('click',async event=>{
   if(selected){state.eventEdit=selected.id;state.eventDraftDate=null;state.modal='event';render()}
   return;
  }
- if(b.dataset.scheduleDetails){state.scheduleSelected=Number(b.dataset.scheduleDetails);render();return}
+ if(b.dataset.scheduleDetails){openCalendarEventDialog(Number(b.dataset.scheduleDetails));return}
  if(b.dataset.calendarEvent){
   const id=Number(b.dataset.calendarEvent);
-  state.scheduleSelected=id;render();return
+  state.scheduleSelected=id;openCalendarEventDialog(id);return
  }
  if(b.dataset.schedulePacket){await openShowPacketGig(Number(b.dataset.schedulePacket));return}
  if(b.dataset.scheduleRsvp){state.rsvpEvent=Number(b.dataset.scheduleRsvp);state.hubTab='availability';state.section='collaboration';await refreshCollaboration();return}
