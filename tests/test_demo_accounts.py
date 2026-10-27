@@ -43,6 +43,22 @@ def test_authenticated_demo_requires_secret_and_fresh_database(tmp_path,monkeypa
     rsvps=client.get(f"/api/bands/{band_id}/events/{events.json()[0]['id']}/rsvps",headers=headers)
     assert rsvps.status_code==200,rsvps.text
     assert len(rsvps.json())==1
+    # Calendar creation, band-scoped rescheduling, and access control.
+    meeting=client.post(f"/api/bands/{band_id}/events",headers=headers,json={
+        "kind":"Meeting","title":"Synthetic planning meeting","date":"2026-11-11",
+        "venue":"Practice room","time":"19:00"})
+    assert meeting.status_code==201,meeting.text
+    meeting_id=meeting.json()["id"]
+    assert client.put(f"/api/bands/{band_id}/events/{meeting_id}/reschedule",
+        json={"date":"2026-11-12"}).status_code==401
+    move=client.put(f"/api/bands/{band_id}/events/{meeting_id}/reschedule",
+        headers=headers,json={"date":"2026-11-12"})
+    assert move.status_code==200,move.text
+    updated=client.get(f"/api/bands/{band_id}/events",headers=headers).json()
+    assert next(e for e in updated if e["id"]==meeting_id)["date"]=="2026-11-12"
+    assert next(e for e in updated if e["id"]==meeting_id)["kind"]=="Meeting"
+    assert client.put(f"/api/bands/{band_id}/events/999999/reschedule",
+        headers=headers,json={"date":"2026-11-12"}).status_code==404
     app.init_db()  # restart does not duplicate accounts or tasks
     with app.db() as con:
         assert con.execute("SELECT count(*) FROM users").fetchone()[0]==1
