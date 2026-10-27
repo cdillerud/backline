@@ -111,7 +111,13 @@ function openCalendarEventDialog(id){
   action('data-schedule-move','Change date')+action('data-assign-calendar','Choose calendar')+
   action('data-schedule-rsvp','Availability & RSVPs')+extras+'</div>';
  document.body.append(modal);
- modal.addEventListener('close',()=>modal.remove(),{once:true});
+ const origin=document.activeElement;
+ modal.addEventListener('close',()=>{
+  modal.remove();
+  const entry=document.querySelector('[data-calendar-event="'+id+'"]');
+  if(entry)entry.focus();
+  else if(origin?.isConnected)origin.focus();
+ },{once:true});
  modal.addEventListener('click',event=>{
   if(event.target===modal||event.target.closest('[data-schedule-close]')){modal.close();return}
   if(event.target.closest('[data-schedule-edit],[data-schedule-move],[data-assign-calendar],[data-schedule-rsvp],[data-schedule-packet],[data-rehearsal-plan],[data-go]')){
@@ -158,7 +164,11 @@ document.addEventListener('click',async event=>{
   const item=get('events').find(e=>e.id===Number(b.dataset.scheduleMove));
   if(item)workspaceDialog('Move '+item.title,'<label class="field">New date<input type="date" name="date" required value="'+esc(item.date)+'"></label>',async data=>{
    await api(workspaceBase()+'/events/'+item.id+'/reschedule',{method:'PUT',body:JSON.stringify({date:data.date})});
+   const local=get('events').find(e=>e.id===item.id);
+   if(local)local.date=data.date;
    await refreshCalendar(state.calendarAll===true);
+   if(state.calendarMonth!==data.date.slice(0,7))state.calendarMonth=data.date.slice(0,7);
+   openCalendarEventDialog(item.id);
   });
   return;
  }
