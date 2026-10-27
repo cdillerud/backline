@@ -39,6 +39,16 @@ function collaborationBoard(){
  panel('Discussions',(collabAdmin()?'<button data-new-thread>+ New discussion</button>':'')+'<div class="list">'+get('discussions').map(t=>'<button class="threadChoice" data-thread="'+t.id+'">'+esc(t.title)+' · '+esc(t.scope)+'</button>').join('')+'</div>'+(thread?'<section class="messenger" aria-label="Conversation"><header class="messengerHeader"><h3>'+esc(thread.title)+'</h3><small>'+esc(thread.scope||'Band')+'</small></header><div id="threadPosts" class="discussionPosts" role="log" aria-label="Messages" aria-live="polite" aria-relevant="additions"></div><p id="threadTyping" role="status"></p>'+(collabWriter()?'<form id="discussionForm" class="messengerComposer"><label for="discussionReply">Message</label><textarea id="discussionReply" name="body" required maxlength="5000" rows="2" placeholder="Write a message…"></textarea><fieldset class="mentionPills"><legend>@mention bandmates</legend>'+info.members.filter(m=>m.id!==info.user_id).map(m=>'<label><input type="checkbox" name="mention_user_ids" value="'+m.id+'">@'+esc(m.display_name)+'</label>').join('')+'</fieldset><button class="primary">Send message</button></form>':'')+'</section>':empty('A band manager can start a discussion on the band, a song or a setlist.')))+
  (collabAdmin()?panel('Link roster identities','<p class="sub">Link each roster member to the correct band account. This keeps task assignments, discussion names and RSVP instruments consistent.</p><div class="list">'+get('members').map(m=>'<div class="entry"><span>'+esc(m.name)+' · '+esc(m.instrument)+'</span><button data-link-roster="'+m.id+'">'+(info.members.some(a=>a.member_id===m.id)?'Change account link':'Link account')+'</button></div>').join('')+'</div>'):'');
 }
+// Messenger keyboard convention: Enter sends, Shift+Enter creates a newline.
+// Composition events must never send a partially composed IME message.
+document.addEventListener('keydown',event=>{
+ const editor=event.target.closest('#discussionReply');
+ if(!editor||event.key!=='Enter'||event.shiftKey||event.isComposing||event.keyCode===229)return;
+ const form=editor.closest('#discussionForm');
+ if(!form||!editor.value.trim())return;
+ event.preventDefault();
+ if(form.requestSubmit)form.requestSubmit();
+});
 function renderLiveThread(){
  const container=document.querySelector('#threadPosts');if(!container)return;
  const rows=get('threadPosts'),signature=JSON.stringify(rows);if(container.dataset.signature===signature)return;
