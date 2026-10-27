@@ -73,7 +73,12 @@ def test_member_collaboration_live_updates_and_notifications(account_server,acco
         person.get_by_role('button',name='Save my RSVP',exact=True).click()
         expect(person.get_by_text('Your RSVP saved',exact=True)).to_be_visible()
         assert person.get_by_role('button',name='+ New discussion',exact=True).count()==0
-        person.get_by_label('Message',exact=True).fill('Confirming the monitor plan')
+        editor=person.get_by_label('Message',exact=True)
+        editor.fill('First line')
+        editor.press('Shift+Enter')
+        editor.type('Second line')
+        assert editor.input_value()=='First line\nSecond line'
+        editor.fill('Confirming the monitor plan')
         person.get_by_label('@Owner',exact=True).check()
         person.get_by_role('button',name='Send message',exact=True).click()
         expect(person.locator('#threadPosts')).to_contain_text('Confirming the monitor plan')
