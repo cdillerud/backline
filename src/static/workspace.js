@@ -172,8 +172,15 @@ document.addEventListener('drop',async event=>{
  if(!confirm('Move '+item.title+' from '+datePretty(item.date)+' to '+datePretty(target)+'?'))return;
  try{
   await api(workspaceBase()+'/events/'+id+'/reschedule',{method:'PUT',body:JSON.stringify({date:target})});
+  // Update both cached event views immediately, then reconcile from the server.
+  const local=get('events').find(e=>e.id===id);
+  if(local)local.date=target;
+  for(const entry of state.data.calendarEvents||[]){
+   if(entry.id===id&&entry.band_id===state.band)entry.date=target;
+  }
+  render();
   await load();
-  if(state.scheduleView==='calendar')await refreshCalendar(state.calendarAll);
+  await refreshCalendar(state.calendarAll===true);
   toast('Event rescheduled');
  }catch(error){toast(error.message,true)}
 });
