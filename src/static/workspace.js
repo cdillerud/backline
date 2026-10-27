@@ -141,7 +141,7 @@ function calendarBoard(){
  return panel('Band calendars','<div class="actions"><label>Month<input id="calendarMonth" type="month" value="'+esc(month)+'"></label><button data-calendar-all>'+(state.calendarAll?'This band only':'My bands combined')+'</button><button data-new-calendar>+ Calendar</button><button data-calendar-export>Download iCal</button><button data-calendar-subscriptions>Subscriptions</button></div><p class="sub">Double-click a day to add a dated event. Use Enter on a focused day, or + Add event on touch devices.</p><div class="calendarTypeLegend" aria-label="Event colors"><span class="show"><i></i>Shows</span><span class="rehearsal"><i></i>Rehearsals</span><span class="meeting"><i></i>Meetings</span></div><div class="calendarWrap"><div class="calendarGrid">'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day=>'<strong>'+day+'</strong>').join('')+cells.join('')+'</div></div><div class="list">'+rows.map(event=>'<div class="entry"><div><strong>'+esc(event.date)+' · '+esc(event.title)+'</strong><p>'+esc(event.calendar_name)+' · '+esc(event.venue)+'</p><p>Load-in '+esc(event.advance.load_in||'TBC')+' · Doors '+esc(event.advance.doors||'TBC')+' · Stage '+esc(event.advance.show_time||event.time||'TBC')+'</p>'+(event.band_id===state.band?'<button data-assign-calendar="'+event.id+'">Choose calendar</button>':'')+'</div></div>').join('')+'</div>');
 }
 function createEventOnCalendarDate(day){
- if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(day))return;
+ if(!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(day))return;
  state.eventDraftDate=day;state.modal='event';render();
 }
 document.addEventListener('dblclick',event=>{
