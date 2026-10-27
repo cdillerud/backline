@@ -64,9 +64,13 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             page.locator("#entryForm select[name='kind']").select_option("Meeting")
             assert page.locator("#entryForm select[name='kind']").input_value()=="Meeting"
 
-            page.locator("[data-action='close']").first.click()
-            # Moving an existing entry must repaint both calendar cells without reload.
-            calendar_entry=page.locator("[data-calendar-event]").first
+            # Create an event on the visible month so the test is independent of
+            # whether seeded gigs happen to fall in the current month.
+            page.locator("#entryForm input[name='title']").fill("Synthetic calendar move test")
+            page.locator("#entryForm button[type='submit']").click()
+            page.get_by_text("Synthetic calendar move test",exact=True).first.wait_for(state="visible",timeout=15000)
+            # Moving a real saved entry must repaint both cells without reload.
+            calendar_entry=page.locator("[data-calendar-event]").filter(has_text="Synthetic calendar move test").first
             moved_id=calendar_entry.get_attribute("data-calendar-event")
             source=calendar_entry.locator("xpath=ancestor::*[@data-calendar-day]").first
             old_date=source.get_attribute("data-calendar-day")
