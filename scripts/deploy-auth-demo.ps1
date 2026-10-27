@@ -56,9 +56,9 @@ try {
   if ($secretsText -notmatch 'BACKLINE_DEMO_PASSWORD') {
     Write-Host 'Password not visible in Fly CLI; syncing dashboard-staged secrets.'
     flyctl secrets sync --stage --app $app
-    if ($LASTEXITCODE -ne 0) { throw 'Fly secrets sync failed' }
+    if ($LASTEXITCODE -ne 0) { Write-Host 'Staged secret sync unavailable before first machine; secure import will be offered.' }
     $secretsText = flyctl secrets list --app $app
-    if ($LASTEXITCODE -ne 0) { throw 'Unable to verify synced secrets' }
+    if ($LASTEXITCODE -ne 0) { $secretsText = '' }
   }
   if ($secretsText -notmatch 'BACKLINE_DEMO_PASSWORD') {
     Write-Host 'Enter the existing demo password securely. Input is hidden and is not passed as a command-line argument.'
