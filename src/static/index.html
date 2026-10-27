@@ -57,4 +57,8 @@
 @media(max-width:660px){.mobileNav{gap:0;justify-content:space-between;padding-bottom:max(9px,env(safe-area-inset-bottom))}
 .mobileNav button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:17px;padding:7px 1px}
 .mobileNav button span{display:block;font-size:9px;line-height:1.15;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+.mobileContextNav{display:none}
+@media(max-width:660px){.mobileContextNav{display:flex;gap:7px;overflow-x:auto;padding:10px 16px;border-bottom:1px solid #354152;background:#101720;scrollbar-width:thin}
+.mobileContextNav button{flex:0 0 auto;border:1px solid #354456;background:#1a2631;border-radius:999px;color:#c5d2e0;padding:9px 12px;font-size:12px;font-weight:700}
+.mobileContextNav button.active{border-color:#b9fb74;color:#b9fb74;background:#263a2c}}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
