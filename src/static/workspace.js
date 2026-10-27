@@ -166,8 +166,8 @@ document.addEventListener('click',async event=>{
    await api(workspaceBase()+'/events/'+item.id+'/reschedule',{method:'PUT',body:JSON.stringify({date:data.date})});
    const local=get('events').find(e=>e.id===item.id);
    if(local)local.date=data.date;
-   await refreshCalendar(state.calendarAll===true);
    if(state.calendarMonth!==data.date.slice(0,7))state.calendarMonth=data.date.slice(0,7);
+   await refreshCalendar(state.calendarAll===true);
    openCalendarEventDialog(item.id);
   });
   return;
@@ -258,7 +258,7 @@ document.addEventListener('click',async event=>{const b=event.target.closest('[d
  if(b.hasAttribute('data-calendar-all'))await refreshCalendar(!state.calendarAll);
  if(b.hasAttribute('data-calendar-export'))await workspaceDownload(workspaceBase()+'/calendar.ics','backline-calendar.ics');
  if(b.hasAttribute('data-new-calendar'))workspaceDialog('Create calendar',wsInput('name','Calendar name','','text',true,100)+wsInput('color','Calendar colour','#b9fb74','color'),async data=>{await api(workspaceBase()+'/calendars',{method:'POST',body:JSON.stringify(data)});await refreshCalendar(state.calendarAll)});
- if(b.dataset.assignCalendar)workspaceDialog('Choose event calendar',wsSelect('calendar_id','Calendar',(state.data.bandCalendars||[]).map(c=>[c.id,c.name])),async data=>{if(!data.calendar_id)throw Error('Create a calendar first');await api(workspaceBase()+'/events/'+b.dataset.assignCalendar+'/calendar',{method:'PUT',body:JSON.stringify({calendar_id:Number(data.calendar_id)})});await refreshCalendar(state.calendarAll)});
+ if(b.dataset.assignCalendar)workspaceDialog('Choose event calendar',wsSelect('calendar_id','Calendar',(state.data.bandCalendars||[]).map(c=>[c.id,c.name])),async data=>{if(!data.calendar_id)throw Error('Create a calendar first');await api(workspaceBase()+'/events/'+b.dataset.assignCalendar+'/calendar',{method:'PUT',body:JSON.stringify({calendar_id:Number(data.calendar_id)})});await refreshCalendar(state.calendarAll===true);openCalendarEventDialog(Number(b.dataset.assignCalendar))});
  }catch(error){toast(error.message,true)}});
 
 function venueBook(){return privateVenueBook()+sharedVenueCards()}
