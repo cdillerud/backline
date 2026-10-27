@@ -137,7 +137,7 @@ function calendarBoard(){
  const month=state.calendarMonth||today().slice(0,7),rows=(state.data.calendarEvents||[]).filter(event=>event.date.startsWith(month));
  const [year,m]=month.split('-').map(Number),days=new Date(year,m,0).getDate(),offset=(new Date(year,m-1,1).getDay()+6)%7;
  let cells=Array.from({length:offset},()=>'<div></div>');
- for(let day=1;day<=days;day++){const date=month+'-'+String(day).padStart(2,'0'),events=rows.filter(event=>event.date===date);cells.push('<div class="calendarDay" data-calendar-day="'+date+'" tabindex="0" role="button" aria-label="Create event on '+date+'" title="Double-click to add an event"><strong>'+day+'</strong>'+events.map(event=>{const kind=get('events').find(e=>e.id===event.id)?.kind||event.kind||'';const type=/^(gig|show)$/i.test(kind)?'show':/^rehearsal$/i.test(kind)?'rehearsal':/^(session|meeting)$/i.test(kind)?'meeting':'other';return '<div class="calendarEvent calendarEvent--'+type+'"'+(type==='other'?' style="border-color:'+esc(event.calendar_color||'#567')+'"':'')+'>'+(event.band_id===state.band?'<button class="scheduleEventLink" data-calendar-event="'+event.id+'" data-calendar-kind="'+esc(get('events').find(e=>e.id===event.id)?.kind||event.kind||'')+'"><strong>'+esc(event.title)+'</strong></button>':'<strong>'+esc(event.title)+'</strong>')+'<small>'+esc(event.calendar_name)+' · '+esc(event.advance.show_time||event.time||'Time TBC')+'</small>'+(state.calendarAll?'<small>'+esc(event.band_name)+'</small>':'')+'</div>'}).join('')+'</div>')}
+ for(let day=1;day<=days;day++){const date=month+'-'+String(day).padStart(2,'0'),events=rows.filter(event=>event.date===date);cells.push('<div class="calendarDay" data-calendar-day="'+date+'" tabindex="0" role="button" aria-label="Create event on '+date+'" title="Double-click to add an event"><strong>'+day+'</strong>'+events.map(event=>{const kind=get('events').find(e=>e.id===event.id)?.kind||event.kind||'';const type=/^(gig|show)$/i.test(kind)?'show':/^rehearsal$/i.test(kind)?'rehearsal':/^(session|meeting)$/i.test(kind)?'meeting':'other';return '<div class="calendarEvent calendarEvent--'+type+'"'+(type==='other'?' style="border-color:'+esc(event.calendar_color||'#567')+'"':'')+'>'+(event.band_id===state.band?'<button class="scheduleEventLink" data-calendar-event="'+event.id+'" draggable="true" title="Click for details or drag to reschedule" data-calendar-kind="'+esc(get('events').find(e=>e.id===event.id)?.kind||event.kind||'')+'"><strong>'+esc(event.title)+'</strong></button>':'<strong>'+esc(event.title)+'</strong>')+'<small>'+esc(event.calendar_name)+' · '+esc(event.advance.show_time||event.time||'Time TBC')+'</small>'+(state.calendarAll?'<small>'+esc(event.band_name)+'</small>':'')+'</div>'}).join('')+'</div>')}
  return panel('Band calendars','<div class="actions"><label>Month<input id="calendarMonth" type="month" value="'+esc(month)+'"></label><button data-calendar-all>'+(state.calendarAll?'This band only':'My bands combined')+'</button><button data-new-calendar>+ Calendar</button><button data-calendar-export>Download iCal</button><button data-calendar-subscriptions>Subscriptions</button></div><p class="sub">Double-click a day to add a dated event. Use Enter on a focused day, or + Add event on touch devices.</p><div class="calendarTypeLegend" aria-label="Event colors"><span class="show"><i></i>Shows</span><span class="rehearsal"><i></i>Rehearsals</span><span class="meeting"><i></i>Meetings</span></div><div class="calendarWrap"><div class="calendarGrid">'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day=>'<strong>'+day+'</strong>').join('')+cells.join('')+'</div></div><div class="list">'+rows.map(event=>'<div class="entry"><div><strong>'+esc(event.date)+' · '+esc(event.title)+'</strong><p>'+esc(event.calendar_name)+' · '+esc(event.venue)+'</p><p>Load-in '+esc(event.advance.load_in||'TBC')+' · Doors '+esc(event.advance.doors||'TBC')+' · Stage '+esc(event.advance.show_time||event.time||'TBC')+'</p>'+(event.band_id===state.band?'<button data-assign-calendar="'+event.id+'">Choose calendar</button>':'')+'</div></div>').join('')+'</div>');
 }
 function createEventOnCalendarDate(day){
@@ -147,6 +147,35 @@ function createEventOnCalendarDate(day){
 document.addEventListener('dblclick',event=>{
  const day=event.target.closest('[data-calendar-day]');
  if(day&&!event.target.closest('[data-calendar-event]'))createEventOnCalendarDate(day.dataset.calendarDay);
+});
+let draggedCalendarEvent=null;
+document.addEventListener('dragstart',event=>{
+ const button=event.target.closest('[data-calendar-event]');
+ if(!button)return;
+ draggedCalendarEvent=Number(button.dataset.calendarEvent);
+ event.dataTransfer.effectAllowed='move';
+ event.dataTransfer.setData('text/plain',String(draggedCalendarEvent));
+});
+document.addEventListener('dragend',()=>{draggedCalendarEvent=null});
+document.addEventListener('dragover',event=>{
+ if(draggedCalendarEvent!==null&&event.target.closest('[data-calendar-day]')){
+  event.preventDefault();event.dataTransfer.dropEffect='move';
+ }
+});
+document.addEventListener('drop',async event=>{
+ const day=event.target.closest('[data-calendar-day]'),id=draggedCalendarEvent;
+ draggedCalendarEvent=null;
+ if(!day||!id)return;
+ event.preventDefault();
+ const item=get('events').find(e=>e.id===id),target=day.dataset.calendarDay;
+ if(!item||item.date===target)return;
+ if(!confirm('Move '+item.title+' from '+datePretty(item.date)+' to '+datePretty(target)+'?'))return;
+ try{
+  await api(workspaceBase()+'/events/'+id+'/reschedule',{method:'PUT',body:JSON.stringify({date:target})});
+  await load();
+  if(state.scheduleView==='calendar')await refreshCalendar(state.calendarAll);
+  toast('Event rescheduled');
+ }catch(error){toast(error.message,true)}
 });
 document.addEventListener('keydown',event=>{
  if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-calendar-day]')){
