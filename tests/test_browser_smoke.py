@@ -40,6 +40,11 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             assert page.locator("#app").is_visible()
             assert page.get_by_text("Dashboard",exact=True).count()>0
             assert page.locator("nav[aria-label='Primary workspaces'] > button").count()==6
+            page.locator("[data-go='collaboration']").first.click()
+            page.get_by_role("heading",name="Band Hub",exact=True).wait_for(state="visible")
+            page.get_by_text("Coming up",exact=True).first.wait_for(state="visible")
+            page.get_by_text("Bandmates",exact=True).first.wait_for(state="visible")
+            page.get_by_text("Private conversations and RSVPs",exact=True).wait_for(state="visible")
             page.locator("[data-go='songs']").first.click()
             page.locator("[data-go='studio']").first.click()
             assert page.get_by_text("AI Gig Studio").count()>0
