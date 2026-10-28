@@ -44,7 +44,7 @@ def navigate(page,key):
     if target.count()==0:
         # v0.5 groups related tools inside their primary workspace.
         groups={
-            'media':'collaboration','notifications':'collaboration',
+            'media':'members','notifications':'collaboration',
             'tasks':'collaboration','members':'collaboration',
             'calendars':'schedule','events':'schedule',
             'venues':'touring','bookings':'touring','showops':'touring','operations':'touring',
