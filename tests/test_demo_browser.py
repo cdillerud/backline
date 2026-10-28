@@ -44,8 +44,10 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert page.locator(".hubChatWorkspace .threadChoice").count()==1
             assert page.get_by_text("Demo: confirm stage plot and arrival time",exact=False).count()>0
             assert page.locator(".hubDisclosure[open]").count()==0
-            page.locator(".hubDisclosure summary").filter(has_text="Availability and RSVP").click()
-            assert page.locator(".rsvpBoard .entry").count()==1
+            page.evaluate("() => openCalendarEventDialog(Number(get('events')[0].id))")
+            page.get_by_role("button",name="Availability & RSVPs").click()
+            assert page.locator(".attendanceRoster .attendancePerson").count()==1
+            page.get_by_role("button",name="Close event details").click()
             page.locator(".hubDisclosure summary").filter(has_text="Band administration").click()
             assert page.locator("[data-link-roster]").count()==4
             page.locator("[data-go='schedule']").first.click()
