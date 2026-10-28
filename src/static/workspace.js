@@ -26,7 +26,7 @@ function sharedVenueCards(){return panel('Venues shared with this band',get('sha
 function taskBoard(){
  const scoped=state.prepGig?get('events').find(e=>e.id===state.prepGig):null;
  const tasks=scoped?get('tasks').filter(t=>t.event_id===scoped.id):get('tasks');
- return (scoped?'<div class="workspaceContext"><strong>Preparing: '+esc(scoped.title)+'</strong><button type="button" data-clear-prep>All band tasks</button></div>':'')+panel('Band task checklists','<p class="sub">Assign work to band members and link it to shows, songs or sets. Due-tomorrow reminders appear here; outbound email is not enabled.</p><button data-new-task>+ Add task</button><div class="list">'+get('tasks').map(t=>{
+ return (scoped?'<div class="workspaceContext"><strong>Preparing: '+esc(scoped.title)+'</strong><button type="button" data-clear-prep>All band tasks</button><button type="button" data-return-show="'+scoped.id+'">Back to show</button></div>':'')+panel('Band task checklists','<p class="sub">Assign work to band members and link it to shows, songs or sets. Due-tomorrow reminders appear here; outbound email is not enabled.</p><button data-new-task>+ Add task</button><div class="list">'+tasks.map(t=>{
   const member=get('members').find(m=>m.id===t.assignee_id),event=get('events').find(e=>e.id===t.event_id),song=get('songs').find(s=>s.id===t.song_id),set=get('setlists').find(s=>s.id===t.setlist_id);
   return '<div class="entry"><div><strong>'+esc(t.title)+'</strong> <span class="tag">'+esc(t.reminder.replaceAll('_',' ')||'Open')+'</span><p>'+esc(member?.name||'Unassigned')+' · '+esc(t.due_date||'No due date')+'</p><p>'+esc([event?.title,song?.title,set?.title].filter(Boolean).join(' · '))+'</p><p>'+esc(t.notes)+'</p><button data-edit-task="'+t.id+'">Edit task</button> <button data-toggle-task="'+t.id+'">'+(t.completed?'Reopen':'Complete')+'</button></div></div>'}).join('')+'</div>');
 }
@@ -45,7 +45,7 @@ const runtime=songs=>{const seconds=songs.reduce((n,s)=>n+s.duration_seconds,0);
 function setlistLibrary(){
  const selected=state.musicGig?get('events').find(e=>e.id===state.musicGig):null;
  const setlists=selected?get('setlists').filter(x=>x.event_id===selected.id):get('setlists');
- return (selected?'<div class="workspaceContext"><strong>Music for: '+esc(selected.title)+'</strong><button type="button" data-clear-music>All setlists</button></div>':'')+panel('Setlist studio','<p class="sub">Build a running order with musical cues and measured duration. Breaks and transitions are additional.</p><button data-new-setlist>+ Create setlist</button>'+setlists.map(s=>'<div class="panel"><h3>'+esc(s.title)+'</h3><p>'+s.songs.length+' songs · Runtime '+runtime(s.songs)+'</p><ol>'+s.songs.map(song=>'<li>'+esc(song.title)+' · '+esc(song.song_key)+' · '+(song.bpm||'—')+' BPM</li>').join('')+'</ol><button data-build-setlist="'+s.id+'">Edit running order</button> <button data-setlist-pdf="'+s.id+'">Download setlist PDF</button></div>').join(''));
+ return (selected?'<div class="workspaceContext"><strong>Music for: '+esc(selected.title)+'</strong><button type="button" data-clear-music>All setlists</button><button type="button" data-return-show="'+selected.id+'">Back to show</button></div>':'')+panel('Setlist studio','<p class="sub">Build a running order with musical cues and measured duration. Breaks and transitions are additional.</p><button data-new-setlist>+ Create setlist</button>'+setlists.map(s=>'<div class="panel"><h3>'+esc(s.title)+'</h3><p>'+s.songs.length+' songs · Runtime '+runtime(s.songs)+'</p><ol>'+s.songs.map(song=>'<li>'+esc(song.title)+' · '+esc(song.song_key)+' · '+(song.bpm||'—')+' BPM</li>').join('')+'</ol><button data-build-setlist="'+s.id+'">Edit running order</button> <button data-setlist-pdf="'+s.id+'">Download setlist PDF</button></div>').join(''));
 }
 function openSetlistBuilder(s={}){
  const order=(s.songs||[]).map(song=>song.id);
@@ -312,3 +312,5 @@ document.addEventListener('click',async event=>{const b=event.target.closest('[d
 function venueBook(){return privateVenueBook()+sharedVenueCards()}
 
 document.addEventListener('click',event=>{if(event.target.closest('[data-clear-prep]')){state.prepGig=null;render()}if(event.target.closest('[data-clear-music]')){state.musicGig=null;render()}});
+
+document.addEventListener('click',async event=>{const button=event.target.closest('[data-return-show]');if(button)await openShowPacketGig(Number(button.dataset.returnShow))});
