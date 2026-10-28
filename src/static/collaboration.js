@@ -18,16 +18,12 @@ function bandRosterAdministration(){const info=state.data.collaboration;return c
 function collaborationBoard(){
  const info=state.data.collaboration;
  if(!info){
-  const upcoming=(get('events')||[]).filter(e=>e.date>=today()).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,4);
-  const people=(get('members')||[]).filter(m=>m.active!==0).slice(0,8);
-  return panel('Your band, connected','<p class="sub">Your shared home for shows, rehearsals, music and the people behind them.</p><div class="hubShortcuts"><button data-go="schedule">Schedule</button><button data-go="songs">Songs & setlists</button><button data-go="touring">Shows & tours</button></div>')+
-   '<div class="panels">'+
-   panel('Coming up',upcoming.length?'<div class="list">'+upcoming.map(e=>item(e.title,datePretty(e.date)+' · '+(e.time||'Time to confirm')+' · '+(e.venue||'Venue to confirm'),e.kind)).join('')+'</div>':empty('Nothing scheduled yet.'),'<button class="small" data-go="schedule">Open schedule</button>')+
-   panel('Bandmates',people.length?'<div class="list">'+people.map(m=>item(m.name,m.instrument||'Band member')).join('')+'</div>':empty('Add your bandmates to get started.'),'<button class="small" data-go="members">View members</button>')+
-   '</div>'+
-   panel('Private conversations and RSVPs','<p class="sub">'+esc(state.data.collaborationNotice||'Individual band sign-in is required for private conversations, RSVPs and notifications.')+'</p><p class="sub">The shared overview uses existing band records; private collaboration remains protected.</p>');
+  return '<section class="hubChatWorkspace" aria-label="Band conversations preview">'+
+   '<aside class="hubThreadRail"><div class="messengerRailHeader"><h2>Conversations</h2></div><p class="sub">Band discussions appear here when signed in.</p></aside>'+
+   '<section class="messenger" aria-label="Private conversations"><header class="messengerHeader"><h3>Band Hub</h3></header>'+
+   '<div class="discussionPosts"><div class="hubEmptyChat"><h3>Conversations stay private</h3>'+
+   '<p>Sign in to message bandmates, share updates and follow discussions. Scheduling and RSVPs live in Schedule.</p></div></div></section></section>';
  }
-
  const event=get('events').find(e=>e.id===state.rsvpEvent);
  const own=get('rsvps').find(r=>r.user_id===info.user_id);
  const threads=get('discussions').slice().sort((a,b)=>Number(b.updated_at||b.created_at||0)-Number(a.updated_at||a.created_at||0));
