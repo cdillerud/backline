@@ -46,6 +46,7 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert page.locator(".hubDisclosure[open]").count()==0
             page.evaluate("() => openCalendarEventDialog(Number(get('events')[0].id))")
             page.get_by_role("button",name="Availability & RSVPs").click()
+            page.locator(".attendanceRoster .attendancePerson").first.wait_for(state="visible",timeout=15000)
             assert page.locator(".attendanceRoster .attendancePerson").count()==1
             page.get_by_role("button",name="Close event details").click()
             page.locator(".hubDisclosure summary").filter(has_text="Band administration").click()
