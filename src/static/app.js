@@ -117,9 +117,7 @@ function touring(){
  const tabs=[['itinerary','Itinerary'],['day','Day of show'],['production','Show production'],['operations','Crew & logistics']];
  const selected=state.tourTab||'itinerary';
  const tabbar='<div class="showTabBar" role="tablist" aria-label="Tour workspace views">'+tabs.map(([key,label])=>'<button role="tab" aria-selected="'+(key===selected)+'" class="'+(key===selected?'selected':'')+'" data-tour-tab="'+key+'">'+label+'</button>').join('')+'</div>';
- const tourSummary=route&&state.selectedTour?panel('Current tour · '+esc(route.tour.name),
-  '<div class="hubStats"><span><strong>'+route.stops.length+'</strong> itinerary stops</span><span><strong>'+route.stops.filter(stop=>stop.event_id).length+'</strong> linked shows</span><span><strong>'+route.stops.filter(stop=>!stop.event_id).length+'</strong> travel / unlinked stops</span><span><strong>'+route.warnings.length+'</strong> routing flags</span></div>'+
-  '<p class="sub">All changes stay attached to the existing tour and show records. Select Itinerary to edit stops.</p>'):'';
+ const tourSummary=route&&state.selectedTour?'<div class="tourContext"><strong>'+esc(route.tour.name)+'</strong><span>'+route.stops.length+' stops · '+route.stops.filter(stop=>stop.event_id).length+' shows'+(route.warnings.length?' · '+route.warnings.length+' routing flags':'')+'</span></div>':'';
  const linked=route?.stops.filter(stop=>stop.event_id)||[];
  const showActions=linked.length?'<div class="list">'+linked.map(stop=>'<div class="entry"><div><strong>'+esc(stop.city)+' · '+datePretty(stop.stop_date)+'</strong><p>'+esc(stop.venue||'Venue TBC')+' · '+esc(stop.status)+'</p><p>Advance: '+esc(stop.advance?.timeline?.status||'Not linked')+'</p></div><button data-show-gig="'+stop.event_id+'">Open production</button></div>').join('')+'</div>':empty('Link gigs to tour stops to open their production details here.');
  if(selected==='day'){
@@ -151,7 +149,7 @@ function touring(){
  }
  if(selected==='production')return tabbar+tourSummary+panel('Tour production','<p class="sub">Production packets and advances for the shows on this tour.</p>'+showActions+'<button data-go="showops">All show packets</button>');
  if(selected==='operations')return tabbar+tourSummary+panel('Tour crew & logistics','<p class="sub">Show-day crew coordination, guest approvals and private rooming remain permission-scoped.</p>'+(linked.length?'<div class="list">'+linked.map(stop=>'<div class="entry"><div><strong>'+datePretty(stop.stop_date)+' · '+esc(stop.city)+'</strong><p>'+esc(stop.venue||'Venue TBC')+'</p><p class="sub">Guest approvals and private rooming details open in the authorized Show Operations workspace.</p></div><button data-tour-crew-gig="'+stop.event_id+'">Guests & crew</button></div>').join('')+'</div>':empty('No linked show stops yet. Link a gig in the Itinerary tab to open its guest and crew operations.'))+'<button data-go="operations">All crew operations</button>');
- let html=panel('Tour planning','<p class="sub">Build a dated tour itinerary, attach confirmed gigs, track holds and travel days. Routing times require a map provider.</p><button class="small" data-new-tour="1">+ Create tour</button>'+
+ let html=panel('Your tours','<div class="tourPlanningHead"><p class="sub">Choose a tour to manage its itinerary and show-day details.</p><button class="small" data-new-tour="1">+ Create tour</button></div>'+
   '<div class="list">'+tours.map(t=>'<div class="entry"><strong>'+esc(t.name)+'</strong> <button class="small" data-open-tour="'+t.id+'">Open itinerary</button></div>').join('')+'</div>');
  html=tabbar+tourSummary+html;
  if(!route || !state.selectedTour)return html;
