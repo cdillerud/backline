@@ -318,7 +318,7 @@ document.addEventListener('click',async event=>{const button=event.target.closes
 function openSetlistPerformance(id){
  const setlist=get('setlists').find(x=>x.id===id);if(!setlist)return;
  const songs=setlist.songs||[];let index=0;
- const dialog=document.createElement('dialog');dialog.className='timelineDialog performanceDialog';dialog.setAttribute('aria-label','Performance view: '+setlist.title);
+ const dialog=document.createElement('dialog');dialog.className='timelineDialog performanceDialog';dialog.setAttribute('aria-label','Performance view: '+setlist.title);dialog.tabIndex=-1;
  const paint=()=>{
   const song=songs[index];
   dialog.innerHTML='<div class="performanceTop"><div><p class="eyebrow">PERFORMANCE · '+esc(setlist.title)+'</p><h2>'+esc(song?.title||'No songs in this setlist')+'</h2></div><button type="button" data-perform-close aria-label="Close performance view">Close</button></div>'+
@@ -336,7 +336,7 @@ function openSetlistPerformance(id){
   if(event.key==='ArrowLeft'&&index>0){event.preventDefault();index--;paint()}
  });
  dialog.addEventListener('close',()=>dialog.remove(),{once:true});
- document.body.append(dialog);paint();dialog.showModal();
+ document.body.append(dialog);paint();dialog.showModal();dialog.focus();
 }
 document.addEventListener('click',event=>{
  const button=event.target.closest('[data-perform-setlist]');
