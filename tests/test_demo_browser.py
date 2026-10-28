@@ -73,6 +73,16 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert page.locator(".showJourneySteps button").count()==5
             page.locator('[data-show-context="tasks"]').click()
             page.get_by_role("heading",name="Tasks",exact=True).wait_for(state="visible",timeout=15000)
+            assert page.locator(".workspaceContext").is_visible()
+            page.locator("[data-new-task]").click()
+            assert page.get_by_role("dialog",name="Add task").locator("select[name='event_id']").input_value() == str(page.evaluate("state.showGig"))
+            page.get_by_role("dialog",name="Add task").get_by_role("button",name="Cancel").click()
+            page.locator("[data-return-show]").click()
+            page.get_by_role("heading",name="Show workflow",exact=True).wait_for(state="visible",timeout=15000)
+            page.locator('[data-show-context="setlists"]').click()
+            assert page.locator(".workspaceContext").is_visible()
+            page.locator("[data-return-show]").click()
+            page.get_by_role("heading",name="Show workflow",exact=True).wait_for(state="visible",timeout=15000)
             assert not errors,errors
             page.locator("#logoutButton").click()
             page.locator("#loginForm").wait_for(state="visible",timeout=15000)
