@@ -42,6 +42,11 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             page.get_by_text("Weekend show preparation (demo)").first.wait_for(state="visible",timeout=15000)
             page.get_by_role("heading",name="Conversations",exact=True).wait_for(state="visible",timeout=15000)
             assert page.locator(".hubChatWorkspace .threadChoice").count()==1
+            assert page.get_by_role("navigation",name="Global tools").is_visible()
+            assert page.get_by_role("button",name="Notifications").is_visible()
+            assert page.get_by_role("button",name="My Tasks").is_visible()
+            assert page.get_by_role("button",name="Band Settings").is_visible()
+            assert page.locator(".hubQuickLinks, .hubSecondary").count()==0
             assert page.get_by_text("Demo: confirm stage plot and arrival time",exact=False).count()>0
             assert page.locator(".hubDisclosure[open]").count()==0
             page.evaluate("() => openCalendarEventDialog(Number(get('events')[0].id))")
