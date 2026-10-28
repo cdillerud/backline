@@ -28,8 +28,9 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
         expect(page.get_by_label("Event type")).to_be_visible()
         page.locator("#entryForm [data-action='close']").click()
         page.locator('[data-go="collaboration"]:visible').first.click()
-        expect(page.get_by_role("heading",name="Your band, connected")).to_be_visible()
-        expect(page.get_by_role("heading",name="Recent conversations")).to_be_visible()
+        expect(page.get_by_role("heading",name="Conversations",exact=True)).to_be_visible()
+        expect(page.locator(".hubChatWorkspace")).to_be_visible()
+        assert page.locator(".hubDisclosure[open]").count()==0
         # Discussions use a vertically scrolling conversation and a bottom composer.
         conversation=page.locator(".messenger")
         if conversation.count():
