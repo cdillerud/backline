@@ -45,7 +45,7 @@ const runtime=songs=>{const seconds=songs.reduce((n,s)=>n+s.duration_seconds,0);
 function setlistLibrary(){
  const selected=state.musicGig?get('events').find(e=>e.id===state.musicGig):null;
  const setlists=selected?get('setlists').filter(x=>x.event_id===selected.id):get('setlists');
- return (selected?'<div class="workspaceContext"><strong>Music for: '+esc(selected.title)+'</strong><button type="button" data-clear-music>All setlists</button><button type="button" data-return-show="'+selected.id+'">Back to show</button></div>':'')+panel('Setlist studio','<p class="sub">Build a running order with musical cues and measured duration. Breaks and transitions are additional.</p><button data-new-setlist>+ Create setlist</button>'+setlists.map(s=>'<div class="panel"><h3>'+esc(s.title)+'</h3><p>'+s.songs.length+' songs · Runtime '+runtime(s.songs)+'</p><ol>'+s.songs.map(song=>'<li>'+esc(song.title)+' · '+esc(song.song_key)+' · '+(song.bpm||'—')+' BPM</li>').join('')+'</ol><button data-build-setlist="'+s.id+'">Edit running order</button> <button data-setlist-pdf="'+s.id+'">Download setlist PDF</button></div>').join(''));
+ return (selected?'<div class="workspaceContext"><strong>Music for: '+esc(selected.title)+'</strong><button type="button" data-clear-music>All setlists</button><button type="button" data-return-show="'+selected.id+'">Back to show</button></div>':'')+panel('Setlist studio','<p class="sub">Build a running order with musical cues and measured duration. Breaks and transitions are additional.</p><button data-new-setlist>+ Create setlist</button>'+setlists.map(s=>'<div class="panel"><h3>'+esc(s.title)+'</h3><p>'+s.songs.length+' songs · Runtime '+runtime(s.songs)+'</p><ol>'+s.songs.map(song=>'<li>'+esc(song.title)+' · '+esc(song.song_key)+' · '+(song.bpm||'—')+' BPM</li>').join('')+'</ol><button data-build-setlist="'+s.id+'">Edit running order</button> <button data-setlist-pdf="'+s.id+'">Download setlist PDF</button> <button data-perform-setlist="'+s.id+'">Performance view</button></div>').join(''));
 }
 function openSetlistBuilder(s={}){
  const order=(s.songs||[]).map(song=>song.id);
@@ -314,3 +314,31 @@ function venueBook(){return privateVenueBook()+sharedVenueCards()}
 document.addEventListener('click',event=>{if(event.target.closest('[data-clear-prep]')){state.prepGig=null;render()}if(event.target.closest('[data-clear-music]')){state.musicGig=null;render()}});
 
 document.addEventListener('click',async event=>{const button=event.target.closest('[data-return-show]');if(button)await openShowPacketGig(Number(button.dataset.returnShow))});
+
+function openSetlistPerformance(id){
+ const setlist=get('setlists').find(x=>x.id===id);if(!setlist)return;
+ const songs=setlist.songs||[];let index=0;
+ const dialog=document.createElement('dialog');dialog.className='timelineDialog performanceDialog';dialog.setAttribute('aria-label','Performance view: '+setlist.title);
+ const paint=()=>{
+  const song=songs[index];
+  dialog.innerHTML='<div class="performanceTop"><div><p class="eyebrow">PERFORMANCE · '+esc(setlist.title)+'</p><h2>'+esc(song?.title||'No songs in this setlist')+'</h2></div><button type="button" data-perform-close aria-label="Close performance view">Close</button></div>'+
+  (song?'<div class="performanceFacts"><span>Key <strong>'+esc(song.song_key||'—')+'</strong></span><span>Tempo <strong>'+esc(song.bpm||'—')+' BPM</strong></span><span>Song <strong>'+(index+1)+' / '+songs.length+'</strong></span></div>':'<p>Add songs in Setlist Studio before performing.</p>')+
+  '<div class="performanceControls"><button type="button" data-perform-prev '+(index===0?'disabled':'')+'>← Previous</button><button type="button" data-perform-next '+(index>=songs.length-1?'disabled':'')+'>Next →</button></div>'+
+  '<p class="sub">Use arrow keys to change songs. Running order is read-only here.</p>';
+ };
+ dialog.addEventListener('click',event=>{
+  if(event.target.closest('[data-perform-close]'))dialog.close();
+  if(event.target.closest('[data-perform-prev]')&&index>0){index--;paint()}
+  if(event.target.closest('[data-perform-next]')&&index<songs.length-1){index++;paint()}
+ });
+ dialog.addEventListener('keydown',event=>{
+  if(event.key==='ArrowRight'&&index<songs.length-1){event.preventDefault();index++;paint()}
+  if(event.key==='ArrowLeft'&&index>0){event.preventDefault();index--;paint()}
+ });
+ dialog.addEventListener('close',()=>dialog.remove(),{once:true});
+ document.body.append(dialog);paint();dialog.showModal();
+}
+document.addEventListener('click',event=>{
+ const button=event.target.closest('[data-perform-setlist]');
+ if(button)openSetlistPerformance(Number(button.dataset.performSetlist));
+});
