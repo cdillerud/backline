@@ -66,6 +66,7 @@ def test_member_collaboration_live_updates_and_notifications(account_server,acco
         dialog=owner.get_by_role('dialog',name='Link roster account')
         dialog.get_by_label('Band account',exact=True).select_option(label='Member')
         dialog.get_by_role('button',name='Save',exact=True).click()
+        owner.get_by_text('Band administration',exact=True).click()
         expect(owner.get_by_role('button',name='Change account link',exact=True)).to_be_visible()
         owner.get_by_text('Availability and RSVP',exact=True).click()
         owner.get_by_role('button',name='Request responses',exact=True).click()
