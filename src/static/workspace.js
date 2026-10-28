@@ -325,6 +325,7 @@ function openSetlistPerformance(id){
   (song?'<div class="performanceFacts"><span>Key <strong>'+esc(song.song_key||'—')+'</strong></span><span>Tempo <strong>'+esc(song.bpm||'—')+' BPM</strong></span><span>Song <strong>'+(index+1)+' / '+songs.length+'</strong></span></div>':'<p>Add songs in Setlist Studio before performing.</p>')+
   '<div class="performanceControls"><button type="button" data-perform-prev '+(index===0?'disabled':'')+'>← Previous</button><button type="button" data-perform-next '+(index>=songs.length-1?'disabled':'')+'>Next →</button></div>'+
   '<p class="sub">Use arrow keys to change songs. Running order is read-only here.</p>';
+  if(dialog.open)dialog.focus();
  };
  dialog.addEventListener('click',event=>{
   if(event.target.closest('[data-perform-close]'))dialog.close();
