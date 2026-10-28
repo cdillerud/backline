@@ -83,6 +83,25 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert page.locator(".workspaceContext").is_visible()
             page.locator("[data-return-show]").click()
             page.get_by_role("heading",name="Show workflow",exact=True).wait_for(state="visible",timeout=15000)
+            page.evaluate("""() => {
+              state.musicGig = null;
+              state.section = 'setlists';
+              state.data.setlists = [{
+                id: 99999, title: 'Browser performance check',
+                event_id: null,
+                songs: [
+                  {id: 10001, title: 'Opening number', song_key: 'G', bpm: 110, duration_seconds: 180},
+                  {id: 10002, title: 'Second number', song_key: 'D', bpm: 120, duration_seconds: 200}
+                ]
+              }];
+              render();
+            }""")
+            page.locator('[data-perform-setlist="99999"]').click()
+            performance = page.get_by_role("dialog",name="Performance view: Browser performance check")
+            performance.get_by_role("heading",name="Opening number").wait_for(state="visible")
+            performance.get_by_role("button",name="Next").click()
+            performance.get_by_role("heading",name="Second number").wait_for(state="visible")
+            performance.get_by_role("button",name="Close performance view").click()
             assert not errors,errors
             page.locator("#logoutButton").click()
             page.locator("#loginForm").wait_for(state="visible",timeout=15000)
