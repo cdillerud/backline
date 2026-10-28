@@ -24,7 +24,9 @@ function editVenue(v={}){
 }
 function sharedVenueCards(){return panel('Venues shared with this band',get('shared-venues').length?get('shared-venues').map(v=>'<div class="entry"><div><strong>'+esc(v.name)+'</strong><p>'+esc(v.address||'')+'</p><p>'+(v.contacts||[]).map(c=>esc(Object.values(c).filter(Boolean).join(' · '))).join('<br>')+'</p><p>'+esc(v.load_in_notes||'')+'</p><p>'+esc(v.curfew_notes||'')+'</p><small>Only the fields selected by the source band are visible. Link this venue on a show’s advance.</small></div></div>').join(''):empty('No active venue shares.'))}
 function taskBoard(){
- return panel('Band task checklists','<p class="sub">Assign work to band members and link it to shows, songs or sets. Due-tomorrow reminders appear here; outbound email is not enabled.</p><button data-new-task>+ Add task</button><div class="list">'+get('tasks').map(t=>{
+ const scoped=state.prepGig?get('events').find(e=>e.id===state.prepGig):null;
+ const tasks=scoped?get('tasks').filter(t=>t.event_id===scoped.id):get('tasks');
+ return (scoped?'<div class="workspaceContext"><strong>Preparing: '+esc(scoped.title)+'</strong><button type="button" data-clear-prep>All band tasks</button></div>':'')+panel('Band task checklists','<p class="sub">Assign work to band members and link it to shows, songs or sets. Due-tomorrow reminders appear here; outbound email is not enabled.</p><button data-new-task>+ Add task</button><div class="list">'+get('tasks').map(t=>{
   const member=get('members').find(m=>m.id===t.assignee_id),event=get('events').find(e=>e.id===t.event_id),song=get('songs').find(s=>s.id===t.song_id),set=get('setlists').find(s=>s.id===t.setlist_id);
   return '<div class="entry"><div><strong>'+esc(t.title)+'</strong> <span class="tag">'+esc(t.reminder.replaceAll('_',' ')||'Open')+'</span><p>'+esc(member?.name||'Unassigned')+' · '+esc(t.due_date||'No due date')+'</p><p>'+esc([event?.title,song?.title,set?.title].filter(Boolean).join(' · '))+'</p><p>'+esc(t.notes)+'</p><button data-edit-task="'+t.id+'">Edit task</button> <button data-toggle-task="'+t.id+'">'+(t.completed?'Reopen':'Complete')+'</button></div></div>'}).join('')+'</div>');
 }
@@ -41,11 +43,13 @@ function editRepertoire(s){
 }
 const runtime=songs=>{const seconds=songs.reduce((n,s)=>n+s.duration_seconds,0);return Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')};
 function setlistLibrary(){
- return panel('Setlist studio','<p class="sub">Build a running order with musical cues and measured duration. Breaks and transitions are additional.</p><button data-new-setlist>+ Create setlist</button>'+get('setlists').map(s=>'<div class="panel"><h3>'+esc(s.title)+'</h3><p>'+s.songs.length+' songs · Runtime '+runtime(s.songs)+'</p><ol>'+s.songs.map(song=>'<li>'+esc(song.title)+' · '+esc(song.song_key)+' · '+(song.bpm||'—')+' BPM</li>').join('')+'</ol><button data-build-setlist="'+s.id+'">Edit running order</button> <button data-setlist-pdf="'+s.id+'">Download setlist PDF</button></div>').join(''));
+ const selected=state.musicGig?get('events').find(e=>e.id===state.musicGig):null;
+ const setlists=selected?get('setlists').filter(x=>x.event_id===selected.id):get('setlists');
+ return (selected?'<div class="workspaceContext"><strong>Music for: '+esc(selected.title)+'</strong><button type="button" data-clear-music>All setlists</button></div>':'')+panel('Setlist studio','<p class="sub">Build a running order with musical cues and measured duration. Breaks and transitions are additional.</p><button data-new-setlist>+ Create setlist</button>'+setlists.map(s=>'<div class="panel"><h3>'+esc(s.title)+'</h3><p>'+s.songs.length+' songs · Runtime '+runtime(s.songs)+'</p><ol>'+s.songs.map(song=>'<li>'+esc(song.title)+' · '+esc(song.song_key)+' · '+(song.bpm||'—')+' BPM</li>').join('')+'</ol><button data-build-setlist="'+s.id+'">Edit running order</button> <button data-setlist-pdf="'+s.id+'">Download setlist PDF</button></div>').join(''));
 }
 function openSetlistBuilder(s={}){
  const order=(s.songs||[]).map(song=>song.id);
- const modal=workspaceDialog(s.id?'Edit setlist':'Create setlist',wsInput('title','Setlist title',s.title,'text',true,160)+wsSelect('event_id','Linked show',[['','None'],...get('events').filter(e=>e.kind==='Gig').map(e=>[e.id,e.title])],s.event_id)+
+ const modal=workspaceDialog(s.id?'Edit setlist':'Create setlist',wsInput('title','Setlist title',s.title,'text',true,160)+wsSelect('event_id','Linked show',[['','None'],...get('events').filter(e=>e.kind==='Gig').map(e=>[e.id,e.title])],s.event_id||state.musicGig)+
  '<div class="actions"><select id="setlistSongPicker" aria-label="Song to add">'+get('songs').map(song=>'<option value="'+song.id+'">'+esc(song.title)+'</option>').join('')+'</select><button type="button" id="appendSetlistSong">+ Add song</button></div><p id="setlistRuntime" role="status"></p><ol id="setlistOrder"></ol>',async data=>{
   data.event_id=data.event_id?Number(data.event_id):null;data.song_ids=order;
   await api(workspaceBase()+'/setlists'+(s.id?'/'+s.id:''),{method:s.id?'PUT':'POST',body:JSON.stringify(data)});
@@ -306,3 +310,5 @@ document.addEventListener('click',async event=>{const b=event.target.closest('[d
  }catch(error){toast(error.message,true)}});
 
 function venueBook(){return privateVenueBook()+sharedVenueCards()}
+
+document.addEventListener('click',event=>{if(event.target.closest('[data-clear-prep]')){state.prepGig=null;render()}if(event.target.closest('[data-clear-music]')){state.musicGig=null;render()}});
