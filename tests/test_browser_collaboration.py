@@ -79,6 +79,7 @@ def test_member_collaboration_live_updates_and_notifications(account_server,acco
         person.get_by_label('Availability note',exact=True).fill('Available after 5')
         person.get_by_role('button',name='Save my RSVP',exact=True).click()
         expect(person.get_by_text('Your RSVP saved',exact=True)).to_be_visible()
+        person.get_by_role('button',name='Close event details').click()
         assert person.get_by_role('button',name='New discussion',exact=True).count()==0
         editor=person.get_by_label('Message',exact=True)
         editor.fill('First line')
