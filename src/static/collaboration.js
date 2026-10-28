@@ -14,7 +14,7 @@ async function refreshCollaboration(){
   render();renderLiveThread();
  }catch(error){state.data.collaborationNotice=error.message;render()}
 }
-function bandRosterAdministration(){return collabAdmin()?'<details class="hubDisclosure"><summary>Band administration</summary><div class="hubDisclosureBody"><h3>Link roster identities</h3><p class="sub">Connect roster members with their band accounts.</p><div class="list">'+get('members').map(m=>'<div class="entry"><span>'+esc(m.name)+' · '+esc(m.instrument)+'</span><button data-link-roster="'+m.id+'">'+(info.members.some(a=>a.member_id===m.id)?'Change account link':'Link account')+'</button></div>').join('')+'</div></div></details>':''}
+function bandRosterAdministration(){const info=state.data.collaboration;return collabAdmin()?'<details class="hubDisclosure"><summary>Band administration</summary><div class="hubDisclosureBody"><h3>Link roster identities</h3><p class="sub">Connect roster members with their band accounts.</p><div class="list">'+get('members').map(m=>'<div class="entry"><span>'+esc(m.name)+' · '+esc(m.instrument)+'</span><button data-link-roster="'+m.id+'">'+(info.members.some(a=>a.member_id===m.id)?'Change account link':'Link account')+'</button></div>').join('')+'</div></div></details>':''}
 function collaborationBoard(){
  const info=state.data.collaboration;
  if(!info){
