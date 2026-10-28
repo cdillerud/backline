@@ -467,6 +467,8 @@ document.addEventListener('click',event=>{
   state.section='schedule';render();
   if(state.showGig)openCalendarEventDialog(state.showGig);
  }else if(['tasks','setlists','finance'].includes(destination)){
+  if(destination==='tasks')state.prepGig=state.showGig;
+  if(destination==='setlists')state.musicGig=state.showGig;
   state.section=destination;render();
  }
 });
