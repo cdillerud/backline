@@ -67,7 +67,7 @@ function fullDashboard(){
   '<div class="list">'+(focus.length?focus.map(x=>'<div class="entry"><div class="entryMain"><span class="tag muted">'+esc(x.kind)+'</span><strong>'+esc(x.title)+'</strong><small>'+esc(x.detail)+'</small></div><button class="small" data-go="'+x.route+'">Open</button></div>').join(''):empty('Nothing requiring attention in the records loaded for this band.'))+'</div>',
   '<button class="small" data-go="tasks">All tasks →</button>');
  const cards=[['Upcoming gigs',d.counts?.gigs??0],['Open tasks',tasks.length],['Songs in library',d.counts?.songs??0]];
- return '<div class="dashboardIntro"><div><span class="eyebrow">Band overview</span><h2>What needs attention</h2><p class="sub">Upcoming commitments and outstanding work, in one place.</p></div><button data-go="schedule" class="primary">Open schedule</button></div>'+
+ return '<div class="dashboardIntro"><div><span class="eyebrow">Band overview</span><h2>Band overview</h2><p class="sub">Upcoming commitments and outstanding work, in one place.</p></div><button data-go="schedule" class="primary">Open schedule</button></div>'+
  '<div class="cards">'+cards.map(([k,v])=>'<div class="card"><span>'+k+'</span><strong>'+v+'</strong></div>').join('')+'</div>'+
  attention+
  panel('Next on the calendar',events.length?'<div class="list">'+events.slice(0,5).map(e=>item(e.title,datePretty(e.date)+' · '+(e.time||'Time TBD')+' · '+(e.venue||'Venue TBD'),e.kind)).join('')+'</div>':empty('Nothing scheduled yet.'),'<button class="small" data-go="schedule">View schedule</button>');
