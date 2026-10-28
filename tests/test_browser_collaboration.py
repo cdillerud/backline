@@ -82,6 +82,7 @@ def test_member_collaboration_live_updates_and_notifications(account_server,acco
         editor.type('Second line')
         assert editor.input_value()=='First line\nSecond line'
         editor.fill('Confirming the monitor plan')
+        person.get_by_text('@ Mention bandmates',exact=True).click()
         person.get_by_label('@Owner',exact=True).check()
         person.get_by_role('button',name='Send message',exact=True).click()
         expect(person.locator('#threadPosts')).to_contain_text('Confirming the monitor plan')
