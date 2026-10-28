@@ -83,6 +83,10 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert page.locator(".workspaceContext").is_visible()
             page.locator("[data-return-show]").click()
             page.get_by_role("heading",name="Show workflow",exact=True).wait_for(state="visible",timeout=15000)
+            page.locator('[data-show-context="tasks"]').click()
+            assert page.locator(".workspaceContext").is_visible()
+            page.get_by_role("button",name="My Tasks").click()
+            assert page.locator(".workspaceContext").count()==0
             page.evaluate("""() => {
               state.musicGig = null;
               state.section = 'setlists';
