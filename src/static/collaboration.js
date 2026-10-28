@@ -20,7 +20,7 @@ function collaborationBoard(){
  if(!info){
   return '<section class="hubChatWorkspace" aria-label="Band conversations preview">'+
    '<aside class="hubThreadRail"><div class="messengerRailHeader"><h2>Conversations</h2></div><p class="sub">Band discussions appear here when signed in.</p></aside>'+
-   '<section class="messenger" aria-label="Private conversations"><header class="messengerHeader"><h3>Band Hub</h3></header>'+
+   '<section class="messenger" aria-label="Private conversations"><header class="messengerHeader"><h3>Private conversations</h3></header>'+
    '<div class="discussionPosts"><div class="hubEmptyChat"><h3>Conversations stay private</h3>'+
    '<p>Sign in to message bandmates, share updates and follow discussions. Scheduling and RSVPs live in Schedule.</p></div></div></section></section>';
  }
