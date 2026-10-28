@@ -41,7 +41,8 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
                 assert conversation.locator(".messengerComposer").evaluate(
                     "(el) => el.getBoundingClientRect().top >= document.querySelector('#threadPosts').getBoundingClientRect().bottom"
                 )
-        expect(page.get_by_role("button",name="Photos & albums")).to_be_visible()
+        expect(page.get_by_role("navigation",name="Global tools")).to_be_visible()
+        expect(page.get_by_role("button",name="My Tasks")).to_be_visible()
         page.locator('[data-go="touring"]:visible').first.click()
         expect(page.get_by_role("tab",name="Itinerary",exact=True)).to_be_visible()
         page.get_by_role("tab",name="Day of show",exact=True).click()
