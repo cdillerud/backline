@@ -73,6 +73,7 @@ def test_member_collaboration_live_updates_and_notifications(account_server,acco
         owner.get_by_role('button',name='Availability & RSVPs').click()
         owner.get_by_role('button',name='Request responses',exact=True).click()
         owner.get_by_role('button',name='Close event details').click()
+        navigate(owner,'collaboration')
         sign_in(person,account_server,'member');navigate(person,'schedule')
         person.evaluate("() => openCalendarEventDialog(Number(get('events')[0].id))")
         person.get_by_role('button',name='Availability & RSVPs').click()
