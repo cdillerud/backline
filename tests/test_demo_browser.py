@@ -68,6 +68,11 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             page.locator("[data-calendar-event]").filter(has_text="Full-band rehearsal (demo)").wait_for(state="visible",timeout=15000)
             page.locator("[data-go='songs']").first.click()
             page.get_by_text("Example Opener").first.wait_for(state="visible",timeout=15000)
+            page.evaluate("() => openShowPacketGig(Number(get('events').find(e => e.kind === 'Gig').id))")
+            page.get_by_role("heading",name="Show workflow",exact=True).wait_for(state="visible",timeout=15000)
+            assert page.locator(".showJourneySteps button").count()==5
+            page.locator('[data-show-context="tasks"]').click()
+            page.get_by_role("heading",name="Tasks",exact=True).wait_for(state="visible",timeout=15000)
             assert not errors,errors
             page.locator("#logoutButton").click()
             page.locator("#loginForm").wait_for(state="visible",timeout=15000)
