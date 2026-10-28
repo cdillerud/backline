@@ -107,6 +107,7 @@ function openCalendarEventDialog(id){
   '<div><dt>Status</dt><dd>'+esc(item.status||'Planned')+'</dd></div>'+
   (calendar?'<div><dt>Calendar</dt><dd>'+esc(calendar.calendar_name||kind)+'</dd></div>':'')+'</dl>'+
   (item.notes?'<section class="calendarEventNotes"><h3>Notes</h3><p>'+esc(item.notes)+'</p></section>':'')+
+  '<section id="calendarAttendance" class="calendarAttendance" hidden aria-label="Event attendance"></section>'+
   '<div class="actions calendarDialogActions">'+action('data-schedule-edit','Edit event')+
   action('data-schedule-move','Change date')+action('data-assign-calendar','Choose calendar')+
   action('data-schedule-rsvp','Availability & RSVPs')+extras+'</div>';
@@ -120,11 +121,48 @@ function openCalendarEventDialog(id){
  },{once:true});
  modal.addEventListener('click',event=>{
   if(event.target===modal||event.target.closest('[data-schedule-close]')){modal.close();return}
-  if(event.target.closest('[data-schedule-edit],[data-schedule-move],[data-assign-calendar],[data-schedule-rsvp],[data-schedule-packet],[data-rehearsal-plan],[data-go]')){
+  if(event.target.closest('[data-schedule-edit],[data-schedule-move],[data-assign-calendar],[data-schedule-packet],[data-rehearsal-plan],[data-go]')){
    modal.close();
   }
  });
  modal.showModal();
+}
+async function openEventAttendance(id){
+ const box=document.querySelector('#calendarEventDialog #calendarAttendance');
+ if(!box)return;
+ if(!box.hidden){box.hidden=true;return}
+ box.hidden=false;box.innerHTML='<p class="sub">Loading event attendance…</p>';
+ if(!sessionStorage.getItem('backline_session')){box.innerHTML='<p>Sign in with a band account to view attendance and respond.</p>';return}
+ const base=workspaceBase()+'/events/'+id;
+ const draw=async()=>{
+  try{
+   const [info,rows]=await Promise.all([api(workspaceBase()+'/collaboration'),api(base+'/rsvps')]);
+   if(!box.isConnected)return;
+   const own=rows.find(r=>Number(r.user_id)===Number(info.user_id));
+   const writer=['owner','manager','member'].includes(info.role);
+   const admin=['owner','manager'].includes(info.role);
+   const counts={yes:0,maybe:0,no:0};
+   rows.forEach(r=>{if(Object.hasOwn(counts,r.response))counts[r.response]++});
+   box.innerHTML='<h3>Availability & RSVPs</h3><p class="sub">Attendance for this event</p>'+
+    '<div class="attendanceCounts"><span>'+counts.yes+' Going</span><span>'+counts.maybe+' Maybe</span><span>'+counts.no+' Can\'t go</span></div>'+
+    '<div class="attendanceRoster">'+(rows.length?rows.map(r=>'<div class="attendancePerson"><strong>'+esc(r.display_name)+'</strong><span>'+esc(r.response==='yes'?'Going':r.response==='no'?"Can't go":r.response==='maybe'?'Maybe':'Awaiting response')+'</span></div>').join(''):'<p class="sub">No responses yet.</p>')+'</div>'+
+    (writer?'<form id="calendarRsvpForm"><label for="calendarRsvpResponse">Your RSVP</label><select id="calendarRsvpResponse" name="response" required>'+[['unknown','Not answered'],['yes','Going'],['maybe','Maybe'],['no',"Can't go"]].map(([v,label])=>'<option value="'+v+'" '+((own?.response||'unknown')===v?'selected':'')+'>'+label+'</option>').join('')+'</select><label for="calendarRsvpNote">Availability note</label><textarea id="calendarRsvpNote" name="note" maxlength="1000" rows="2">'+esc(own?.note||'')+'</textarea><button class="primary" type="submit">Save my RSVP</button></form>':'')+
+    (admin?'<button type="button" id="calendarRequestRsvps">Request responses</button>':'')+
+    '<p id="calendarAttendanceStatus" role="status"></p>';
+  }catch(error){if(box.isConnected)box.innerHTML='<p role="alert">'+esc(error.message)+'</p>'}
+ };
+ box.addEventListener('submit',async event=>{
+  if(event.target.id!=='calendarRsvpForm')return;
+  event.preventDefault();const button=event.target.querySelector('[type="submit"]');button.disabled=true;
+  try{await api(base+'/rsvp',{method:'PUT',body:JSON.stringify(Object.fromEntries(new FormData(event.target)))});await draw();toast('Your RSVP saved')}
+  catch(error){box.querySelector('#calendarAttendanceStatus').textContent=error.message;button.disabled=false}
+ });
+ box.addEventListener('click',async event=>{
+  const button=event.target.closest('#calendarRequestRsvps');if(!button)return;button.disabled=true;
+  try{await api(base+'/rsvp-requests',{method:'POST'});box.querySelector('#calendarAttendanceStatus').textContent='RSVP requests sent to band notifications'}
+  catch(error){box.querySelector('#calendarAttendanceStatus').textContent=error.message;button.disabled=false}
+ });
+ await draw();
 }
 async function openRehearsalPlan(id){
  const base=workspaceBase()+'/rehearsals/'+id+'/plan';
@@ -183,7 +221,7 @@ document.addEventListener('click',async event=>{
   state.scheduleSelected=id;openCalendarEventDialog(id);return
  }
  if(b.dataset.schedulePacket){await openShowPacketGig(Number(b.dataset.schedulePacket));return}
- if(b.dataset.scheduleRsvp){state.rsvpEvent=Number(b.dataset.scheduleRsvp);state.hubTab='availability';state.section='collaboration';await refreshCollaboration();return}
+ if(b.dataset.scheduleRsvp){await openEventAttendance(Number(b.dataset.scheduleRsvp));return}
 });
 function calendarBoard(){
  const month=state.calendarMonth||today().slice(0,7),rows=(state.data.calendarEvents||[]).filter(event=>event.date.startsWith(month));
