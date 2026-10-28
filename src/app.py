@@ -164,7 +164,7 @@ class SettlementInput(BaseModel):
     reserve_percent: int = Field(default=0,ge=0,le=100)
 
 @app.get('/')
-def home(): return FileResponse(ROOT/'static'/'index.html')
+def home(): return FileResponse(ROOT/'static'/'index.html',headers={'Cache-Control':'no-store, max-age=0', 'Pragma':'no-cache'})
 @app.get('/service-worker.js')
 def service_worker(): return FileResponse(ROOT/'static'/'service-worker.js',media_type='application/javascript',headers={'Cache-Control':'no-store'})
 @app.get('/api/health')
