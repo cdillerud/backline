@@ -14,6 +14,7 @@ async function refreshCollaboration(){
   render();renderLiveThread();
  }catch(error){state.data.collaborationNotice=error.message;render()}
 }
+function bandRosterAdministration(){return collabAdmin()?'<details class="hubDisclosure"><summary>Band administration</summary><div class="hubDisclosureBody"><h3>Link roster identities</h3><p class="sub">Connect roster members with their band accounts.</p><div class="list">'+get('members').map(m=>'<div class="entry"><span>'+esc(m.name)+' · '+esc(m.instrument)+'</span><button data-link-roster="'+m.id+'">'+(info.members.some(a=>a.member_id===m.id)?'Change account link':'Link account')+'</button></div>').join('')+'</div></div></details>':''}
 function collaborationBoard(){
  const info=state.data.collaboration;
  if(!info){
@@ -39,8 +40,7 @@ function collaborationBoard(){
    '<details class="mentionDisclosure"><summary>@ Mention bandmates</summary><fieldset class="mentionPills"><legend>Select people to notify</legend>'+info.members.filter(m=>m.id!==info.user_id).map(m=>'<label><input type="checkbox" name="mention_user_ids" value="'+m.id+'">@'+esc(m.display_name)+'</label>').join('')+'</fieldset></details></form>':'')+'</section>':
   '<section class="messenger messengerEmpty"><p>Select a conversation to start messaging.</p></section>';
  const primary='<section class="hubChatWorkspace" aria-label="Band conversations"><aside class="hubThreadRail"><header><h2>Conversations</h2>'+(collabAdmin()?'<button type="button" data-new-thread aria-label="New discussion">+ New</button>':'')+'</header><nav aria-label="Band conversations">'+(choices||'<p class="sub">No conversations yet.</p>')+'</nav></aside>'+chat+'</section>';
- const admin=collabAdmin()?'<details class="hubDisclosure"><summary>Band administration</summary><div class="hubDisclosureBody"><h3>Link roster identities</h3><p class="sub">Connect roster members with their band accounts.</p><div class="list">'+get('members').map(m=>'<div class="entry"><span>'+esc(m.name)+' · '+esc(m.instrument)+'</span><button data-link-roster="'+m.id+'">'+(info.members.some(a=>a.member_id===m.id)?'Change account link':'Link account')+'</button></div>').join('')+'</div></div></details>':'';
- return primary+'<div class="hubSecondary"><div class="hubQuickLinks"><button data-go="schedule">Schedule</button><button data-go="notifications">Notifications</button><button data-go="media">Photos & albums</button><button data-go="tasks">Tasks</button></div>'+admin+'</div>';
+ return primary;
 }
 // Messenger keyboard convention: Enter sends, Shift+Enter creates a newline.
 // Composition events must never send a partially composed IME message.
