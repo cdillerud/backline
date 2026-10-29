@@ -386,12 +386,16 @@ function showops(){
  const showContact=advanceSnapshot.venue_contact||advanceSnapshot.production_contact||'Not recorded';
  const calls=[['Load-in',advanceSnapshot.load_in],['Soundcheck',advanceSnapshot.soundcheck],['Doors',advanceSnapshot.doors],['Showtime',advanceSnapshot.show_time]].filter(x=>x[1]);
  const personalTasks=get('tasks').filter(t=>t.event_id===chosen.id&&!t.completed);
+ const signedInUser=state.data.collaboration?.user_id;
+ const rosterMember=get('members').find(m=>Number(m.user_id)===Number(signedInUser)&&signedInUser!=null);
+ const assignedTasks=rosterMember?personalTasks.filter(t=>Number(t.assignee_id)===Number(rosterMember.id)):[];
+ const myView=signedInUser!=null?'<div class="gigPersonal"><h4>My show</h4><p>'+(rosterMember?assignedTasks.length+' task'+(assignedTasks.length===1?'':'s')+' assigned to me':'Personal assignment not linked to roster')+'</p><button type="button" data-show-rsvp>My RSVP</button></div>':'';
  const essentials='<section class="gigEssentials" aria-label="Gig essentials"><div class="gigEssentialsHead"><div><span class="eyebrow">AT A GLANCE</span><h3>Gig essentials</h3></div><span class="tag muted">'+esc(chosen.status||'Status not recorded')+'</span></div><div class="gigEssentialsGrid">'+
   '<div><small>When & where</small><strong>'+datePretty(chosen.date)+' · '+esc(chosen.time||'Time not recorded')+'</strong><span>'+esc(advanceSnapshot.venue_address||chosen.venue||'Venue location not recorded')+'</span></div>'+
   '<div><small>Show calls</small><strong>'+(calls.length?calls.map(x=>esc(x[0])+': '+esc(x[1])).join(' · '):'Times not recorded')+'</strong><span>'+esc(advanceSnapshot.timezone||'Time zone not recorded')+'</span></div>'+
   '<div><small>Contact</small><strong>'+esc(showContact)+'</strong><span>'+esc(advanceSnapshot.contact_phone||advanceSnapshot.contact_email||'Contact details not recorded')+'</span></div>'+
   '<div><small>Show preparation</small><strong>'+personalTasks.length+' open show tasks</strong><button type="button" data-show-context="tasks">Review tasks</button></div></div>'+
-  '<div class="gigEssentialsActions"><button type="button" data-show-context="schedule">Attendance & calendar</button><button type="button" data-show-tab="timeline">Day-of-show details</button><button type="button" data-show-tab="advance">Advance & contacts</button></div></section>';
+  myView+'<div class="gigEssentialsActions"><button type="button" data-show-context="schedule">Attendance & calendar</button><button type="button" data-show-tab="timeline">Day-of-show details</button><button type="button" data-show-tab="advance">Advance & contacts</button></div></section>';
  const linkedSetlists=get('setlists').filter(x=>x.event_id===chosen.id);
  const setlistSummary='<section class="showMusicSummary" aria-label="Show setlists"><div><h3>Setlists for this show</h3><p class="sub">'+(linkedSetlists.length?linkedSetlists.length+' linked setlist'+(linkedSetlists.length===1?'':'s'):'No setlist linked yet')+'</p></div><div class="actions">'+
   linkedSetlists.map(x=>'<button type="button" data-show-performance="'+x.id+'">Perform: '+esc(x.title)+'</button>').join('')+
@@ -472,6 +476,10 @@ document.addEventListener('click',event=>{
  const booking=get('bookings').find(x=>x.id===Number(button.dataset.bookingShow));
  if(!booking||booking.stage!=='Confirmed')return;
  state.eventEdit=null;state.eventDraftBooking=booking.id;state.eventDraftDate=null;state.modal='event';render();
+});
+document.addEventListener('click',event=>{
+ const button=event.target.closest('[data-show-rsvp]');
+ if(button&&state.showGig){state.section='schedule';render();openCalendarEventDialog(state.showGig);document.querySelector('[data-schedule-rsvp]')?.click()}
 });
 document.addEventListener('click',event=>{
  const button=event.target.closest('[data-show-performance]');
@@ -576,4 +584,4 @@ document.addEventListener('submit',async e=>{if(e.target.id!=='entryForm')return
 if(type==='invitation'){const box=document.createElement('div');box.className='modalWrap';box.id='inviteResult';box.innerHTML='<div class="modal"><h2>Invitation created</h2><p class="sub">Copy this secret token and deliver it securely to the invited user. It expires in seven days.</p><textarea readonly id="invitationToken" aria-label="Invitation token"></textarea><div class="actions"><button id="copyInvite" type="button">Copy token</button><button id="closeInvite" type="button">Close</button></div></div>';document.body.append(box);document.querySelector('#invitationToken').value=response.invite_token;document.querySelector('#copyInvite').onclick=()=>navigator.clipboard.writeText(response.invite_token).then(()=>toast('Token copied')).catch(()=>toast('Select and copy the token manually',true));document.querySelector('#closeInvite').onclick=()=>box.remove()}toast(type==='invitation'?'Invitation created':'Saved successfully');await load();if(type==='event'&&state.section==='schedule')await refreshCalendar(state.calendarAll===true);if(editingEventId&&state.section==='schedule'&&typeof openCalendarEventDialog==='function')openCalendarEventDialog(editingEventId);if(type==='campaign'||type==='market')await refreshStudio()}catch(x){toast(x.message,true)}});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>load(),{once:true});else load();
 
-document.addEventListener('keydown',event=>{const tab=event.target.closest('[role="tab"]');if(!tab?.hasAttribute('data-show-tab')||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const tabs=[...tab.parentElement.querySelectorAll('[role="tab"]')],index=tabs.indexOf(tab);const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;const key=tabs[next].dataset.showTab;tabs[next].click();document.querySelector('[data-show-tab="'+key+'"]')?.focus()});
+document.addEventListener('keydown',event=>{const tab=event.target.closest('[role="tab"]');if(!tab?.hasAttribute('data-show-tab')||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const tabs=[...tab.parentElement.querySelectorAll('[role="tab"]')],index=tabs.indexOf(tab);const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;const key=tabs[next].dataset.showTab;state.showTab=key;render();document.querySelector('.showTabBar [data-show-tab="'+key+'"]')?.focus()});
