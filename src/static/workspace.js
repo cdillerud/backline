@@ -114,7 +114,7 @@ function openCalendarEventDialog(id){
   '<section id="calendarAttendance" class="calendarAttendance" hidden aria-label="Event attendance"></section>'+
   '<div class="actions calendarDialogActions">'+action('data-schedule-edit','Edit event')+
   action('data-schedule-move','Change date')+action('data-assign-calendar','Choose calendar')+
-  action('data-schedule-rsvp','Availability & RSVPs')+extras+'</div>';
+  '<button type="button" data-schedule-rsvp="'+id+'" aria-controls="calendarAttendance" aria-expanded="false">Availability & RSVPs</button>'+extras+'</div>';
  document.body.append(modal);
  const origin=document.activeElement;
  modal.addEventListener('close',()=>{
@@ -137,8 +137,9 @@ async function openEventAttendance(id){
  const bandAtOpen=state.band;
  const sessionAtOpen=sessionStorage.getItem('backline_session');
  const stillCurrent=()=>box.isConnected&&state.band===bandAtOpen&&sessionStorage.getItem('backline_session')===sessionAtOpen;
- if(!box.hidden){box.hidden=true;return}
- box.hidden=false;box.innerHTML='<p class="sub">Loading event attendance…</p>';
+ const toggle=document.querySelector('#calendarEventDialog [data-schedule-rsvp]');
+ if(!box.hidden){box.hidden=true;toggle?.setAttribute('aria-expanded','false');return}
+ box.hidden=false;toggle?.setAttribute('aria-expanded','true');box.innerHTML='<p class="sub">Loading event attendance…</p>';
  if(!sessionStorage.getItem('backline_session')){box.innerHTML='<p>Sign in with a band account to view attendance and respond.</p>';return}
  const base=workspaceBase()+'/events/'+id;
  const draw=async()=>{
