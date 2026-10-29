@@ -286,9 +286,17 @@ document.addEventListener('drop',async event=>{
  }catch(error){toast(error.message,true)}
 });
 document.addEventListener('keydown',event=>{
- if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-calendar-day]')){
-  event.preventDefault();createEventOnCalendarDate(event.target.dataset.calendarDay);
+ const day=event.target.closest('[data-calendar-day]');
+ if(!day||event.target!==day)return;
+ if(event.key==='Enter'||event.key===' '){
+  event.preventDefault();createEventOnCalendarDate(day.dataset.calendarDay);return;
  }
+ const offset={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}[event.key];
+ if(offset===undefined)return;
+ event.preventDefault();
+ const days=[...document.querySelectorAll('[data-calendar-day]')];
+ const next=days[days.indexOf(day)+offset];
+ if(next)next.focus();
 });
 document.addEventListener('click',event=>{
  const step=event.target.closest('[data-calendar-month-step]'),todayButton=event.target.closest('[data-calendar-today]');
