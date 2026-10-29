@@ -77,6 +77,7 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert essentials.get_by_text("When & where").is_visible()
             assert essentials.get_by_text("Show calls").is_visible()
             assert essentials.get_by_text("Contact",exact=True).is_visible()
+            assert essentials.get_by_role("button",name="My RSVP").is_visible()
             assert page.get_by_role("region",name="Show setlists").is_visible()
             assert page.locator(".showMusicSummary [data-show-context='setlists']").is_visible()
             page.locator('.showJourneySteps [data-show-context="tasks"]').click()
