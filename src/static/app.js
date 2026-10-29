@@ -382,6 +382,16 @@ function showops(){
  const docs=get('showPackets'),files=get('showFiles');
  const complete=docs.filter(x=>x.status==='ready').length;
  const summary='<div class="showOverview"><div><span class="eyebrow">SHOW PRODUCTION</span><h2>'+esc(chosen.title)+'</h2><p>'+datePretty(chosen.date)+' · '+esc(chosen.venue||'Venue to confirm')+'</p></div><div class="showMetrics"><span><strong>'+complete+'/'+docs.length+'</strong> documents ready</span><span><strong>'+files.length+'</strong> files attached</span><span><strong>'+(state.data.showStage?.inputs?.length||0)+'</strong> audio inputs</span></div></div>';
+ const advanceSnapshot=state.data.showAdvance||{};
+ const showContact=advanceSnapshot.venue_contact||advanceSnapshot.production_contact||'Not recorded';
+ const calls=[['Load-in',advanceSnapshot.load_in],['Soundcheck',advanceSnapshot.soundcheck],['Doors',advanceSnapshot.doors],['Showtime',advanceSnapshot.show_time]].filter(x=>x[1]);
+ const personalTasks=get('tasks').filter(t=>t.event_id===chosen.id&&!t.completed);
+ const essentials='<section class="gigEssentials" aria-label="Gig essentials"><div class="gigEssentialsHead"><div><span class="eyebrow">AT A GLANCE</span><h3>Gig essentials</h3></div><span class="tag muted">'+esc(chosen.status||'Status not recorded')+'</span></div><div class="gigEssentialsGrid">'+
+  '<div><small>When & where</small><strong>'+datePretty(chosen.date)+' · '+esc(chosen.time||'Time not recorded')+'</strong><span>'+esc(advanceSnapshot.venue_address||chosen.venue||'Venue location not recorded')+'</span></div>'+
+  '<div><small>Show calls</small><strong>'+(calls.length?calls.map(x=>esc(x[0])+': '+esc(x[1])).join(' · '):'Times not recorded')+'</strong><span>'+esc(advanceSnapshot.timezone||'Time zone not recorded')+'</span></div>'+
+  '<div><small>Contact</small><strong>'+esc(showContact)+'</strong><span>'+esc(advanceSnapshot.contact_phone||advanceSnapshot.contact_email||'Contact details not recorded')+'</span></div>'+
+  '<div><small>My preparation</small><strong>'+personalTasks.length+' open show tasks</strong><button type="button" data-show-context="tasks">Review tasks</button></div></div>'+
+  '<div class="gigEssentialsActions"><button type="button" data-show-context="schedule">Attendance & calendar</button><button type="button" data-show-tab="timeline">Day-of-show details</button><button type="button" data-show-tab="advance">Advance & contacts</button></div></section>';
  const linkedSetlists=get('setlists').filter(x=>x.event_id===chosen.id);
  const setlistSummary='<section class="showMusicSummary" aria-label="Show setlists"><div><h3>Setlists for this show</h3><p class="sub">'+(linkedSetlists.length?linkedSetlists.length+' linked setlist'+(linkedSetlists.length===1?'':'s'):'No setlist linked yet')+'</p></div><div class="actions">'+
   linkedSetlists.map(x=>'<button type="button" data-show-performance="'+x.id+'">Perform: '+esc(x.title)+'</button>').join('')+
@@ -396,7 +406,7 @@ function showops(){
   '<button type="button" data-show-context="finance"><strong>5 · Settlement</strong><small>'+(existingSettlement?'Recorded':'Not recorded')+'</small></button></div></section>';
  const tabs=[['stage','Stage & inputs'],['advance','Advances & riders'],['timeline','Day of show'],['files','Contracts & files']];
  const active=state.showTab||'stage';
- html+=summary+journey+setlistSummary+'<div class="showTabBar" role="tablist">'+tabs.map(([key,label])=>'<button role="tab" aria-selected="'+(active===key)+'" class="'+(active===key?'selected':'')+'" data-show-tab="'+key+'">'+label+'</button>').join('')+'</div>';
+ html+=summary+essentials+journey+setlistSummary+'<div class="showTabBar" role="tablist">'+tabs.map(([key,label])=>'<button role="tab" aria-selected="'+(active===key)+'" class="'+(active===key?'selected':'')+'" data-show-tab="'+key+'">'+label+'</button>').join('')+'</div>';
 
  if(active==='advance'){
  html+=venueLinkPanel();
