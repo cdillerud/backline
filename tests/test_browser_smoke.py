@@ -147,8 +147,11 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             assert editor.locator('[name="date"]').input_value()==new_date
             assert editor.locator('[name="kind"]').input_value()=="Meeting"
             editor.locator('[name="title"]').fill("Edited calendar meeting")
+            editor.locator('[name="notes"]').fill("Bring the updated setlist and stage notes")
             editor.locator('button[type="submit"]').click()
             page.locator('[data-calendar-event="'+moved_id+'"]').filter(has_text="Edited calendar meeting").wait_for(state="visible",timeout=15000)
+            page.locator('[data-calendar-event="'+moved_id+'"]').click()
+            page.get_by_role("dialog",name="Event details: Edited calendar meeting").get_by_text("Bring the updated setlist and stage notes").wait_for(state="visible",timeout=15000)
             refreshed=page.get_by_role("dialog",name="Event details: Edited calendar meeting")
             refreshed.wait_for(state="visible",timeout=15000)
             assert refreshed.get_by_text("Edited calendar meeting").count()>0
