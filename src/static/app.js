@@ -390,7 +390,7 @@ function showops(){
   '<div><small>When & where</small><strong>'+datePretty(chosen.date)+' · '+esc(chosen.time||'Time not recorded')+'</strong><span>'+esc(advanceSnapshot.venue_address||chosen.venue||'Venue location not recorded')+'</span></div>'+
   '<div><small>Show calls</small><strong>'+(calls.length?calls.map(x=>esc(x[0])+': '+esc(x[1])).join(' · '):'Times not recorded')+'</strong><span>'+esc(advanceSnapshot.timezone||'Time zone not recorded')+'</span></div>'+
   '<div><small>Contact</small><strong>'+esc(showContact)+'</strong><span>'+esc(advanceSnapshot.contact_phone||advanceSnapshot.contact_email||'Contact details not recorded')+'</span></div>'+
-  '<div><small>My preparation</small><strong>'+personalTasks.length+' open show tasks</strong><button type="button" data-show-context="tasks">Review tasks</button></div></div>'+
+  '<div><small>Show preparation</small><strong>'+personalTasks.length+' open show tasks</strong><button type="button" data-show-context="tasks">Review tasks</button></div></div>'+
   '<div class="gigEssentialsActions"><button type="button" data-show-context="schedule">Attendance & calendar</button><button type="button" data-show-tab="timeline">Day-of-show details</button><button type="button" data-show-tab="advance">Advance & contacts</button></div></section>';
  const linkedSetlists=get('setlists').filter(x=>x.event_id===chosen.id);
  const setlistSummary='<section class="showMusicSummary" aria-label="Show setlists"><div><h3>Setlists for this show</h3><p class="sub">'+(linkedSetlists.length?linkedSetlists.length+' linked setlist'+(linkedSetlists.length===1?'':'s'):'No setlist linked yet')+'</p></div><div class="actions">'+
