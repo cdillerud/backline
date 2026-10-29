@@ -140,7 +140,14 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             details.wait_for(state="visible")
             assert details.get_by_text("Meeting",exact=True).count()>0
             assert details.get_by_role("button",name="Change date").count()==1
-            assert details.get_by_role("button",name="Availability & RSVPs").count()==1
+            attendance_toggle=details.get_by_role("button",name="Availability & RSVPs")
+            expect(attendance_toggle).to_have_attribute("aria-expanded","false")
+            attendance_toggle.click()
+            expect(attendance_toggle).to_have_attribute("aria-expanded","true")
+            expect(details.locator("#calendarAttendance")).to_be_visible()
+            attendance_toggle.click()
+            expect(attendance_toggle).to_have_attribute("aria-expanded","false")
+            expect(details.locator("#calendarAttendance")).to_be_hidden()
             details.get_by_role("button",name="Edit event").click()
             editor=page.locator("#entryForm")
             assert editor.locator('[name="title"]').input_value()=="Synthetic calendar move test"
