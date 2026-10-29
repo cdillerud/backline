@@ -162,18 +162,22 @@ async function openEventAttendance(id){
   if(event.target.id!=='calendarRsvpForm')return;
   event.preventDefault();const button=event.target.querySelector('[type="submit"]');button.disabled=true;
   try{await api(base+'/rsvp',{method:'PUT',body:JSON.stringify(Object.fromEntries(new FormData(event.target)))});if(!stillCurrent())return;await draw();if(stillCurrent())toast('Your RSVP saved')}
-  catch(error){box.querySelector('#calendarAttendanceStatus').textContent=error.message;button.disabled=false}
+  catch(error){if(!stillCurrent())return;const status=box.querySelector('#calendarAttendanceStatus');if(status)status.textContent=error.message;if(button.isConnected)button.disabled=false}
  });
  box.addEventListener('click',async event=>{
   const button=event.target.closest('#calendarRequestRsvps');if(!button)return;button.disabled=true;
   try{await api(base+'/rsvp-requests',{method:'POST'});if(stillCurrent())box.querySelector('#calendarAttendanceStatus').textContent='RSVP requests sent to band notifications'}
-  catch(error){box.querySelector('#calendarAttendanceStatus').textContent=error.message;button.disabled=false}
+  catch(error){if(!stillCurrent())return;const status=box.querySelector('#calendarAttendanceStatus');if(status)status.textContent=error.message;if(button.isConnected)button.disabled=false}
  });
  await draw();
 }
 async function openRehearsalPlan(id){
+ const bandAtOpen=state.band;
+ const sessionAtOpen=sessionStorage.getItem('backline_session');
  const base=workspaceBase()+'/rehearsals/'+id+'/plan';
+ const stillCurrent=()=>state.band===bandAtOpen&&sessionStorage.getItem('backline_session')===sessionAtOpen;
  const plan=await api(base);
+ if(!stillCurrent())return;
  const info=state.data.collaboration;
  const permitted=['owner','manager'].includes(info?.role||state.accountRole);
  const dialog=document.createElement('dialog');
@@ -196,8 +200,9 @@ async function openRehearsalPlan(id){
   try{
    const data=Object.fromEntries(new FormData(event.target));
    await api(base,{method:'PUT',body:JSON.stringify(data)});
+   if(!stillCurrent()||!dialog.isConnected)return;
    dialog.close();toast('Rehearsal plan saved');
-  }catch(error){dialog.querySelector('[role="alert"]').textContent=error.message;button.disabled=false}
+  }catch(error){if(!stillCurrent()||!dialog.isConnected)return;dialog.querySelector('[role="alert"]').textContent=error.message;button.disabled=false}
  };
  dialog.showModal();
 }
