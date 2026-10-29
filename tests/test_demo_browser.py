@@ -71,6 +71,8 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             page.evaluate("() => openShowPacketGig(Number(get('events').find(e => e.kind === 'Gig').id))")
             page.get_by_role("heading",name="Show workflow",exact=True).wait_for(state="visible",timeout=15000)
             assert page.locator(".showJourneySteps button").count()==5
+            assert page.get_by_role("region",name="Show setlists").is_visible()
+            assert page.get_by_role("button",name="Create a setlist").is_visible()
             page.locator('[data-show-context="tasks"]').click()
             page.get_by_role("heading",name="Tasks",exact=True).wait_for(state="visible",timeout=15000)
             assert page.locator(".workspaceContext").is_visible()
