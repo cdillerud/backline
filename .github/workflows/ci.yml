@@ -13,6 +13,27 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: pip install -r requirements.txt
-      - run: BACKLINE_LOCAL_DEV=1 python -m pytest -q
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install Chromium
+        timeout-minutes: 10
+        run: python -m playwright install --only-shell chromium
+      - name: Authenticated demo acceptance tests
+        timeout-minutes: 6
+        run: BACKLINE_LOCAL_DEV=1 python -m pytest -vv -x -s tests/test_demo_accounts.py tests/test_demo_browser.py
+      - name: Complete regression suite
+        timeout-minutes: 18
+        run: BACKLINE_LOCAL_DEV=1 python -m pytest -vv -x --ignore=tests/test_demo_accounts.py --ignore=tests/test_demo_browser.py
       - run: node --check src/static/app.js
+      - run: node --check src/static/workspace.js
+      - name: Check collaboration, media, sharing and PWA scripts
+        run: |
+          node --check src/static/collaboration.js
+          node --check src/static/media.js
+          node --check src/static/sharing.js
+          node --check src/static/pwa.js
+          node --check src/static/operations.js
+          node --check src/static/service-worker.js
+      - name: Audit production dependencies
+        run: python -m pip_audit -r requirements.txt
+      - name: Compile application modules
+        run: python -m compileall -q src
