@@ -19,6 +19,15 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
         expect(page.get_by_role("button",name="+ Add event")).to_be_visible()
         # Single-tap event creation works in both desktop and mobile layouts.
         first_day=page.locator("[data-calendar-day]").first
+        # Calendar supports keyboard day-to-day and week-to-week navigation.
+        first_day.focus()
+        first_day.press("ArrowRight")
+        expect(page.locator("[data-calendar-day]").nth(1)).to_be_focused()
+        page.locator("[data-calendar-day]").nth(1).press("ArrowDown")
+        expect(page.locator("[data-calendar-day]").nth(8)).to_be_focused()
+        page.locator("[data-calendar-day]").nth(8).press("ArrowUp")
+        expect(page.locator("[data-calendar-day]").nth(1)).to_be_focused()
+        first_day.focus()
         selected_date=first_day.get_attribute("data-calendar-day")
         first_day.get_by_role("button",name="Add event on "+selected_date).click()
         expect(page.locator("#entryForm input[name='date']")).to_have_value(selected_date)
