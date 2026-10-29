@@ -82,7 +82,7 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             page.get_by_role("dialog",name="Add task").get_by_role("button",name="Cancel").click()
             page.locator("[data-return-show]").click()
             page.get_by_role("heading",name="Show workflow",exact=True).wait_for(state="visible",timeout=15000)
-            page.locator('[data-show-context="setlists"]').click()
+            page.locator('.showJourneySteps [data-show-context="setlists"]').click()
             assert page.locator(".workspaceContext").is_visible()
             page.locator("[data-return-show]").click()
             page.get_by_role("heading",name="Show workflow",exact=True).wait_for(state="visible",timeout=15000)
