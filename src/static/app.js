@@ -382,6 +382,10 @@ function showops(){
  const docs=get('showPackets'),files=get('showFiles');
  const complete=docs.filter(x=>x.status==='ready').length;
  const summary='<div class="showOverview"><div><span class="eyebrow">SHOW PRODUCTION</span><h2>'+esc(chosen.title)+'</h2><p>'+datePretty(chosen.date)+' · '+esc(chosen.venue||'Venue to confirm')+'</p></div><div class="showMetrics"><span><strong>'+complete+'/'+docs.length+'</strong> documents ready</span><span><strong>'+files.length+'</strong> files attached</span><span><strong>'+(state.data.showStage?.inputs?.length||0)+'</strong> audio inputs</span></div></div>';
+ const linkedSetlists=get('setlists').filter(x=>x.event_id===chosen.id);
+ const setlistSummary='<section class="showMusicSummary" aria-label="Show setlists"><div><h3>Setlists for this show</h3><p class="sub">'+(linkedSetlists.length?linkedSetlists.length+' linked setlist'+(linkedSetlists.length===1?'':'s'):'No setlist linked yet')+'</p></div><div class="actions">'+
+  linkedSetlists.map(x=>'<button type="button" data-show-performance="'+x.id+'">Perform: '+esc(x.title)+'</button>').join('')+
+  '<button type="button" data-show-context="setlists">'+(linkedSetlists.length?'Manage setlists':'Create a setlist')+'</button></div></section>';
  const existingSettlement=get('settlements').find(x=>x.event_id===chosen.id);
  const prepTasks=get('tasks').filter(t=>t.event_id===chosen.id&&!t.completed);
  const journey='<section class="showJourney" aria-label="Show workflow"><div class="showJourneyHeader"><h3>Show workflow</h3><p class="sub">One show, connected preparation and follow-through.</p></div><div class="showJourneySteps">'+
@@ -392,7 +396,7 @@ function showops(){
   '<button type="button" data-show-context="finance"><strong>5 · Settlement</strong><small>'+(existingSettlement?'Recorded':'Not recorded')+'</small></button></div></section>';
  const tabs=[['stage','Stage & inputs'],['advance','Advances & riders'],['timeline','Day of show'],['files','Contracts & files']];
  const active=state.showTab||'stage';
- html+=summary+journey+'<div class="showTabBar" role="tablist">'+tabs.map(([key,label])=>'<button role="tab" aria-selected="'+(active===key)+'" class="'+(active===key?'selected':'')+'" data-show-tab="'+key+'">'+label+'</button>').join('')+'</div>';
+ html+=summary+journey+setlistSummary+'<div class="showTabBar" role="tablist">'+tabs.map(([key,label])=>'<button role="tab" aria-selected="'+(active===key)+'" class="'+(active===key?'selected':'')+'" data-show-tab="'+key+'">'+label+'</button>').join('')+'</div>';
 
  if(active==='advance'){
  html+=venueLinkPanel();
@@ -458,6 +462,10 @@ document.addEventListener('click',event=>{
  const booking=get('bookings').find(x=>x.id===Number(button.dataset.bookingShow));
  if(!booking||booking.stage!=='Confirmed')return;
  state.eventEdit=null;state.eventDraftBooking=booking.id;state.eventDraftDate=null;state.modal='event';render();
+});
+document.addEventListener('click',event=>{
+ const button=event.target.closest('[data-show-performance]');
+ if(button)openSetlistPerformance(Number(button.dataset.showPerformance));
 });
 document.addEventListener('click',event=>{
  const button=event.target.closest('[data-show-context]');
