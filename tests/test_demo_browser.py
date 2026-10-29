@@ -79,7 +79,7 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert essentials.get_by_text("Contact",exact=True).is_visible()
             assert page.get_by_role("region",name="Show setlists").is_visible()
             assert page.locator(".showMusicSummary [data-show-context='setlists']").is_visible()
-            page.locator('[data-show-context="tasks"]').click()
+            page.locator('.showJourneySteps [data-show-context="tasks"]').click()
             page.get_by_role("heading",name="Tasks",exact=True).wait_for(state="visible",timeout=15000)
             assert page.locator(".workspaceContext").is_visible()
             page.locator("[data-new-task]").click()
@@ -91,7 +91,7 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert page.locator(".workspaceContext").is_visible()
             page.locator("[data-return-show]").click()
             page.get_by_role("heading",name="Show workflow",exact=True).wait_for(state="visible",timeout=15000)
-            page.locator('[data-show-context="tasks"]').click()
+            page.locator('.showJourneySteps [data-show-context="tasks"]').click()
             assert page.locator(".workspaceContext").is_visible()
             page.get_by_role("button",name="My Tasks").click()
             assert page.locator(".workspaceContext").count()==0
