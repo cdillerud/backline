@@ -134,6 +134,9 @@ function openCalendarEventDialog(id){
 async function openEventAttendance(id){
  const box=document.querySelector('#calendarEventDialog #calendarAttendance');
  if(!box)return;
+ const bandAtOpen=state.band;
+ const sessionAtOpen=sessionStorage.getItem('backline_session');
+ const stillCurrent=()=>box.isConnected&&state.band===bandAtOpen&&sessionStorage.getItem('backline_session')===sessionAtOpen;
  if(!box.hidden){box.hidden=true;return}
  box.hidden=false;box.innerHTML='<p class="sub">Loading event attendance…</p>';
  if(!sessionStorage.getItem('backline_session')){box.innerHTML='<p>Sign in with a band account to view attendance and respond.</p>';return}
@@ -141,7 +144,7 @@ async function openEventAttendance(id){
  const draw=async()=>{
   try{
    const [info,rows]=await Promise.all([api(workspaceBase()+'/collaboration'),api(base+'/rsvps')]);
-   if(!box.isConnected)return;
+   if(!stillCurrent())return;
    const own=rows.find(r=>Number(r.user_id)===Number(info.user_id));
    const writer=['owner','manager','member'].includes(info.role);
    const admin=['owner','manager'].includes(info.role);
@@ -153,17 +156,17 @@ async function openEventAttendance(id){
     (writer?'<form id="calendarRsvpForm"><label for="calendarRsvpResponse">Your RSVP</label><select id="calendarRsvpResponse" name="response" required>'+[['unknown','Not answered'],['yes','Going'],['maybe','Maybe'],['no',"Can't go"]].map(([v,label])=>'<option value="'+v+'" '+((own?.response||'unknown')===v?'selected':'')+'>'+label+'</option>').join('')+'</select><label for="calendarRsvpNote">Availability note</label><textarea id="calendarRsvpNote" name="note" maxlength="1000" rows="2">'+esc(own?.note||'')+'</textarea><button class="primary" type="submit">Save my RSVP</button></form>':'')+
     (admin?'<button type="button" id="calendarRequestRsvps">Request responses</button>':'')+
     '<p id="calendarAttendanceStatus" role="status"></p>';
-  }catch(error){if(box.isConnected)box.innerHTML='<p role="alert">'+esc(error.message)+'</p>'}
+  }catch(error){if(stillCurrent())box.innerHTML='<p role="alert">'+esc(error.message)+'</p>'}
  };
  box.addEventListener('submit',async event=>{
   if(event.target.id!=='calendarRsvpForm')return;
   event.preventDefault();const button=event.target.querySelector('[type="submit"]');button.disabled=true;
-  try{await api(base+'/rsvp',{method:'PUT',body:JSON.stringify(Object.fromEntries(new FormData(event.target)))});await draw();toast('Your RSVP saved')}
+  try{await api(base+'/rsvp',{method:'PUT',body:JSON.stringify(Object.fromEntries(new FormData(event.target)))});if(!stillCurrent())return;await draw();if(stillCurrent())toast('Your RSVP saved')}
   catch(error){box.querySelector('#calendarAttendanceStatus').textContent=error.message;button.disabled=false}
  });
  box.addEventListener('click',async event=>{
   const button=event.target.closest('#calendarRequestRsvps');if(!button)return;button.disabled=true;
-  try{await api(base+'/rsvp-requests',{method:'POST'});box.querySelector('#calendarAttendanceStatus').textContent='RSVP requests sent to band notifications'}
+  try{await api(base+'/rsvp-requests',{method:'POST'});if(stillCurrent())box.querySelector('#calendarAttendanceStatus').textContent='RSVP requests sent to band notifications'}
   catch(error){box.querySelector('#calendarAttendanceStatus').textContent=error.message;button.disabled=false}
  });
  await draw();
