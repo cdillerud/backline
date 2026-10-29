@@ -38,6 +38,7 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             page.locator("nav[aria-label='Primary workspaces']").wait_for(state="visible",timeout=15000)
             page.get_by_text("Confirm showcase stage plot (demo)").first.wait_for(state="visible",timeout=15000)
             page.get_by_text("Finalize rehearsal set transitions (demo)").first.wait_for(state="visible",timeout=15000)
+            assert page.locator("[data-show-gig]").count() >= 1
             page.locator("[data-go='collaboration']").first.click()
             page.get_by_text("Weekend show preparation (demo)").first.wait_for(state="visible",timeout=15000)
             page.get_by_role("heading",name="Conversations",exact=True).wait_for(state="visible",timeout=15000)
