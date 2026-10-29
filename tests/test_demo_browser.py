@@ -72,6 +72,11 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             page.evaluate("() => openShowPacketGig(Number(get('events').find(e => e.kind === 'Gig').id))")
             page.get_by_role("heading",name="Show workflow",exact=True).wait_for(state="visible",timeout=15000)
             assert page.locator(".showJourneySteps button").count()==5
+            essentials = page.get_by_role("region",name="Gig essentials")
+            assert essentials.is_visible()
+            assert essentials.get_by_text("When & where").is_visible()
+            assert essentials.get_by_text("Show calls").is_visible()
+            assert essentials.get_by_text("Contact",exact=True).is_visible()
             assert page.get_by_role("region",name="Show setlists").is_visible()
             assert page.locator(".showMusicSummary [data-show-context='setlists']").is_visible()
             page.locator('[data-show-context="tasks"]').click()
