@@ -226,6 +226,7 @@ async function openShowPacketGig(id,destination='showops'){
   const actor=state.data.collaboration?.user_id;
   const own=Array.isArray(rsvps)&&actor!=null?rsvps.find(row=>Number(row.user_id)===Number(actor)):null;
   state.data.showOwnRsvp=Array.isArray(rsvps)?{response:own?.response||'unknown',note:own?.note||''}:null;
+  state.data.showLoadedAt=Date.now();
   state.gigdayLoading=null;state.gigdayError=null;state.section=destination;render();
  }catch(error){if(current()){if(destination==='gigday'){state.gigdayLoading=null;state.gigdayError=error.message;render()}toast(error.message,true)}}
 }
