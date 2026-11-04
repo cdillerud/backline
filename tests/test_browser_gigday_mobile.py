@@ -53,5 +53,15 @@ def test_gig_day_mobile_view_and_show_switch(account_server,accounts,width):
         expect(picker).to_have_value(str(second_gig))
         page.get_by_role('button',name='My RSVP',exact=True).click()
         expect(page.locator('#gigdayRsvpResponse')).to_be_focused()
+        # If the musician navigates away while a show fetch is in flight, the
+        # completed network response must not force them back into Gig Day.
+        remaining=page.evaluate("""(id) => {
+            const pending=openShowPacketGig(id,'gigday');
+            state.section='dashboard';
+            render();
+            return pending.then(()=>state.section);
+        }""",first_gig)
+        assert remaining=='dashboard'
+        expect(page.get_by_role('heading',name='Home',exact=True)).to_be_visible()
         assert not failures,failures
         browser.close()
