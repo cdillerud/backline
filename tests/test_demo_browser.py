@@ -112,7 +112,7 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert own_rsvp.get_by_label("Response").evaluate("(node)=>document.activeElement===node")
             focused.get_by_role("button",name="Refresh").click()
             own_rsvp.locator(".tag").get_by_text("Maybe",exact=True).wait_for(state="visible",timeout=15000)
-            assert focused.get_by_role("button",name="Notifications").is_visible()
+            assert focused.get_by_role("button",name="Notifications",exact=True).is_visible()
             assert focused.get_by_role("button",name="Setlist",exact=True).is_visible()
             focused.get_by_role("button",name="Detailed production").click()
             page.get_by_role("heading",name="Show workflow",exact=True).wait_for(state="visible",timeout=15000)
