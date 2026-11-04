@@ -78,6 +78,8 @@ def test_member_collaboration_live_updates_and_notifications(account_server,acco
         assert person.locator('.bandHomeQuickActions [data-action="song"]').count()==0
         assert person.locator('.bandHomeQuickActions [data-action="event"]').count()==0
         expect(person.get_by_role('heading',name='Recent conversations')).to_be_visible()
+        assert person.locator('[data-home-crew]').count()==0
+        assert person.get_by_text('Production documents',exact=True).count()==0
         navigate(person,'schedule')
         person.evaluate("() => openCalendarEventDialog(Number(get('events')[0].id))")
         person.get_by_role('button',name='Availability & RSVPs').click()
