@@ -38,7 +38,7 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             page.on("pageerror",lambda error:errors.append(str(error)))
             page.goto(url,wait_until="networkidle")
             assert page.locator("#app").is_visible()
-            assert page.get_by_text("Dashboard",exact=True).count()>0
+            assert page.get_by_role("heading",name="Home",exact=True).count()>0
             assert page.locator("nav[aria-label='Primary workspaces'] > button").count()==6
             page.get_by_role("heading",name="What needs attention",exact=True).wait_for(state="visible")
             page.locator("[data-go='collaboration']").first.click()
