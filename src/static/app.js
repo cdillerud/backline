@@ -96,7 +96,7 @@ function fullDashboard(){
   stat('Recordings',Array.isArray(recordings)?recordings.length:0,'songs','in the library')+'</div>';
  const next=panel('Coming up',events.length?'<div class="list">'+events.slice(0,5).map(e=>
   '<div class="entry"><div class="entryMain"><span class="tag muted">'+esc(e.kind||'Event')+'</span><strong>'+esc(e.title)+'</strong><small>'+datePretty(e.date)+' · '+esc(e.time||'Time TBD')+' · '+esc(e.venue||'Location TBD')+'</small></div>'+
-  (e.kind==='Gig'&&e.id?'<button class="small" data-show-gig="'+e.id+'">Open show</button>':'<button class="small" data-go="schedule">Schedule</button>')+'</div>').join('')+'</div>':
+  (e.id?'<button class="small" data-home-event="'+e.id+'">Event details & RSVP</button>':'<button class="small" data-go="schedule">Schedule</button>')+'</div>').join('')+'</div>':
   '<p class="sub">No upcoming shows or rehearsals recorded.</p>'+(canManage?'<button data-action="event">Add an event</button>':''),
   '<button class="small" data-go="schedule">Open calendar</button>');
  const focus=[
