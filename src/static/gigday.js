@@ -30,7 +30,8 @@ function gigday(){
  const phoneDigits=phone.replace(/[^+0-9]/g,'');
  const contactActions=(phoneDigits.length>=7?'<a class="gigdayLink" href="tel:'+esc(phoneDigits)+'">Call venue contact</a>':'')+
   (String(advance.contact_email||'').includes('@')?'<a class="gigdayLink" href="mailto:'+encodeURIComponent(advance.contact_email)+'">Email venue contact</a>':'');
- const tasks=assigned.length?'<ul class="gigdayTaskList">'+assigned.slice(0,5).map(t=>'<li>'+esc(t.title)+(t.due_date?' <small>Due '+datePretty(t.due_date)+'</small>':'')+'</li>').join('')+'</ul>':
+ const tasks=assigned.length?'<ul class="gigdayTaskList">'+assigned.slice(0,5).map(t=>'<li><span>'+esc(t.title)+(t.due_date?' <small>Due '+datePretty(t.due_date)+'</small>':'')+'</span>'+
+  '<button type="button" class="small" data-gigday-complete="'+Number(t.id)+'" aria-label="Mark '+esc(t.title)+' complete">Mark done</button></li>').join('')+'</ul>':
   '<p class="sub">'+(rosterId==null?'Your band account is not yet linked to a roster member.':'No open tasks assigned to you for this show.')+'</p>';
  const repertoire=setlists.length?'<div class="gigdaySetlists">'+setlists.map(s=>{
   const songs=Array.isArray(s.songs)?s.songs:[];
@@ -64,7 +65,7 @@ function gigday(){
   alertPanel+'<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Venue and contact"><h3>Venue & contact</h3><p><strong>'+esc(venue)+'</strong></p><p>'+esc(contact)+'</p>'+
   '<p class="sub">'+esc(advance.parking||'Parking and access not recorded')+'</p><div class="gigdayContactActions">'+contactActions+'</div></section>'+
   '<section class="gigdayPanel" aria-label="My show tasks"><div class="gigdayPanelTitle"><h3>My assignments</h3><span class="tag muted">'+assigned.length+' open</span></div>'+
-  tasks+'<button class="small" data-gigday-tasks>Show task list</button></section>'+
+  tasks+'<p id="gigdayTaskStatus" class="sub" role="status"></p><button class="small" data-gigday-tasks>Show task list</button></section>'+
   '<section class="gigdayPanel" aria-label="Show music"><h3>Show music</h3>'+repertoire+
   '<button class="small" data-gigday-setlists>Manage show setlists</button></section>'+
   '<section class="gigdayPanel" aria-label="Personal lodging"><h3>My lodging</h3>'+hotel+'</section></div>'+
@@ -77,11 +78,27 @@ document.addEventListener('change',async event=>{
  await openShowPacketGig(Number(event.target.value),'gigday');
 });
 document.addEventListener('click',async event=>{
- const button=event.target.closest('[data-gigday-rsvp],[data-gigday-setlists],[data-gigday-tasks],[data-gigday-updates],[data-gigday-refresh],[data-gigday-perform],[data-gigday-production],[data-gigday-crew],[data-gigday-schedule],[data-gigday-ack]');
+ const button=event.target.closest('[data-gigday-rsvp],[data-gigday-setlists],[data-gigday-tasks],[data-gigday-updates],[data-gigday-refresh],[data-gigday-perform],[data-gigday-production],[data-gigday-crew],[data-gigday-schedule],[data-gigday-ack],[data-gigday-complete]');
  if(!button)return;
  event.preventDefault();
  const gig=Number(state.showGig),band=state.band;
  try{
+  if(button.hasAttribute('data-gigday-complete')){
+   const id=Number(button.dataset.gigdayComplete),token=sessionStorage.getItem('backline_session');
+   if(!Number.isSafeInteger(id)||id<=0)return;
+   button.disabled=true;
+   try{
+    await api('/bands/'+band+'/gigs/'+gig+'/tasks/'+id+'/complete-mine',{method:'POST'});
+    const updated=await api('/bands/'+band+'/tasks');
+    if(state.band!==band||Number(state.showGig)!==gig||sessionStorage.getItem('backline_session')!==token)return;
+    state.data.tasks=updated;
+    if(state.section==='gigday')render();
+    toast('Your task marked complete');
+   }catch(error){
+    if(button.isConnected){button.disabled=false;const status=document.querySelector('#gigdayTaskStatus');if(status)status.textContent=error.message}
+   }
+   return;
+  }
   if(button.hasAttribute('data-gigday-ack')){
    const id=Number(button.dataset.gigdayAck);
    if(!Number.isSafeInteger(id)||id<=0)return;
