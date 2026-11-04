@@ -56,11 +56,18 @@ async function refreshHomeSignals(){
  const responses=await Promise.allSettled(requests);
  if(state.band!==band||sessionStorage.getItem('backline_session')!==session)return;
  const discussions=responses[0].status==='fulfilled'?responses[0].value:null;
+ // Load only a bounded number of recent thread previews. These API routes enforce band membership.
+ const recentThreads=Array.isArray(discussions)?discussions.slice(0,3):[];
+ const postResults=await Promise.allSettled(recentThreads.map(t=>api(base+'/discussions/'+t.id+'/posts')));
+ if(state.band!==band||sessionStorage.getItem('backline_session')!==session)return;
+ const activity=recentThreads.flatMap((thread,i)=>postResults[i].status==='fulfilled'?
+  postResults[i].value.slice(-20).map(post=>({...post,thread_title:thread.title,thread_id:thread.id})) :[])
+  .sort((a,b)=>Number(b.created_at||0)-Number(a.created_at||0)).slice(0,5);
  const attendance=upcoming.map((e,i)=>({
   id:e.id,title:e.title,date:e.date,kind:e.kind,
   rows:responses[i+1].status==='fulfilled'?responses[i+1].value:null
  }));
- state.data.homeSignals={discussions,attendance};
+ state.data.homeSignals={discussions,attendance,activity};
 }
 async function load(){try{const previousBand=state.band;state.bands=await api('/bands');if(!state.bands.length){state.data={};state.accountRole='none';state.band=null;state.section='dashboard';render();return}if(!state.bands.find(b=>b.id===state.band))state.band=state.bands[0]?.id;if(!state.previewSelected){const example=state.bands.find(b=>b.name==='The Drunk Uncles (Demo)');if(example){state.band=example.id;state.previewSelected=true}}if(previousBand!==state.band){state.data={};state.discussionThread=null;state.rsvpEvent=null;state.showGig=null;state.selectedTour=null;state.studioGig=null;state.albumId=null;state.section='dashboard';document.dispatchEvent(new Event('backline-band-change'))}const b=`/bands/${state.band}`;if(sessionStorage.getItem('backline_session')){state.data.collaboration=await api(b+'/collaboration');state.accountRole=state.data.collaboration.role}else state.accountRole=null;let names=['dashboard','events','finance','transactions','songs','setlists','members','settlements','bookings','booking-followups','venues','tasks','song-details','shared-venues','member-photos','recordings'];const financial=new Set(['finance','transactions','settlements']);const canFinance=!state.accountRole||['owner','manager','treasurer'].includes(state.accountRole);const vals=await Promise.all(names.map(x=>!canFinance&&financial.has(x)?Promise.resolve(x==='finance'?{}:[]):api(`${b}/${x}`)));names.forEach((x,i)=>state.data[x]=vals[i]);await refreshHomeSignals();render()}catch(e){if(/Account login required|Invalid or expired session/.test(e.message)){sessionStorage.removeItem('backline_session');clearSessionState();loginScreen();return}toast(e.message,true)}}
 function toast(msg,err=false){document.querySelector('.toast')?.remove();let e=document.createElement('div');e.className='toast'+(err?' errorToast':'');e.setAttribute('role',err?'alert':'status');e.textContent=msg;document.body.append(e);setTimeout(()=>e.remove(),3600)}
@@ -120,13 +127,18 @@ function fullDashboard(){
  const music=panel('Music & preparation',songs.length?'<div class="list">'+Object.entries(statuses).map(([name,n])=>
   '<div class="entry"><strong>'+esc(name)+'</strong><span class="tag">'+n+' song'+(n===1?'':'s')+'</span></div>').join('')+'</div>':
   '<p class="sub">No songs in this band library yet.</p>','<button data-go="songs" class="small">Open music library</button>');
+ const updates=signals?.activity||[];
+ const activity=panel('Recent band activity',updates.length?'<div class="list">'+updates.slice(0,4).map(post=>
+  '<div class="entry"><div class="entryMain"><strong>'+esc(post.display_name||'Band member')+' · '+esc(post.thread_title)+'</strong><small>'+esc((post.body||'').slice(0,160))+'</small></div><button class="small" data-home-thread="'+post.thread_id+'">Discuss</button></div>').join('')+'</div>':
+  '<p class="sub">No recent discussion messages in the loaded band threads.</p>',
+  '<button class="small" data-go="collaboration">Band discussions</button>');
  const nextGig=allEvents.filter(e=>e.kind==='Gig'&&e.date>=today()).sort((a,b)=>a.date.localeCompare(b.date))[0];
  const linked=nextGig?get('setlists').filter(s=>Number(s.event_id)===Number(nextGig.id)):[];
  const readiness=panel('Next show preparation',nextGig?
   '<p><strong>'+esc(nextGig.title)+'</strong></p><p class="sub">'+datePretty(nextGig.date)+' · '+esc(nextGig.venue||'Venue not recorded')+'</p><p class="sub">'+linked.length+' linked setlist'+(linked.length===1?'':'s')+' recorded. Other production details are in the show workspace.</p><button data-show-gig="'+nextGig.id+'">Open show production</button>':
   '<p class="sub">No upcoming shows recorded.</p>','<button data-go="touring" class="small">Shows & Tours</button>');
  return '<section class="dashboardIntro bandHomeHeader"><div><span class="eyebrow">Your band home</span><h2>'+esc(band.name)+'</h2><p class="sub">The next gig, the music and the people — together.</p></div>'+quick+'</section>'+
- stats+'<div class="bandHomeGrid">'+next+attention+availability+conversation+music+readiness+'</div>';
+ stats+'<div class="bandHomeGrid">'+next+attention+availability+conversation+music+readiness+activity+'</div>';
 }
 function events(){let a=get('events');return `<div class="toolbar"><p>Book performances, track rehearsals and keep dates aligned.</p>${button('+ New event','event')}</div>${panel('Event calendar',a.length?`<div class="tableWrap"><table class="table"><thead><tr><th>Date</th><th>Type</th><th>Event</th><th>Venue / Location</th><th>Fee</th><th>Status</th></tr></thead><tbody>${a.map(e=>`<tr><td>${datePretty(e.date)}<br><span class="dim">${esc(e.time)}</span></td><td><span class="tag muted">${e.kind}</span></td><td><strong>${esc(e.title)}</strong></td><td>${esc(e.venue)}</td><td>${e.kind==='Gig'?dollars(e.fee_cents):'—'}</td><td>${esc(e.status)}</td></tr>`).join('')}</tbody></table></div>`:empty('Your gig and rehearsal calendar is empty.'))}`}
 function dashboard(){return fullDashboard()}
