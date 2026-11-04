@@ -84,6 +84,10 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert focused.get_by_text("My assignments",exact=True).is_visible()
             assert focused.get_by_text("Confirm showcase stage plot (demo)").is_visible()
             assert focused.get_by_text("My lodging",exact=True).is_visible()
+            directions=focused.get_by_role("link",name="Venue directions")
+            assert directions.is_visible()
+            assert directions.get_attribute("href").startswith("https://www.google.com/maps/search/?api=1&query=")
+            assert directions.get_attribute("rel")=="noopener noreferrer"
             assert focused.get_by_role("region",name="Urgent show changes").is_visible()
             assert focused.get_by_role("region",name="Show music").get_by_text("Example Opener").is_visible()
             assert focused.get_by_role("region",name="Show music").get_by_text("Example Closer").is_visible()
