@@ -117,4 +117,18 @@
 @media(max-width:1000px){.bandHomeStats{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){.bandHomeStats{grid-template-columns:repeat(2,minmax(0,1fr))}.bandHomeGrid{grid-template-columns:1fr}.bandHomeGrid .panel:first-child{grid-column:auto}.bandHomeQuickActions{width:100%}.bandHomeQuickActions button{flex:1 1 140px}}
 @media(max-width:380px){.bandHomeStats{grid-template-columns:1fr}}
+
+/* Gig-day brief: a practical view of the next show, not another manager-only tool. */
+.gigDayBrief{border-color:#486075}
+.gigDayBrief .panelHeading{flex-wrap:wrap}
+.gigDayCalls{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:18px 0}
+.gigDayCall{padding:14px;border-radius:10px;background:#1d2836;border:1px solid #35485a;min-width:0}
+.gigDayCall small{display:block;color:#9cacc0;margin-bottom:7px;font-size:12px}
+.gigDayCall strong{display:block;font-size:clamp(16px,2vw,21px);overflow-wrap:anywhere}
+.gigDayDetails{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-bottom:18px}
+.gigDayDetails h3{margin:0 0 8px;font-size:15px}
+.gigDayDetails p{margin:5px 0}
+.gigDayDetails li{overflow-wrap:anywhere}
+@media(max-width:800px){.gigDayCalls{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:580px){.gigDayCalls{grid-template-columns:repeat(2,minmax(0,1fr))}.gigDayDetails{grid-template-columns:1fr}.gigDayBrief .actions button{flex:1 1 145px}}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
