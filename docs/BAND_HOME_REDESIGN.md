@@ -59,3 +59,19 @@ Do not restore independent Shows/Rehearsals/Agenda/Calendars primary tabs. Do no
 
 ## Non-goals and safeguards
 No production merge/deploy, live email/push, public sharing, billing/paywall, calendar schema rewrite, or fake data. User screenshot is layout inspiration only. Measure feature parity by tasks completed, not by visual similarity.
+
+## Implementation record — November 3, 2026
+This design has now advanced beyond the initial P1 foundation on the integration branch:
+- Band Home now has real band-scoped summary counts, upcoming events, open work, music status groups and next-gig linked setlist information.
+- The Home panel loads authorized discussion thread titles and up to three upcoming events' RSVP rows; own responses and awaiting-response counts are distinguished from unavailable information.
+- Recent band discussion activity is derived from recent loaded posts on up to three authorized threads, not an invented global feed. It is deliberately partial, not a complete audit chronology.
+- Home deep links open the selected conversation or the event's attendance dialog. Existing source records and role rules remain authoritative.
+- Owner/manager creation shortcuts are available; member/viewer roles cannot see them. Band/session changes invalidate stale API responses.
+- Automated desktop/mobile checks now cover presence of panels, event dialog access, and authorization/cross-band behavior.
+- Legacy browser smoke assertions have been updated where they still expected the Dashboard/Overview heading; no production deploy or merge has occurred.
+
+### Remaining gaps
+- A full band-wide activity stream needs a dedicated permission-scoped aggregation API, stable pagination, audit semantics and independent authorization tests.
+- Availability cards currently show up to three upcoming events, rather than a definitive calendar-wide conflict resolver.
+- Show readiness reports only fields present in band data, especially linked setlists; stage/rider/guest/lodging completeness needs a separate scoped projection.
+- CI must pass on the **final** branch head before any preview deployment; do not claim certification based on prior test runs.
