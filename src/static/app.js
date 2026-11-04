@@ -210,12 +210,16 @@ async function openShowPacketGig(id,destination='showops'){
  if(destination==='gigday'){state.gigdayLoading=gig;state.gigdayError=null;state.section='gigday';render()}
  try{
   const base='/bands/'+band+'/gigs/'+gig;
-  const [packets,files,templates,stage,advance,timeline,venue,lodging,alerts]=await Promise.all([
+  const [packets,files,templates,stage,advance,timeline,venue,lodging,alerts,rsvps]=await Promise.all([
    api(base+'/packet'),api(base+'/files'),api('/bands/'+band+'/show-templates'),api(base+'/stage'),api(base+'/advance'),api(base+'/timeline'),api('/bands/'+band+'/events/'+gig+'/venue'),
    session?api('/bands/'+band+'/lodging').catch(()=>null):Promise.resolve(null),
-   session?api('/bands/'+band+'/operations/alerts?event_id='+gig).catch(()=>null):Promise.resolve(null)]);
+   session?api('/bands/'+band+'/operations/alerts?event_id='+gig).catch(()=>null):Promise.resolve(null),
+   session?api('/bands/'+band+'/events/'+gig+'/rsvps').catch(()=>null):Promise.resolve(null)]);
   if(!current())return;
   state.data.showPackets=packets;state.data.showFiles=files;state.data.showTemplates=templates;state.data.showStage=stage;state.data.showAdvance=advance;state.data.showTimeline=timeline;state.data.showVenue=venue;state.data.showLodging=lodging;state.data.showAlerts=Array.isArray(alerts)?alerts.map(a=>({id:a.id,title:a.title,created_at:a.created_at,acknowledged_at:a.acknowledged_at})):null;
+  const actor=state.data.collaboration?.user_id;
+  const own=Array.isArray(rsvps)&&actor!=null?rsvps.find(row=>Number(row.user_id)===Number(actor)):null;
+  state.data.showOwnRsvp=Array.isArray(rsvps)?{response:own?.response||'unknown',note:own?.note||''}:null;
   state.gigdayLoading=null;state.gigdayError=null;state.section=destination;render();
  }catch(error){if(current()){if(destination==='gigday'){state.gigdayLoading=null;state.gigdayError=error.message;render()}toast(error.message,true)}}
 }
