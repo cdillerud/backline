@@ -37,7 +37,7 @@ def sign_in(page,url,role):
     page.get_by_label('Email',exact=True).fill(role+'@example.test')
     page.get_by_label('Password',exact=True).fill('synthetic-password-123')
     page.get_by_role('button',name='Sign in',exact=True).click()
-    expect(page.get_by_role('heading',name='Overview',exact=True)).to_be_visible()
+    expect(page.get_by_role('heading',name='Home',exact=True)).to_be_visible()
 
 def navigate(page,key):
     target=page.locator('[data-go="'+key+'"]:visible')
@@ -199,7 +199,7 @@ def test_shared_venue_and_calendar_subscription_ui(account_server,accounts,width
         expect(dialog.get_by_role('button',name='Revoke',exact=True)).to_be_visible()
         dialog.get_by_role('button',name='Close',exact=True).click()
         owner.locator('#bandPicker:visible,#mobileBandPicker:visible').select_option(str(other))
-        expect(owner.get_by_role('heading',name='Overview',exact=True)).to_be_visible()
+        expect(owner.get_by_role('heading',name='Home',exact=True)).to_be_visible()
         navigate(owner,'venues')
         expect(owner.get_by_text('Synthetic Shared Hall',exact=True)).to_be_visible()
         assert 'DO NOT SHARE' not in owner.locator('body').inner_text()
