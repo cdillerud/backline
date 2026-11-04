@@ -53,9 +53,12 @@ function gigday(){
   '<p class="sub">No setlists are linked to this show yet.</p>';
  const timeline=state.data.showTimeline;
  const showCalls=Array.isArray(timeline?.entries)?timeline.entries:[];
+ const scheduleWarnings=Array.isArray(timeline?.warnings)?timeline.warnings:[];
+ const renderWarnings=items=>items.map(w=>'<p class="scheduleWarning">'+esc(w)+'</p>').join('');
  const runOfShow='<section class="gigdayPanel gigdayRunOfShow" aria-label="Day-of-show timeline"><div class="gigdayPanelTitle"><h3>Day-of-show timeline</h3>'+
   '<span class="tag muted">'+(timeline?esc(timeline.status||'Draft'):'Unavailable')+'</span></div>'+
-  (Array.isArray(timeline?.warnings)&&timeline.warnings.length?'<div class="gigdayScheduleWarnings">'+timeline.warnings.map(w=>'<p class="scheduleWarning">'+esc(w)+'</p>').join('')+'</div>':'')+
+  (scheduleWarnings.length?'<div class="gigdayScheduleWarnings">'+renderWarnings(scheduleWarnings.slice(0,2))+
+   (scheduleWarnings.length>2?'<details><summary>Show '+(scheduleWarnings.length-2)+' more schedule warnings</summary>'+renderWarnings(scheduleWarnings.slice(2))+'</details>':'')+'</div>':'')+
   (showCalls.length?'<ol class="gigdayTimeline">'+showCalls.map(entry=>'<li><time>'+esc(entry.time||'TBD')+
    (entry.day_offset?' <small>Day +'+Number(entry.day_offset)+'</small>':'')+'</time>'+
    '<div><strong>'+esc(entry.title||'Untitled call')+'</strong>'+
@@ -106,11 +109,16 @@ function gigday(){
  if(rsvp&&currentResponse==='unknown'&&canRespond)missing.push({title:'RSVP outstanding',detail:'Tell the band whether you are going.',target:'rsvp'});
  if(assigned.length)missing.push({title:assigned.length+' open assignment'+(assigned.length===1?'':'s'),detail:'Review your own show-day tasks.',target:'tasks'});
  if(pending.length)missing.push({title:pending.length+' urgent change'+(pending.length===1?'':'s')+' needs acknowledgement',detail:'Read the changes before the show.',target:'alerts'});
+ const reviewPriority={alerts:0,calls:1,venue:2,rsvp:3,tasks:4,music:5};
+ missing.sort((a,b)=>(reviewPriority[a.target]??6)-(reviewPriority[b.target]??6));
+ const renderChecks=items=>items.map(item=>
+  '<div class="gigdayCheck"><div><strong>'+esc(item.title)+'</strong><p class="sub">'+esc(item.detail)+'</p></div>'+
+  '<button type="button" class="small" data-gigday-jump="'+item.target+'">Review</button></div>').join('');
  const beforeYouGo='<section class="gigdayPanel gigdayChecklist" aria-label="Before you go"><div class="gigdayPanelTitle"><h3>Before you go</h3>'+
   '<span class="tag muted">'+missing.length+' item'+(missing.length===1?'':'s')+' to review</span></div>'+
-  (missing.length?'<div class="gigdayChecks">'+missing.map(item=>
-   '<div class="gigdayCheck"><div><strong>'+esc(item.title)+'</strong><p class="sub">'+esc(item.detail)+'</p></div>'+
-   '<button type="button" class="small" data-gigday-jump="'+item.target+'">Review</button></div>').join('')+'</div>':
+  (missing.length?'<div class="gigdayChecks">'+renderChecks(missing.slice(0,3))+'</div>'+
+    (missing.length>3?'<details class="gigdayMoreChecks"><summary>Show '+(missing.length-3)+' more reminders</summary>'+
+     '<div class="gigdayChecks">'+renderChecks(missing.slice(3))+'</div></details>':''):
    '<p class="sub">No outstanding pre-show items identified from the records currently loaded. Confirm any last-minute changes with your bandmates.</p>')+
   '<p class="sub">This checklist is informational, not a venue confirmation or safety certification.</p></section>';
  const manager=['owner','manager'].includes(role);
