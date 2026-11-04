@@ -32,6 +32,12 @@ def test_gig_day_mobile_view_and_show_switch(account_server,accounts,width):
         assert gigday.locator('.gigdayCall').count()==5
         page.screenshot(path=str(snapshots/f'gigday-{width}.png'),full_page=True)
         assert not page.evaluate('document.documentElement.scrollWidth > window.innerWidth')
+        if width<=650:
+            assert gigday.locator('.gigdayActionBar').evaluate(
+                '(el)=>getComputedStyle(el).position==="sticky"')
+            gigday.get_by_role('region',name='Personal lodging').scroll_into_view_if_needed()
+            page.screenshot(path=str(snapshots/f'gigday-scrolled-{width}.png'),full_page=False)
+            assert gigday.get_by_role('button',name='My RSVP',exact=True).is_visible()
         assert gigday.get_by_role('button',name='My RSVP',exact=True).is_visible()
         assert gigday.get_by_role('button',name='Refresh').is_visible()
         assert gigday.get_by_role('button',name='Setlist',exact=True).is_visible()
