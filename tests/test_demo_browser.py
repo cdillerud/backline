@@ -89,6 +89,8 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert gig_day.get_by_text("Soundcheck",exact=True).is_visible()
             assert gig_day.get_by_text("Doors",exact=True).is_visible()
             assert gig_day.get_by_text("Showtime",exact=True).is_visible()
+            assert gig_day.get_by_text("My lodging",exact=True).is_visible()
+            assert gig_day.get_by_text("Details subject to confirmation",exact=True).count() <= 1
             assert gig_day.get_by_text("1 assigned open task",exact=False).is_visible()
             assert gig_day.get_by_text("Confirm showcase stage plot (demo)").is_visible()
             assert gig_day.get_by_role("button",name="Show tasks").is_visible()
