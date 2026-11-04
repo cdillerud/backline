@@ -61,6 +61,6 @@ def test_performance_view_large_type_and_running_order(account_server,accounts,w
         page.screenshot(path=str(output/f"performance-{width}.png"),full_page=False)
         stage.get_by_role("button",name="Close performance view").click()
         expect(stage).to_have_count(0)
-        expect.poll(lambda:page.evaluate("window.__wakeStats.released")).to_be(2)
+        page.wait_for_function("window.__wakeStats.released===2")
         assert not errors,errors
         browser.close()
