@@ -226,4 +226,14 @@
 .performanceOrder button.active{background:#b9fb74;color:#172417;font-weight:800}
 .performanceDialog :is(button):focus-visible{outline:3px solid #b9fb74;outline-offset:2px}
 @media(max-width:600px){.performanceDialog{width:96vw;max-height:96dvh;padding:15px}.performanceOrder{grid-template-columns:1fr}.performanceControls{gap:8px}.performanceSongTitle{font-size:clamp(31px,calc(9vw * var(--stage-font-scale,1)),70px)!important}}
+
+/* Pre-show field checklist: factual gaps with directly actionable destinations. */
+.gigdayChecklist{border-color:#45637b}
+.gigdayChecks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
+.gigdayCheck{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#203244;border:1px solid #365067;border-radius:10px;padding:13px;min-width:0}
+.gigdayCheck strong,.gigdayCheck p{overflow-wrap:anywhere}
+.gigdayCheck p{margin:6px 0 0}
+.gigdayCheck button{flex-shrink:0;min-height:44px}
+@media(max-width:800px){.gigdayChecks{grid-template-columns:1fr}}
+@media(max-width:380px){.gigdayCheck{flex-wrap:wrap}.gigdayCheck button{width:100%}}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/gigday.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
