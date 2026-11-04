@@ -36,6 +36,8 @@ def test_gig_day_mobile_view_and_show_switch(account_server,accounts,width):
             assert gigday.locator('.gigdayActionBar').evaluate(
                 '(el)=>getComputedStyle(el).position==="sticky"')
             gigday.get_by_role('region',name='Personal lodging').scroll_into_view_if_needed()
+            rail=gigday.locator('.gigdayActionBar')
+            assert rail.evaluate('(el)=>{const r=el.getBoundingClientRect();return r.top>=-1&&r.top<70&&r.bottom>0}')
             page.screenshot(path=str(snapshots/f'gigday-scrolled-{width}.png'),full_page=False)
             assert gigday.get_by_role('button',name='My RSVP',exact=True).is_visible()
         assert gigday.get_by_role('button',name='My RSVP',exact=True).is_visible()
