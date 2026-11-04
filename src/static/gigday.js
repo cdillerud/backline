@@ -131,7 +131,7 @@ function gigday(){
   beforeYouGo+rsvpPanel+alertPanel+runOfShow+'<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Show music"><h3>Show music</h3>'+repertoire+
   '<button class="small" data-gigday-setlists>Manage show setlists</button></section>'+
   '<section class="gigdayPanel" aria-label="Personal lodging"><h3>My lodging</h3>'+hotel+'</section>'+stageSection+'</div>'+
-  '<div class="gigdayFooterActions"><button data-gigday-print>Print gig-day sheet</button><button data-gigday-production>Detailed production</button>'+
+  '<div class="gigdayFooterActions"><button type="button" data-gigday-print>Print gig-day sheet</button><button data-gigday-production>Detailed production</button>'+
   (manager?'<button data-gigday-crew>Crew & guests</button>':'')+
   '<button data-gigday-schedule>Back to schedule</button></div></section>';
 }
@@ -192,7 +192,14 @@ document.addEventListener('click',async event=>{
    }catch(error){if(button.isConnected){button.disabled=false;document.querySelector('#gigdayAlertStatus').textContent=error.message}}
    return;
   }
-  if(button.hasAttribute('data-gigday-print')){window.print();return}
+  if(button.hasAttribute('data-gigday-print')){
+   event.stopImmediatePropagation();
+   const now=Date.now();
+   if(now-Number(state.gigdayLastPrintMs||0)<1000)return;
+   state.gigdayLastPrintMs=now;
+   window.print();
+   return;
+  }
   if(button.hasAttribute('data-gigday-refresh')){await openShowPacketGig(gig,'gigday');return}
   if(button.hasAttribute('data-gigday-rsvp')){
    const panel=document.querySelector('.gigdayRsvp');
