@@ -29,6 +29,8 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
             assert not page.evaluate("document.documentElement.scrollWidth > window.innerWidth")
             page.get_by_role("button",name="Show task list").click()
             expect(page.get_by_role("heading",name="Tasks",exact=True)).to_be_visible()
+            page.locator('[data-return-show]').get_by_text("Back to Gig Day").click()
+            expect(page.get_by_role("region",name="Show-day call times")).to_be_visible()
             page.locator('[data-go="dashboard"]:visible').first.click()
         if page.locator("[data-home-show-setlists]").count():
             page.locator("[data-home-show-setlists]").first.click()
