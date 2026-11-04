@@ -396,11 +396,23 @@ function openSetlistPerformance(id){
   if(event.key==='ArrowRight'&&index<songs.length-1){event.preventDefault();moveTo(index+1)}
   if(event.key==='ArrowLeft'&&index>0){event.preventDefault();moveTo(index-1)}
  });
- dialog.addEventListener('close',()=>{
+ const releaseWake=()=>{
   const held=wakeLock;wakeLock=null;
   if(held)Promise.resolve(held.release()).catch(()=>{});
+ };
+ const onWorkspaceChange=()=>{
+  releaseWake();
+  if(dialog.open){try{dialog.close()}catch(_error){}}
+  dialog.remove();
+ };
+ dialog.addEventListener('close',()=>{
+  releaseWake();
+  document.removeEventListener('backline-band-change',onWorkspaceChange);
+  document.removeEventListener('backline-signout',onWorkspaceChange);
   dialog.remove();
  },{once:true});
+ document.addEventListener('backline-band-change',onWorkspaceChange);
+ document.addEventListener('backline-signout',onWorkspaceChange);
  document.body.append(dialog);paint();dialog.showModal();dialog.focus();
 }
 document.addEventListener('click',event=>{
