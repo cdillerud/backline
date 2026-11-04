@@ -56,6 +56,18 @@ function gigday(){
    '<button type="button" class="small" data-gigday-ack="'+Number(a.id)+'">Acknowledge</button></div>').join('')+'</div>':
    '<p class="sub">'+(Array.isArray(alerts)?'No unacknowledged urgent changes for this show.':'Urgent changes could not be checked.')+'</p>')+
   '<p class="sub" role="status" id="gigdayAlertStatus"></p></section>';
+ const rsvp=state.data.showOwnRsvp;
+ const canRespond=['owner','manager','member'].includes(role);
+ const currentResponse=rsvp?.response||'unknown';
+ const statusLabel={yes:'Going',maybe:'Maybe',no:"Can't go",unknown:'Not answered'};
+ const rsvpPanel='<section class="gigdayPanel gigdayRsvp" aria-label="My show availability"><div class="gigdayPanelTitle"><h3>My availability</h3>'+
+  '<span class="tag muted">'+(rsvp?esc(statusLabel[currentResponse]||'Not answered'):'Unavailable')+'</span></div>'+
+  (canRespond&&rsvp?'<form id="gigdayRsvpForm"><label for="gigdayRsvpResponse">Response</label>'+
+   '<select name="response" id="gigdayRsvpResponse">'+[['unknown','Not answered'],['yes','Going'],['maybe','Maybe'],['no',"Can't go"]].map(([value,name])=>
+    '<option value="'+value+'" '+(currentResponse===value?'selected':'')+'>'+name+'</option>').join('')+'</select>'+
+   '<label for="gigdayRsvpNote">Note to bandmates</label><textarea id="gigdayRsvpNote" name="note" rows="2" maxlength="1000">'+esc(rsvp.note||'')+'</textarea>'+
+   '<button type="submit" class="primary">Save my RSVP</button><p id="gigdayRsvpStatus" role="status" class="sub"></p></form>':
+   '<p class="sub">'+(rsvp?'Open the event details to see attendance.':'Attendance data could not be loaded.')+'</p>')+'</section>';
  const manager=['owner','manager'].includes(role);
  return '<section class="gigdayScreen" aria-label="Musician gig-day workspace"><div class="gigdayHero"><div><span class="eyebrow">SHOW DAY · MY BACKLINE</span><h2>'+esc(chosen.title)+'</h2>'+
   '<p>'+datePretty(chosen.date)+' · '+esc(chosen.venue||'Venue TBD')+'</p>'+
@@ -66,7 +78,7 @@ function gigday(){
   '<button data-gigday-updates>Notifications</button><button data-gigday-refresh aria-label="Refresh gig-day details">Refresh</button></div>'+
   '<section class="gigdayPanel gigdayCallsPanel" aria-label="Show-day call times"><div class="gigdayPanelTitle"><h3>Where to be, and when</h3><span class="sub">'+esc(validZone)+'</span></div>'+
   '<div class="gigdayCallGrid">'+callCards+'</div><p class="sub">Times are venue-local. “Day +1/+2” means after the show date. TBD is not a confirmed call.</p></section>'+
-  alertPanel+'<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Venue and contact"><h3>Venue & contact</h3><p><strong>'+esc(venue)+'</strong></p><p>'+esc(contact)+'</p>'+
+  rsvpPanel+alertPanel+'<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Venue and contact"><h3>Venue & contact</h3><p><strong>'+esc(venue)+'</strong></p><p>'+esc(contact)+'</p>'+
   '<p class="sub">'+esc(advance.parking||'Parking and access not recorded')+'</p><div class="gigdayContactActions">'+contactActions+'</div></section>'+
   '<section class="gigdayPanel" aria-label="My show tasks"><div class="gigdayPanelTitle"><h3>My assignments</h3><span class="tag muted">'+assigned.length+' open</span></div>'+
   tasks+'<p id="gigdayTaskStatus" class="sub" role="status"></p><button class="small" data-gigday-tasks>Show task list</button></section>'+
@@ -77,6 +89,21 @@ function gigday(){
   (manager?'<button data-gigday-crew>Crew & guests</button>':'')+
   '<button data-gigday-schedule>Back to schedule</button></div></section>';
 }
+document.addEventListener('submit',async event=>{
+ if(event.target.id!=='gigdayRsvpForm')return;
+ event.preventDefault();
+ const form=event.target,button=form.querySelector('[type="submit"]');
+ const band=state.band,gig=Number(state.showGig),token=sessionStorage.getItem('backline_session');
+ button.disabled=true;
+ try{
+  await api('/bands/'+band+'/events/'+gig+'/rsvp',{method:'PUT',body:JSON.stringify(Object.fromEntries(new FormData(form)))});
+  if(state.band!==band||Number(state.showGig)!==gig||sessionStorage.getItem('backline_session')!==token)return;
+  await openShowPacketGig(gig,'gigday');
+  if(state.band===band&&Number(state.showGig)===gig&&sessionStorage.getItem('backline_session')===token)toast('Your RSVP saved');
+ }catch(error){
+  if(form.isConnected){const status=form.querySelector('#gigdayRsvpStatus');if(status)status.textContent=error.message;button.disabled=false}
+ }
+});
 document.addEventListener('change',async event=>{
  if(event.target.id!=='gigdayShowPicker')return;
  await openShowPacketGig(Number(event.target.value),'gigday');
