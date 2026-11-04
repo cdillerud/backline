@@ -337,25 +337,44 @@ document.addEventListener('click',event=>{if(event.target.closest('[data-clear-p
 document.addEventListener('click',async event=>{const button=event.target.closest('[data-return-show]');if(!button)return;const id=Number(button.dataset.returnShow);const destination=Number(state.gigdayReturn)===id?'gigday':'showops';state.gigdayReturn=null;await openShowPacketGig(id,destination)});
 
 function openSetlistPerformance(id){
- const setlist=get('setlists').find(x=>x.id===id);if(!setlist)return;
- const songs=setlist.songs||[];let index=0;
- const dialog=document.createElement('dialog');dialog.className='timelineDialog performanceDialog';dialog.setAttribute('aria-label','Performance view: '+setlist.title);dialog.tabIndex=-1;
+ const setlist=get('setlists').find(x=>Number(x.id)===Number(id));
+ if(!setlist)return;
+ const songs=Array.isArray(setlist.songs)?setlist.songs:[];
+ let index=0,fontScale=1,showOrder=false;
+ const dialog=document.createElement('dialog');
+ dialog.className='timelineDialog performanceDialog';
+ dialog.setAttribute('aria-label','Performance view: '+setlist.title);
+ dialog.tabIndex=-1;
  const paint=()=>{
-  const song=songs[index];
-  dialog.innerHTML='<div class="performanceTop"><div><p class="eyebrow">PERFORMANCE · '+esc(setlist.title)+'</p><h2>'+esc(song?.title||'No songs in this setlist')+'</h2></div><button type="button" data-perform-close aria-label="Close performance view">Close</button></div>'+
-  (song?'<div class="performanceFacts"><span>Key <strong>'+esc(song.song_key||'—')+'</strong></span><span>Tempo <strong>'+esc(song.bpm||'—')+' BPM</strong></span><span>Song <strong>'+(index+1)+' / '+songs.length+'</strong></span></div>':'<p>Add songs in Setlist Studio before performing.</p>')+
-  '<div class="performanceControls"><button type="button" data-perform-prev '+(index===0?'disabled':'')+'>← Previous</button><button type="button" data-perform-next '+(index>=songs.length-1?'disabled':'')+'>Next →</button></div>'+
-  '<p class="sub">Use arrow keys to change songs. Running order is read-only here.</p>';
+  const song=songs[index],previous=songs[index-1],next=songs[index+1];
+  dialog.style.setProperty('--stage-font-scale',String(fontScale));
+  dialog.innerHTML='<div class="performanceTop"><div><p class="eyebrow">PERFORMANCE · '+esc(setlist.title)+'</p><h2 class="performanceSongTitle" aria-live="polite">'+esc(song?.title||'No songs in this setlist')+'</h2></div><button type="button" data-perform-close aria-label="Close performance view">Close</button></div>'+
+   (song?'<div class="performanceFacts"><span>Key <strong>'+esc(song.song_key||'—')+'</strong></span><span>Tempo <strong>'+esc(song.bpm||'—')+' BPM</strong></span><span>Song <strong>'+(index+1)+' / '+songs.length+'</strong></span></div>':'<p>Add songs in Setlist Studio before performing.</p>')+
+   '<div class="performanceNext"><span class="eyebrow">UP NEXT</span><strong>'+esc(next?.title||'End of set')+'</strong>'+
+   (next&&next.song_key?'<small>Key '+esc(next.song_key)+'</small>':'')+'</div>'+
+   '<div class="performanceControls"><button type="button" data-perform-prev '+(index===0?'disabled':'')+'>← Previous</button><button type="button" data-perform-next '+(index>=songs.length-1?'disabled':'')+'>Next →</button></div>'+
+   '<div class="performanceToolbar"><button type="button" data-perform-font="smaller" aria-label="Reduce stage font size">A−</button><button type="button" data-perform-font="larger" aria-label="Increase stage font size">A+</button>'+
+   '<button type="button" data-perform-order aria-expanded="'+showOrder+'">'+(showOrder?'Hide running order':'Show running order')+'</button></div>'+
+   (showOrder?'<nav class="performanceOrder" aria-label="Setlist running order">'+songs.map((s,i)=>'<button type="button" data-perform-jump="'+i+'" class="'+(i===index?'active':'')+'" aria-current="'+(i===index?'step':'false')+'">'+(i+1)+'. '+esc(s.title)+'</button>').join('')+'</nav>':'')+
+   '<p class="sub">Use left and right arrow keys to change songs. Running order is read-only. Esc closes this view.</p>';
   if(dialog.open)dialog.focus();
  };
+ const moveTo=nextIndex=>{if(nextIndex<0||nextIndex>=songs.length)return;index=nextIndex;paint()};
  dialog.addEventListener('click',event=>{
-  if(event.target.closest('[data-perform-close]'))dialog.close();
-  if(event.target.closest('[data-perform-prev]')&&index>0){index--;paint()}
-  if(event.target.closest('[data-perform-next]')&&index<songs.length-1){index++;paint()}
+  const target=event.target.closest('button');
+  if(!target)return;
+  if(target.hasAttribute('data-perform-close')){dialog.close();return}
+  if(target.hasAttribute('data-perform-prev')){moveTo(index-1);return}
+  if(target.hasAttribute('data-perform-next')){moveTo(index+1);return}
+  if(target.hasAttribute('data-perform-jump')){moveTo(Number(target.dataset.performJump));return}
+  if(target.hasAttribute('data-perform-order')){showOrder=!showOrder;paint();return}
+  if(target.dataset.performFont==='larger'){fontScale=Math.min(1.6,Math.round((fontScale+.15)*100)/100);paint();return}
+  if(target.dataset.performFont==='smaller'){fontScale=Math.max(.85,Math.round((fontScale-.15)*100)/100);paint();return}
  });
  dialog.addEventListener('keydown',event=>{
-  if(event.key==='ArrowRight'&&index<songs.length-1){event.preventDefault();index++;paint()}
-  if(event.key==='ArrowLeft'&&index>0){event.preventDefault();index--;paint()}
+  if(event.target.matches('button,input,select,textarea'))return;
+  if(event.key==='ArrowRight'&&index<songs.length-1){event.preventDefault();moveTo(index+1)}
+  if(event.key==='ArrowLeft'&&index>0){event.preventDefault();moveTo(index-1)}
  });
  dialog.addEventListener('close',()=>dialog.remove(),{once:true});
  document.body.append(dialog);paint();dialog.showModal();dialog.focus();
