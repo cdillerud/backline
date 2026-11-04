@@ -49,3 +49,30 @@ The stand-alone Gig Day view is now extended with:
 - Desktop and mobile-focused regression assertions and member access coverage for the inline RSVP form; script syntax checks remain in CI.
 
 Release gate: the original mobile build passed CI #998. These follow-on commits must pass their own final-head CI before preview use; production remains unchanged.
+
+## Extended sprint — musician field readiness and performance
+
+Development-only extension to the same integration branch (November 2026). The prior UI and screenshot baseline passed CI #1076; the extensions below have separate final-head validation requirements.
+
+### Gig-day briefing
+- Added the **Before you go** checklist based on facts already held in the selected show: missing time zone, missing load-in/soundcheck, absent venue address, missing linked setlist, outstanding personal RSVP, personal assigned tasks, and unacknowledged urgent changes. Each item jumps to the matching on-screen information. **This is not a readiness percentage, official venue confirmation, or promise that no changes are pending.**
+- Preserved show calls, venue and personal assignments above the checklist so time-critical information is not buried.
+- Records and displays last successful show snapshot load time as **device time**; the current request still checks band/session/show identity before updating state.
+- Shows an explicit informational offline warning when the browser reports disconnection. No offline editing or offline-safe data caching has been added; the UI warns that saving needs connectivity.
+- Added an on-demand **Print gig-day sheet** action using the browser's print dialog. Print styles hide workspace chrome, forms, actions and private unrelated navigation, leaving recorded briefing details. 390px print-media acceptance verifies full-width page presentation.
+
+### On-stage performance view
+- Improved the existing read-only setlist performance dialog with an up-next cue, adjustable song-title size, accessible running-order chooser, current-song indication and keyboard previous/next navigation. Mobile and desktop screenshot/interaction coverage uses synthetic songs.
+- Added an **optional** screen wake-lock button. It is only requested on an explicit click, reports unsupported or denied access, prevents simultaneous lock requests, responds to device release and releases on dialog close.
+- Band-change/sign-out events now close the performance dialog and release the wake lock; no prior-band setlist should remain visible.
+
+### Data isolation and lifecycle
+- On band change, the band switcher invalidates old show requests, clears Gig Day selection/return/loading/error state, resets roster, operations and financial context, and dispatches a band-change event.
+- Dashboard data loads now check a monotonically increasing request identifier before applying asynchronous results; outdated results and errors from prior band selections are ignored.
+- A browser regression test switches between synthetic bands with a private performance dialog and synthetic show state open, asserting the old view disappears and its state is cleared.
+
+### Acceptance and release policy
+- GitHub CI includes distinct five-width Gig Day visual acceptance, three-width performance-stage acceptance, and the remaining full regression suite, JS syntax, Python compilation and dependency checks.
+- Synthetic screenshots are captured only during authenticated synthetic test runs; no real band data, member lodging or production access tokens are distributed as artifacts.
+- Added workflow concurrency that cancels superseded branch runs, so the latest commit—not dozens of obsolete intermediate commits—gets timely validation.
+- **Nothing has been deployed or merged.** Draft PR #5 remains the review boundary. A passing earlier CI run does not certify the latest changes.
