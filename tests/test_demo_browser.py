@@ -74,7 +74,7 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             event_dialog=page.get_by_role("dialog",name="Event details:",exact=False)
             assert event_dialog.get_by_role("button",name="My gig day").is_visible()
             event_dialog.get_by_role("button",name="My gig day").click()
-            assert page.get_by_role("region",name="My gig day").is_visible()
+            page.get_by_role("region",name="My gig day").wait_for(state="visible",timeout=15000)
             page.get_by_role("heading",name="Show workflow",exact=True).wait_for(state="visible",timeout=15000)
             assert page.locator(".showJourneySteps button").count()==5
             essentials = page.get_by_role("region",name="Gig essentials")
