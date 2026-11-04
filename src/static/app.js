@@ -205,8 +205,10 @@ function studio(){
 
 async function openShowPacketGig(id,destination='showops'){
  const band=state.band,session=sessionStorage.getItem('backline_session'),gig=Number(id);
+ const originSection=state.section;
+ const expectedSection=destination==='gigday'?'gigday':originSection;
  state.showGig=gig;
- const current=()=>state.band===band&&sessionStorage.getItem('backline_session')===session&&state.showGig===gig;
+ const current=()=>state.band===band&&sessionStorage.getItem('backline_session')===session&&state.showGig===gig&&state.section===expectedSection;
  if(destination==='gigday'){state.gigdayLoading=gig;state.gigdayError=null;state.section='gigday';render()}
  try{
   const base='/bands/'+band+'/gigs/'+gig;
