@@ -361,7 +361,7 @@ function openSetlistPerformance(id){
    '<p class="sub">Use left and right arrow keys to change songs. Running order is read-only. Esc closes this view.</p>';
   if(dialog.open)dialog.focus();
  };
- const moveTo=nextIndex=>{if(nextIndex<0||nextIndex>=songs.length)return;index=nextIndex;paint()};
+ const moveTo=nextIndex=>{if(nextIndex<0||nextIndex>=songs.length)return;index=nextIndex;paint();dialog.scrollTop=0};
  dialog.addEventListener('click',event=>{
   const target=event.target.closest('button');
   if(!target)return;
