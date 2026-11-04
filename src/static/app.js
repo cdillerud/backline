@@ -209,11 +209,12 @@ async function openShowPacketGig(id,destination='showops'){
  const current=()=>state.band===band&&sessionStorage.getItem('backline_session')===session&&state.showGig===gig;
  try{
   const base='/bands/'+band+'/gigs/'+gig;
-  const [packets,files,templates,stage,advance,timeline,venue,lodging]=await Promise.all([
+  const [packets,files,templates,stage,advance,timeline,venue,lodging,alerts]=await Promise.all([
    api(base+'/packet'),api(base+'/files'),api('/bands/'+band+'/show-templates'),api(base+'/stage'),api(base+'/advance'),api(base+'/timeline'),api('/bands/'+band+'/events/'+gig+'/venue'),
-   session?api('/bands/'+band+'/lodging').catch(()=>null):Promise.resolve(null)]);
+   session?api('/bands/'+band+'/lodging').catch(()=>null):Promise.resolve(null),
+   session?api('/bands/'+band+'/operations/alerts?event_id='+gig).catch(()=>null):Promise.resolve(null)]);
   if(!current())return;
-  state.data.showPackets=packets;state.data.showFiles=files;state.data.showTemplates=templates;state.data.showStage=stage;state.data.showAdvance=advance;state.data.showTimeline=timeline;state.data.showVenue=venue;state.data.showLodging=lodging;
+  state.data.showPackets=packets;state.data.showFiles=files;state.data.showTemplates=templates;state.data.showStage=stage;state.data.showAdvance=advance;state.data.showTimeline=timeline;state.data.showVenue=venue;state.data.showLodging=lodging;state.data.showAlerts=Array.isArray(alerts)?alerts.map(a=>({id:a.id,title:a.title,created_at:a.created_at,acknowledged_at:a.acknowledged_at})):null;
   state.section=destination;render();
  }catch(error){if(current())toast(error.message,true)}
 }
