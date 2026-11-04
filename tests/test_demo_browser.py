@@ -77,7 +77,7 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             focused=page.get_by_role("region",name="Musician gig-day workspace")
             focused.wait_for(state="visible",timeout=15000)
             assert page.get_by_role("heading",name="My Gig Day",exact=True).is_visible()
-            assert focused.get_by_role("region",name="Show-day call times").is_visible()
+            focused.get_by_role("region",name="Show-day call times").wait_for(state="visible",timeout=15000)
             assert focused.get_by_text("Load-in",exact=True).is_visible()
             assert focused.get_by_text("Soundcheck",exact=True).is_visible()
             assert focused.get_by_text("Showtime",exact=True).is_visible()
