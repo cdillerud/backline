@@ -74,7 +74,11 @@ def test_member_collaboration_live_updates_and_notifications(account_server,acco
         owner.get_by_role('button',name='Request responses',exact=True).click()
         owner.get_by_role('button',name='Close event details').click()
         navigate(owner,'collaboration')
-        sign_in(person,account_server,'member');navigate(person,'schedule')
+        sign_in(person,account_server,'member')
+        assert person.locator('.bandHomeQuickActions [data-action="song"]').count()==0
+        assert person.locator('.bandHomeQuickActions [data-action="event"]').count()==0
+        expect(person.get_by_role('heading',name='Recent conversations')).to_be_visible()
+        navigate(person,'schedule')
         person.evaluate("() => openCalendarEventDialog(Number(get('events')[0].id))")
         person.get_by_role('button',name='Availability & RSVPs').click()
         person.get_by_label('Your RSVP',exact=True).select_option('yes')
@@ -200,6 +204,7 @@ def test_shared_venue_and_calendar_subscription_ui(account_server,accounts,width
         dialog.get_by_role('button',name='Close',exact=True).click()
         owner.locator('#bandPicker:visible,#mobileBandPicker:visible').select_option(str(other))
         expect(owner.get_by_role('heading',name='Home',exact=True)).to_be_visible()
+        expect(owner.locator('[data-home-thread]')).to_have_count(0)
         navigate(owner,'venues')
         expect(owner.get_by_text('Synthetic Shared Hall',exact=True)).to_be_visible()
         assert 'DO NOT SHARE' not in owner.locator('body').inner_text()
