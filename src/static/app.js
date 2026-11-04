@@ -519,12 +519,21 @@ function showops(){
   return '<div class="gigDayCall"><small>'+label+'</small><strong>'+esc(time||'TBD')+'</strong>'+
    (time?'<small>'+(offset?'Day +'+offset:'Show date')+'</small>':'')+'</div>';
  };
+ const userId=state.data.collaboration?.user_id;
+ const stays=(state.data.showLodging?.items||[]).filter(s=>!s.cancelled&&Number(s.event_id)===Number(chosen.id));
+ const myRooms=stays.flatMap(stay=>(stay.rooms||[]).filter(room=>
+  state.data.showLodging?.can_manage?(room.people||[]).some(p=>Number(p.id)===Number(userId)):true
+ ).map(room=>({hotel:stay.hotel,room:room.label||'Assigned room',checkIn:stay.check_in})));
+ const ownLodging='<div class="gigDayLodging"><h3>My lodging</h3>'+
+  (myRooms.length?myRooms.map(r=>'<p><strong>'+esc(r.hotel||'Hotel not recorded')+'</strong> · '+esc(r.room)+
+   (r.checkIn?' · Check-in '+esc(String(r.checkIn).slice(0,10)):'')+'</p>').join(''):
+   '<p class="sub">No personal room linked to this show.</p>')+'</div>';
  const gigDay='<section class="panel gigDayBrief" aria-label="My gig day"><div class="panelHeading"><h2>My gig day</h2><span class="tag muted">'+esc(advanceSnapshot.status==='confirmed'?'Advance confirmed':'Details subject to confirmation')+'</span></div>'+
   '<p class="sub">'+datePretty(chosen.date)+' · '+esc(chosen.venue||'Venue not recorded')+' · '+esc(advanceSnapshot.timezone||'Time zone not recorded')+'</p>'+
   '<div class="gigDayCalls" aria-label="Recorded show calls">'+gigDayCalls.map(([label,key])=>gigCall(label,key)).join('')+'</div>'+
   '<div class="gigDayDetails"><div><h3>Venue & contact</h3><p>'+esc(advanceSnapshot.venue_address||chosen.venue||'Location not recorded')+'</p><p class="sub">'+esc(showContact)+' · '+esc(advanceSnapshot.contact_phone||advanceSnapshot.contact_email||'Contact details not recorded')+'</p></div>'+
   '<div><h3>My preparation</h3><p>'+(rosterMember?assignedTasks.length+' assigned open task'+(assignedTasks.length===1?'':'s'):'Roster assignment not linked')+' · '+linkedSetlists.length+' linked setlist'+(linkedSetlists.length===1?'':'s')+'</p>'+
-  (rosterMember&&assignedTasks.length?'<ul>'+assignedTasks.slice(0,3).map(t=>'<li>'+esc(t.title)+'</li>').join('')+'</ul>':'')+'</div></div>'+
+  (rosterMember&&assignedTasks.length?'<ul>'+assignedTasks.slice(0,3).map(t=>'<li>'+esc(t.title)+'</li>').join('')+'</ul>':'')+'</div></div>'+ownLodging+
   '<div class="actions"><button type="button" data-show-rsvp>My RSVP</button><button type="button" data-show-context="tasks">Show tasks</button>'+
   '<button type="button" data-show-context="setlists">Show setlists</button><button type="button" data-show-tab="timeline">Detailed timeline</button>'+
   (['owner','manager'].includes(state.accountRole)?'<button type="button" data-gig-day-crew="'+chosen.id+'">Crew & guests</button>':'')+'</div>'+
