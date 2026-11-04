@@ -144,9 +144,10 @@ document.addEventListener('click',async event=>{
   }
   if(button.hasAttribute('data-gigday-refresh')){await openShowPacketGig(gig,'gigday');return}
   if(button.hasAttribute('data-gigday-rsvp')){
-   state.section='schedule';await refreshCalendar(state.calendarAll||false);
-   if(state.band!==band)return;
-   openCalendarEventDialog(gig);await openEventAttendance(gig);return;
+   const panel=document.querySelector('.gigdayRsvp');
+   panel?.scrollIntoView({behavior:'smooth',block:'start'});
+   panel?.querySelector('select,button')?.focus({preventScroll:true});
+   return;
   }
   if(button.hasAttribute('data-gigday-perform')){openSetlistPerformance(Number(button.dataset.gigdayPerform));return}
   if(button.hasAttribute('data-gigday-setlists')){state.gigdayReturn=gig;state.musicGig=gig;state.section='setlists';render();return}
