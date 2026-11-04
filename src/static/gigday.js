@@ -120,8 +120,8 @@ document.addEventListener('click',async event=>{
    openCalendarEventDialog(gig);await openEventAttendance(gig);return;
   }
   if(button.hasAttribute('data-gigday-perform')){openSetlistPerformance(Number(button.dataset.gigdayPerform));return}
-  if(button.hasAttribute('data-gigday-setlists')){state.musicGig=gig;state.section='setlists';render();return}
-  if(button.hasAttribute('data-gigday-tasks')){state.prepGig=gig;state.section='tasks';render();return}
+  if(button.hasAttribute('data-gigday-setlists')){state.gigdayReturn=gig;state.musicGig=gig;state.section='setlists';render();return}
+  if(button.hasAttribute('data-gigday-tasks')){state.gigdayReturn=gig;state.prepGig=gig;state.section='tasks';render();return}
   if(button.hasAttribute('data-gigday-updates')){state.section='notifications';await refreshNotifications();return}
   if(button.hasAttribute('data-gigday-production')){await openShowPacketGig(gig,'showops');return}
   if(button.hasAttribute('data-gigday-crew')){
