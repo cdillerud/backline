@@ -148,3 +148,34 @@ def test_due_tomorrow_reminders_are_personal_and_idempotent(accounts):
     c.put('/api/me/notification-preferences',headers=h['member'],json={'task':'none'})
     with app.db() as con:
         assert con.execute("SELECT count(*) FROM email_outbox WHERE status='pending'").fetchone()[0]==0
+
+def test_gig_day_task_completion_requires_own_roster_show_and_band(accounts):
+    app,client,band,other,base,users,headers,gig,member,_=accounts
+    task={'title':'Load-in gear','notes':'Bring the DI box','assignee_id':member,'event_id':gig}
+    made=client.post(base+'/tasks',headers=headers['owner'],json=task)
+    assert made.status_code==201,made.text
+    task_id=made.json()['id']
+    path=base+f'/gigs/{gig}/tasks/{task_id}/complete-mine'
+    assert client.post(path).status_code==401
+    assert client.post(path,headers=headers['outsider']).status_code==403
+    assert client.post(path,headers=headers['viewer']).status_code==403
+    assert client.post(path,headers=headers['owner']).status_code==403
+    assert client.post(path,headers=headers['member']).status_code==403  # Not linked to roster
+    assert client.put(base+f'/members/{member}/account',headers=headers['owner'],
+                      json={'user_id':users['member']}).status_code==200
+    assert client.post(path,headers=headers['owner']).status_code==403  # Not assignee
+    assert client.post(base+f'/gigs/{gig}/tasks/{task_id+999}/complete-mine',
+                       headers=headers['member']).status_code==404
+    assert client.post(f'/api/bands/{other}/gigs/{gig}/tasks/{task_id}/complete-mine',
+                       headers=headers['member']).status_code==403
+    second=client.post(base+'/events',headers=headers['owner'],
+                       json={'kind':'Gig','title':'Other show',
+                             'date':str(datetime.date.today()+datetime.timedelta(days=29))}).json()['id']
+    assert client.post(base+f'/gigs/{second}/tasks/{task_id}/complete-mine',
+                       headers=headers['member']).status_code==403
+    assert client.post(path,headers=headers['member']).status_code==200
+    assert client.post(path,headers=headers['member']).status_code==200  # Idempotent
+    saved=next(t for t in client.get(base+'/tasks',headers=headers['member']).json() if t['id']==task_id)
+    assert saved['completed'] is True
+    assert saved['notes']=='Bring the DI box'
+    assert saved['assignee_id']==member and saved['event_id']==gig
