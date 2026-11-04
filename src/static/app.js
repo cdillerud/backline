@@ -64,7 +64,7 @@ async function refreshHomeReadiness(){
  if(!current())return;
  const read=i=>results[i].status==='fulfilled'?results[i].value:null;
  const docs=read(0),stage=read(1),advance=read(2),guests=read(3),lodging=read(4);
- const stays=Array.isArray(lodging?.items)?lodging.items.filter(s=>Number(s.event_id)===Number(next.id)):[];
+ const stays=Array.isArray(lodging?.items)?lodging.items.filter(s=>!s.cancelled&&Number(s.event_id)===Number(next.id)):[];
  state.data.homeReadiness={
   gigId:next.id,
   documents:Array.isArray(docs)?{ready:docs.filter(d=>d.status==='ready').length,total:docs.length}:null,
