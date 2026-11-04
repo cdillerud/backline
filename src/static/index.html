@@ -199,4 +199,17 @@
 .gigdayTimeline li p{margin:6px 0 0;overflow-wrap:anywhere}
 .gigdayScheduleWarnings p{margin:9px 0}
 @media(max-width:420px){.gigdayTimeline li{grid-template-columns:1fr;gap:6px}.gigdayTimeline time small{display:inline;margin:0 0 0 8px}}
+
+/* Mobile stage-use navigation: one horizontal strip, always accessible while scrolling. */
+@media(max-width:650px){
+ .gigdayScreen{scroll-margin-top:68px}
+ .gigdayActionBar{display:flex;gap:7px;position:sticky;top:0;z-index:8;overflow-x:auto;overflow-y:hidden;
+  padding:9px 3px 10px;background:#141f2c;border-bottom:1px solid #40576b;
+  overscroll-behavior-inline:contain;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+ .gigdayActionBar button{flex:0 0 auto;min-width:108px;max-width:156px;min-height:46px}
+ .gigdayScreen .gigdayPanel{scroll-margin-top:80px}
+}
+@media(prefers-reduced-motion:reduce){
+ .gigdayScreen *{scroll-behavior:auto}
+}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/gigday.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
