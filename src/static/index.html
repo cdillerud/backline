@@ -174,4 +174,11 @@
 .gigdayTaskList li span{min-width:0;overflow-wrap:anywhere}
 .gigdayTaskList li button{flex-shrink:0;min-height:40px}
 @media(max-width:400px){.gigdayTaskList li{flex-wrap:wrap}.gigdayTaskList li button{width:100%}}
+
+.gigdayRsvp{border-color:#52718a}
+.gigdayRsvp form{display:grid;grid-template-columns:1fr 2fr;gap:8px 12px;align-items:center;max-width:750px}
+.gigdayRsvp select,.gigdayRsvp textarea{width:100%;min-width:0}
+.gigdayRsvp textarea{min-height:60px}
+.gigdayRsvp form button,.gigdayRsvp form [role="status"]{grid-column:2}
+@media(max-width:650px){.gigdayRsvp form{grid-template-columns:1fr}.gigdayRsvp form button,.gigdayRsvp form [role="status"]{grid-column:1}.gigdayRsvp select{min-height:44px}}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/gigday.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
