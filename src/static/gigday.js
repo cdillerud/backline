@@ -32,7 +32,9 @@ function gigday(){
  const contact=advance.production_contact||advance.venue_contact||'Contact not recorded';
  const phone=String(advance.contact_phone||'').trim();
  const phoneDigits=phone.replace(/[^+0-9]/g,'');
- const contactActions=(phoneDigits.length>=7?'<a class="gigdayLink" href="tel:'+esc(phoneDigits)+'">Call venue contact</a>':'')+
+ const directions=advance.venue_address||chosen.venue||'';
+ const directionsLink=directions?'<a class="gigdayLink" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(directions)+'" target="_blank" rel="noopener noreferrer">Venue directions</a>':'';
+ const contactActions=directionsLink+(phoneDigits.length>=7?'<a class="gigdayLink" href="tel:'+esc(phoneDigits)+'">Call venue contact</a>':'')+
   (String(advance.contact_email||'').includes('@')?'<a class="gigdayLink" href="mailto:'+encodeURIComponent(advance.contact_email)+'">Email venue contact</a>':'');
  const tasks=assigned.length?'<ul class="gigdayTaskList">'+assigned.slice(0,5).map(t=>'<li><span>'+esc(t.title)+(t.due_date?' <small>Due '+datePretty(t.due_date)+'</small>':'')+'</span>'+
   '<button type="button" class="small" data-gigday-complete="'+Number(t.id)+'" aria-label="Mark '+esc(t.title)+' complete">Mark done</button></li>').join('')+'</ul>':
