@@ -47,6 +47,18 @@ function gigday(){
    (songs.length>20?'<p class="sub">+'+(songs.length-20)+' more songs in performance view</p>':'')+'</div>';
  }).join('')+'</div>':
   '<p class="sub">No setlists are linked to this show yet.</p>';
+ const timeline=state.data.showTimeline;
+ const showCalls=Array.isArray(timeline?.entries)?timeline.entries:[];
+ const runOfShow='<section class="gigdayPanel gigdayRunOfShow" aria-label="Day-of-show timeline"><div class="gigdayPanelTitle"><h3>Day-of-show timeline</h3>'+
+  '<span class="tag muted">'+(timeline?esc(timeline.status||'Draft'):'Unavailable')+'</span></div>'+
+  (Array.isArray(timeline?.warnings)&&timeline.warnings.length?'<div class="gigdayScheduleWarnings">'+timeline.warnings.map(w=>'<p class="scheduleWarning">'+esc(w)+'</p>').join('')+'</div>':'')+
+  (showCalls.length?'<ol class="gigdayTimeline">'+showCalls.map(entry=>'<li><time>'+esc(entry.time||'TBD')+
+   (entry.day_offset?' <small>Day +'+Number(entry.day_offset)+'</small>':'')+'</time>'+
+   '<div><strong>'+esc(entry.title||'Untitled call')+'</strong>'+
+   ((entry.owner||entry.location)?'<p class="sub">'+esc([entry.owner,entry.location].filter(Boolean).join(' · '))+'</p>':'')+
+   (entry.notes?'<p class="sub">'+esc(entry.notes)+'</p>':'')+'</div></li>').join('')+'</ol>':
+   '<p class="sub">No day-of-show timeline entries recorded for this performance.</p>')+
+  '<button type="button" class="small" data-gigday-production>Open full call sheet</button></section>';
  const stage=state.data.showStage||{items:[],inputs:[]};
  const stageItems=Array.isArray(stage.items)?stage.items:[],stageInputs=Array.isArray(stage.inputs)?stage.inputs:[];
  const stageSection='<section class="gigdayPanel gigdayStage" aria-label="Stage and audio setup"><h3>Stage & inputs</h3>'+
@@ -90,7 +102,7 @@ function gigday(){
   '<button data-gigday-updates>Notifications</button><button data-gigday-refresh aria-label="Refresh gig-day details">Refresh</button></div>'+
   '<section class="gigdayPanel gigdayCallsPanel" aria-label="Show-day call times"><div class="gigdayPanelTitle"><h3>Where to be, and when</h3><span class="sub">'+esc(validZone)+'</span></div>'+
   '<div class="gigdayCallGrid">'+callCards+'</div><p class="sub">Times are venue-local. “Day +1/+2” means after the show date. TBD is not a confirmed call.</p></section>'+
-  rsvpPanel+alertPanel+'<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Venue and contact"><h3>Venue & contact</h3><p><strong>'+esc(venue)+'</strong></p><p>'+esc(contact)+'</p>'+
+  rsvpPanel+alertPanel+runOfShow+'<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Venue and contact"><h3>Venue & contact</h3><p><strong>'+esc(venue)+'</strong></p><p>'+esc(contact)+'</p>'+
   '<p class="sub">'+esc(advance.parking||'Parking and access not recorded')+'</p><div class="gigdayContactActions">'+contactActions+'</div></section>'+
   '<section class="gigdayPanel" aria-label="My show tasks"><div class="gigdayPanelTitle"><h3>My assignments</h3><span class="tag muted">'+assigned.length+' open</span></div>'+
   tasks+'<p id="gigdayTaskStatus" class="sub" role="status"></p><button class="small" data-gigday-tasks>Show task list</button></section>'+
