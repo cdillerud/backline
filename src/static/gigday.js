@@ -1,6 +1,10 @@
 /* Gig Day: a mobile-first, musician-facing read of existing band-scoped show records.
  * This creates no new show entities and never exposes unrelated guests/room occupants. */
 function gigday(){
+ if(state.gigdayLoading===Number(state.showGig))
+  return '<section class="gigdayScreen" aria-label="Musician gig-day workspace" aria-busy="true"><div class="gigdayPanel" role="status"><h2>Loading gig day…</h2><p>Getting the latest show calls, assignments and updates.</p></div></section>';
+ if(state.gigdayError)
+  return '<section class="gigdayScreen" aria-label="Musician gig-day workspace"><div class="gigdayPanel" role="alert"><h2>Show details unavailable</h2><p>'+esc(state.gigdayError)+'</p><div class="actions"><button data-gigday-refresh>Retry</button><button data-gigday-schedule>Back to schedule</button></div></div></section>';
  const gigs=get('events').filter(e=>e.kind==='Gig').slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''));
  const chosen=gigs.find(e=>Number(e.id)===Number(state.showGig));
  if(!chosen)return '<section class="panel"><h2>Choose a show</h2><p class="sub">Open a scheduled show to see its calls, music, personal work and travel information.</p><button data-go="schedule">Open schedule</button></section>';
