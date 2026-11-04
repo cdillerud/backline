@@ -85,6 +85,12 @@ def test_member_collaboration_live_updates_and_notifications(account_server,acco
         assert person.get_by_role('button',name='Crew & guests').count()==0
         assert person.get_by_role('region',name='Show-day call times').is_visible()
         assert person.get_by_role('region',name='Urgent show changes').is_visible()
+        availability=person.get_by_role('region',name='My show availability')
+        availability.get_by_label('Response').select_option('yes')
+        availability.get_by_label('Note to bandmates').fill('Synthetic member RSVP from gig day')
+        availability.get_by_role('button',name='Save my RSVP').click()
+        availability.locator('.tag').get_by_text('Going',exact=True).wait_for(state='visible',timeout=15000)
+        assert availability.get_by_label('Note to bandmates').input_value()=='Synthetic member RSVP from gig day'
         navigate(person,'schedule')
         person.evaluate("() => openCalendarEventDialog(Number(get('events')[0].id))")
         person.get_by_role('button',name='Availability & RSVPs').click()
