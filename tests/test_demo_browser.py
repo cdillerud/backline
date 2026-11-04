@@ -58,6 +58,11 @@ def test_demo_account_browser_login_and_hub(tmp_path):
                 assert page.evaluate("document.documentElement.scrollWidth <= innerWidth+1"),f"Home overflow at {width}px"
                 assert spotlight.get_by_role("button",name="My Gig Day").is_visible()
                 assert page.locator(".bandHomeStat").count()==5
+                if width==768:
+                    # Tablet rail hides visible labels; explicit accessible names remain.
+                    assert page.get_by_role("navigation",name="Primary workspaces").get_by_role("button",name="Shows & Tours").count()==1
+                if width==320:
+                    assert page.locator(".mobileNav [data-go='dashboard']").count()==1
             page.set_viewport_size({"width":1280,"height":850})
             page.locator("[data-go='collaboration']").first.click()
             page.get_by_text("Weekend show preparation (demo)").first.wait_for(state="visible",timeout=15000)
