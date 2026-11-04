@@ -33,6 +33,9 @@ def test_gig_day_mobile_view_and_show_switch(account_server,accounts,width):
         expect(gigday.get_by_role('region',name='My show availability')).to_be_visible()
         expect(gigday.get_by_role('region',name='Before you go')).to_be_visible()
         assert gigday.locator('.gigdayCall').count()==5
+        if width==320:
+            assert gigday.locator('.gigdayCallGrid').evaluate(
+                '(el)=>getComputedStyle(el).gridTemplateColumns.split(" ").length')==2
         page.screenshot(path=str(snapshots/f'gigday-{width}.png'),full_page=True)
         assert not page.evaluate('document.documentElement.scrollWidth > window.innerWidth')
         if width<=650:
@@ -44,6 +47,12 @@ def test_gig_day_mobile_view_and_show_switch(account_server,accounts,width):
             page.screenshot(path=str(snapshots/f'gigday-scrolled-{width}.png'),full_page=False)
             assert gigday.get_by_role('button',name='My RSVP',exact=True).is_visible()
         checklist=gigday.get_by_role('region',name='Before you go')
+        if checklist.locator('.gigdayMoreChecks').count():
+            checklist.locator('.gigdayMoreChecks summary').click()
+            assert checklist.locator('.gigdayMoreChecks').get_attribute('open') is not None
+        if gigday.locator('.gigdayScheduleWarnings details').count():
+            gigday.locator('.gigdayScheduleWarnings summary').click()
+            assert gigday.locator('.gigdayScheduleWarnings details').get_attribute('open') is not None
         if checklist.locator('[data-gigday-jump]').count():
             checklist.locator('[data-gigday-jump]').first.click()
             assert page.get_by_role('heading',name='My Gig Day',exact=True).is_visible()
