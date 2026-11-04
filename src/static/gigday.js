@@ -39,25 +39,25 @@ function gigday(){
   (r.checkIn?' · Check-in '+esc(String(r.checkIn).slice(0,10)):'')+'</p></div></div>').join(''):
   '<p class="sub">No personal hotel room linked to this show.</p>';
  const manager=['owner','manager'].includes(role);
- return '<div class="gigdayScreen" aria-label="Musician gig-day workspace"><div class="gigdayHero"><div><span class="eyebrow">SHOW DAY · MY BACKLINE</span><h2>'+esc(chosen.title)+'</h2>'+
+ return '<section class="gigdayScreen" aria-label="Musician gig-day workspace"><div class="gigdayHero"><div><span class="eyebrow">SHOW DAY · MY BACKLINE</span><h2>'+esc(chosen.title)+'</h2>'+
   '<p>'+datePretty(chosen.date)+' · '+esc(chosen.venue||'Venue TBD')+'</p>'+
   '<span class="tag muted">'+(advance.status==='confirmed'?'Venue advance confirmed':'Advance not confirmed')+'</span></div>'+
   selected+'</div>'+
   '<div class="gigdayActionBar" aria-label="Gig-day quick actions"><button class="primary" data-gigday-rsvp>My RSVP</button>'+
   '<button data-gigday-setlists>Setlist</button><button data-gigday-tasks>My tasks</button>'+
-  '<button data-gigday-updates>Updates</button><button data-gigday-refresh aria-label="Refresh gig-day details">Refresh</button></div>'+
+  '<button data-gigday-updates>Notifications</button><button data-gigday-refresh aria-label="Refresh gig-day details">Refresh</button></div>'+
   '<section class="gigdayPanel gigdayCallsPanel" aria-label="Show-day call times"><div class="gigdayPanelTitle"><h3>Where to be, and when</h3><span class="sub">'+esc(validZone)+'</span></div>'+
   '<div class="gigdayCallGrid">'+callCards+'</div><p class="sub">Times are venue-local. “Day +1/+2” means after the show date. TBD is not a confirmed call.</p></section>'+
   '<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Venue and contact"><h3>Venue & contact</h3><p><strong>'+esc(venue)+'</strong></p><p>'+esc(contact)+'</p>'+
   '<p class="sub">'+esc(advance.parking||'Parking and access not recorded')+'</p><div class="gigdayContactActions">'+contactActions+'</div></section>'+
   '<section class="gigdayPanel" aria-label="My show tasks"><div class="gigdayPanelTitle"><h3>My assignments</h3><span class="tag muted">'+assigned.length+' open</span></div>'+
   tasks+'<button class="small" data-gigday-tasks>Show task list</button></section>'+
-  '<section class="gigdayPanel" aria-label="Show music"><h3>Tonight’s music</h3>'+repertoire+
+  '<section class="gigdayPanel" aria-label="Show music"><h3>Show music</h3>'+repertoire+
   '<button class="small" data-gigday-setlists>Manage show setlists</button></section>'+
   '<section class="gigdayPanel" aria-label="Personal lodging"><h3>My lodging</h3>'+hotel+'</section></div>'+
   '<div class="gigdayFooterActions"><button data-gigday-production>Detailed production</button>'+
   (manager?'<button data-gigday-crew>Crew & guests</button>':'')+
-  '<button data-gigday-schedule>Back to schedule</button></div></div>';
+  '<button data-gigday-schedule>Back to schedule</button></div></section>';
 }
 document.addEventListener('change',async event=>{
  if(event.target.id!=='gigdayShowPicker')return;
