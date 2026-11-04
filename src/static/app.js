@@ -113,17 +113,19 @@ function fullDashboard(){
  const rehearsalCount=allEvents.filter(e=>e.kind==='Rehearsal'&&e.date>=today()).length;
  const gigCount=allEvents.filter(e=>e.kind==='Gig'&&e.date>=today()).length;
  const band=state.bands.find(b=>b.id===state.band)||{name:'Your band'};
+ const nextGig=allEvents.filter(e=>e.kind==='Gig'&&e.date>=today()).sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||''))[0];
  const quick='<div class="actions bandHomeQuickActions" aria-label="Band quick actions">'+
   (canManage?'<button class="primary" data-action="song">+ Add song</button><button data-action="event">+ Add event</button>':'')+
   '<button data-go="songs">Songs & recordings</button><button data-go="schedule">Set availability</button><button data-go="collaboration">Conversations</button></div>';
  const stat=(title,value,route,desc)=>'<button type="button" class="card bandHomeStat" data-go="'+route+'" aria-label="'+esc(title)+': '+value+'"><span>'+esc(title)+'</span><strong>'+value+'</strong><small>'+esc(desc)+'</small></button>';
+ const gigSpotlight=nextGig?'<section class="homeGigSpotlight" aria-label="Next gig"><div class="homeGigSpotlightInfo"><span class="eyebrow">Next gig</span><h3>'+esc(nextGig.title)+'</h3><p>'+datePretty(nextGig.date)+' · '+esc(nextGig.time||'Time TBD')+' · '+esc(nextGig.venue||'Venue TBD')+'</p></div><div class="homeGigSpotlightActions"><button type="button" class="primary" data-home-gig-day="'+nextGig.id+'">My Gig Day</button><button type="button" class="small" data-home-event="'+nextGig.id+'">Details & RSVP</button></div></section>':'';
  const stats='<div class="cards bandHomeStats" aria-label="Band at a glance">'+
   stat('Songs',songs.length,'songs','in the library')+
   stat('Shows',gigCount,'schedule','upcoming')+
   stat('Rehearsals',rehearsalCount,'schedule','upcoming')+
   stat('Open tasks',tasks.length,'tasks','not completed')+
   stat('Recordings',Array.isArray(recordings)?recordings.length:0,'songs','in the library')+'</div>';
- const next=panel('Coming up',events.length?'<div class="list">'+events.slice(0,5).map(e=>
+ const next=panel('Coming up',events.length?'<div class="list">'+events.slice(0,3).map(e=>
   '<div class="entry"><div class="entryMain"><span class="tag muted">'+esc(e.kind||'Event')+'</span><strong>'+esc(e.title)+'</strong><small>'+datePretty(e.date)+' · '+esc(e.time||'Time TBD')+' · '+esc(e.venue||'Location TBD')+'</small></div>'+
   (e.id?'<button class="small" data-home-event="'+e.id+'">Event details & RSVP</button>':'<button class="small" data-go="schedule">Schedule</button>')+'</div>').join('')+'</div>':
   '<p class="sub">No upcoming shows or rehearsals recorded.</p>'+(canManage?'<button data-action="event">Add an event</button>':''),
@@ -161,7 +163,7 @@ function fullDashboard(){
   '<div class="entry"><div class="entryMain"><strong>'+esc(post.display_name||'Band member')+' · '+esc(post.thread_title)+'</strong><small>'+esc((post.body||'').slice(0,160))+'</small></div><button class="small" data-home-thread="'+post.thread_id+'">Discuss</button></div>').join('')+'</div>':
   '<p class="sub">No recent discussion messages in the loaded band threads.</p>',
   '<button class="small" data-go="collaboration">Band discussions</button>');
- const nextGig=allEvents.filter(e=>e.kind==='Gig'&&e.date>=today()).sort((a,b)=>a.date.localeCompare(b.date))[0];
+
  const linked=nextGig?get('setlists').filter(s=>Number(s.event_id)===Number(nextGig.id)):[];
  const readinessData=state.data.homeReadiness?.gigId===nextGig?.id?state.data.homeReadiness:null;
  const operational=readinessData?[
@@ -183,7 +185,7 @@ function fullDashboard(){
   (readinessData?'<button data-home-crew="'+nextGig.id+'">Crew & guests</button>':'')+'</div>':
   '<p class="sub">No upcoming shows recorded.</p>','<button data-go="touring" class="small">Shows & Tours</button>');
  return '<section class="dashboardIntro bandHomeHeader"><div><span class="eyebrow">Your band home</span><h2>'+esc(band.name)+'</h2><p class="sub">The next gig, the music and the people — together.</p></div>'+quick+'</section>'+
- stats+'<div class="bandHomeGrid">'+next+attention+availability+conversation+music+readiness+activity+'</div>';
+ gigSpotlight+stats+'<div class="bandHomeGrid">'+attention+next+availability+readiness+conversation+music+activity+'</div>';
 }
 function events(){let a=get('events');return `<div class="toolbar"><p>Book performances, track rehearsals and keep dates aligned.</p>${button('+ New event','event')}</div>${panel('Event calendar',a.length?`<div class="tableWrap"><table class="table"><thead><tr><th>Date</th><th>Type</th><th>Event</th><th>Venue / Location</th><th>Fee</th><th>Status</th></tr></thead><tbody>${a.map(e=>`<tr><td>${datePretty(e.date)}<br><span class="dim">${esc(e.time)}</span></td><td><span class="tag muted">${e.kind}</span></td><td><strong>${esc(e.title)}</strong></td><td>${esc(e.venue)}</td><td>${e.kind==='Gig'?dollars(e.fee_cents):'—'}</td><td>${esc(e.status)}</td></tr>`).join('')}</tbody></table></div>`:empty('Your gig and rehearsal calendar is empty.'))}`}
 function dashboard(){return fullDashboard()}
