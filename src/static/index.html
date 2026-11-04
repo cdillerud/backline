@@ -270,4 +270,50 @@
  .gigdayCall{padding:12px 9px}
  .gigdayCall strong{font-size:clamp(19px,6.8vw,24px)}
 }
+
+/* v0.5.1 unified musician-first UI rhythm. All changes are presentational. */
+:root{--bl-surface:#161f2b;--bl-raised:#1d2836;--bl-border:#2b3849;--bl-muted:#9fb0c7;--bl-accent:#b9fb74}
+.side{padding-top:22px;gap:17px}
+.nav{gap:3px}
+.nav button{padding:10px 13px;border-radius:10px;font-size:14px}
+.nav button.active{background:#26392f}
+.side .overline{letter-spacing:1.4px}
+.top{min-height:68px;padding:14px 28px}
+.top h1{font-size:22px}
+.content{padding:22px 28px 36px;max-width:1480px}
+.card,.panel{border-radius:13px}
+.panel{padding:19px;margin-bottom:16px}
+.panelHeading{margin-bottom:14px}
+.panel h2{font-size:17px}
+.cards{gap:12px;margin-bottom:16px}
+.card{padding:17px}
+.card strong{font-size:27px;margin-top:5px}
+.entry{padding:11px 13px;gap:11px}
+.entryMain strong{margin-bottom:3px}
+.list{gap:8px}
+button{transition:border-color .14s ease,background-color .14s ease}
+button:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--bl-accent);outline-offset:2px}
+.bandHomeHeader{gap:12px;margin-bottom:14px;align-items:center}
+.bandHomeHeader h2{font-size:clamp(23px,2.5vw,29px);margin:3px 0 3px}
+.bandHomeHeader p{font-size:12px}
+.bandHomeQuickActions{gap:6px;margin:0}
+.bandHomeQuickActions button{font-size:12px;padding:8px 10px}
+.bandHomeQuickActions .primary{background:#253b30;color:#b9fb74;border-color:#5d9161}
+.bandHomeStats{gap:10px;grid-template-columns:repeat(5,minmax(0,1fr))}
+.bandHomeStat{padding:13px 15px;min-height:96px}
+.bandHomeStat strong{font-size:25px;margin-top:4px}
+.bandHomeStat small{margin-top:3px;font-size:11px}
+.bandHomeGrid{gap:14px}
+.bandHomeGrid .panel:first-child{grid-column:auto}
+.bandHomeGrid .panel{align-self:start}
+.bandHomeGrid .panel:nth-child(3){grid-column:1/-1}
+.homeGigSpotlight{display:flex;align-items:center;justify-content:space-between;gap:16px;background:linear-gradient(105deg,#203526,#1b2b32 65%,#17222d);border:1px solid #55714d;padding:17px 20px;border-radius:14px;margin-bottom:14px}
+.homeGigSpotlightInfo{min-width:0}
+.homeGigSpotlight h3{font:700 clamp(18px,2vw,23px) 'Space Grotesk',sans-serif;margin:5px 0 4px}
+.homeGigSpotlight p{color:#c0cfdb;font-size:13px;margin:0;line-height:1.4}
+.homeGigSpotlightActions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.homeGigSpotlightActions button{white-space:nowrap}
+@media(max-width:1000px){.bandHomeStats{grid-template-columns:repeat(3,minmax(0,1fr))}.bandHomeGrid .panel:nth-child(3){grid-column:auto}}
+@media(max-width:700px){.top{padding:14px 16px;min-height:62px}.content{padding:16px 14px 24px}.bandHomeStats{grid-template-columns:repeat(2,minmax(0,1fr))}.bandHomeGrid{grid-template-columns:1fr}.bandHomeQuickActions{width:100%;gap:6px}.bandHomeQuickActions button{flex:1 1 auto}.homeGigSpotlight{align-items:flex-start;flex-direction:column;gap:12px;padding:15px}.homeGigSpotlightActions{width:100%}.homeGigSpotlightActions button{flex:1}.bandHomeStat{min-height:87px}.panel{padding:15px}.entry{align-items:flex-start}.entry button{flex-shrink:0}}
+@media(max-width:380px){.bandHomeStats{grid-template-columns:repeat(2,minmax(0,1fr))}.bandHomeStat{padding:11px;min-height:81px}.bandHomeStat strong{font-size:23px}.bandHomeStat small{font-size:10px}.homeGigSpotlightActions{flex-wrap:wrap}}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/gigday.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
