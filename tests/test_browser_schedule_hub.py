@@ -22,8 +22,13 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
         expect(page.get_by_role("heading",name="Next show preparation")).to_be_visible()
         if page.locator("[data-home-gig-day]").count():
             page.locator("[data-home-gig-day]").first.click()
-            expect(page.get_by_role("region",name="My gig day")).to_be_visible()
-            expect(page.get_by_role("tab",name="Day of show")).to_be_visible()
+            expect(page.get_by_role("region",name="Musician gig-day workspace")).to_be_visible()
+            expect(page.get_by_role("heading",name="My Gig Day",exact=True)).to_be_visible()
+            expect(page.get_by_role("region",name="Show-day call times")).to_be_visible()
+            assert page.locator(".gigdayCall").count()==5
+            assert not page.evaluate("document.documentElement.scrollWidth > window.innerWidth")
+            page.get_by_role("button",name="Show task list").click()
+            expect(page.get_by_role("heading",name="Tasks",exact=True)).to_be_visible()
             page.locator('[data-go="dashboard"]:visible').first.click()
         if page.locator("[data-home-show-setlists]").count():
             page.locator("[data-home-show-setlists]").first.click()
