@@ -146,8 +146,11 @@ function gigday(){
 // Paper briefing includes disclosure content without changing what was open on screen.
 let gigdayPrintExpandedDetails=[];
 window.addEventListener('beforeprint',()=>{
- gigdayPrintExpandedDetails=[...document.querySelectorAll('.gigdayScreen details:not([open])')];
- gigdayPrintExpandedDetails.forEach(details=>{details.open=true});
+ const additional=[...document.querySelectorAll('.gigdayScreen details:not([open])')];
+ additional.forEach(details=>{
+  if(!gigdayPrintExpandedDetails.includes(details))gigdayPrintExpandedDetails.push(details);
+  details.open=true;
+ });
 });
 window.addEventListener('afterprint',()=>{
  gigdayPrintExpandedDetails.forEach(details=>{if(details.isConnected)details.open=false});
