@@ -51,11 +51,13 @@ def test_performance_view_large_type_and_running_order(account_server,accounts,w
         expect(order.get_by_role("button",name="3. Encore")).to_be_visible()
         order.get_by_role("button",name="3. Encore").click()
         expect(stage.get_by_role("heading",name="Encore")).to_be_visible()
+        assert stage.evaluate("(el)=>el.scrollTop")==0
         expect(stage.get_by_text("End of set")).to_be_visible()
         stage.press("ArrowLeft")
         expect(stage.get_by_role("heading",name="Long Road Home")).to_be_visible()
         stage.press("ArrowRight")
         expect(stage.get_by_role("heading",name="Encore")).to_be_visible()
+        assert stage.evaluate("(el)=>el.scrollTop")==0
         assert not page.evaluate("document.documentElement.scrollWidth>innerWidth")
         output=Path("artifacts/gigday");output.mkdir(parents=True,exist_ok=True)
         page.screenshot(path=str(output/f"performance-{width}.png"),full_page=False)
