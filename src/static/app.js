@@ -161,8 +161,22 @@ function fullDashboard(){
   '<button class="small" data-go="collaboration">Band discussions</button>');
  const nextGig=allEvents.filter(e=>e.kind==='Gig'&&e.date>=today()).sort((a,b)=>a.date.localeCompare(b.date))[0];
  const linked=nextGig?get('setlists').filter(s=>Number(s.event_id)===Number(nextGig.id)):[];
+ const readinessData=state.data.homeReadiness?.gigId===nextGig?.id?state.data.homeReadiness:null;
+ const operational=readinessData?[
+  ['Venue advance',readinessData.advance?readinessData.advance.status+(readinessData.advance.openQuestions?' · questions open':''):'Status unavailable'],
+  ['Show calls',readinessData.advance?(readinessData.advance.hasCalls?'Key times recorded':'Key times incomplete'):'Status unavailable'],
+  ['Production documents',readinessData.documents?readinessData.documents.ready+' of '+readinessData.documents.total+' ready':'Status unavailable'],
+  ['Stage & inputs',readinessData.stage?(readinessData.stage.items+' stage items · '+readinessData.stage.inputs+' inputs'):'Status unavailable'],
+  ['Guest requests',readinessData.guests?(readinessData.guests.approved+' approved · '+readinessData.guests.pending+' pending'):'Status unavailable'],
+  ['Lodging',readinessData.lodging?(readinessData.lodging.stays+' linked stays · '+readinessData.lodging.rooms+' rooms'):'Status unavailable']
+ ]:[];
+ const readinessRows=operational.map(([label,detail])=>'<div class="entry"><div class="entryMain"><strong>'+esc(label)+'</strong><small>'+esc(detail)+'</small></div></div>').join('');
  const readiness=panel('Next show preparation',nextGig?
-  '<p><strong>'+esc(nextGig.title)+'</strong></p><p class="sub">'+datePretty(nextGig.date)+' · '+esc(nextGig.venue||'Venue not recorded')+'</p><p class="sub">'+linked.length+' linked setlist'+(linked.length===1?'':'s')+' recorded. Other production details are in the show workspace.</p><button data-show-gig="'+nextGig.id+'">Open show production</button>':
+  '<p><strong>'+esc(nextGig.title)+'</strong></p><p class="sub">'+datePretty(nextGig.date)+' · '+esc(nextGig.venue||'Venue not recorded')+'</p>'+
+  '<div class="list"><div class="entry"><div class="entryMain"><strong>Setlists</strong><small>'+linked.length+' linked to this show</small></div></div>'+readinessRows+'</div>'+
+  (!readinessData?'<p class="sub">Detailed production readiness is available to band managers; missing data is never counted as complete.</p>':'')+
+  '<div class="actions"><button data-show-gig="'+nextGig.id+'">Open production</button>'+
+  (readinessData?'<button data-home-crew="'+nextGig.id+'">Crew & guests</button>':'')+'</div>':
   '<p class="sub">No upcoming shows recorded.</p>','<button data-go="touring" class="small">Shows & Tours</button>');
  return '<section class="dashboardIntro bandHomeHeader"><div><span class="eyebrow">Your band home</span><h2>'+esc(band.name)+'</h2><p class="sub">The next gig, the music and the people — together.</p></div>'+quick+'</section>'+
  stats+'<div class="bandHomeGrid">'+next+attention+availability+conversation+music+readiness+activity+'</div>';
@@ -594,7 +608,7 @@ document.addEventListener('click',event=>{
  }
 });
 document.addEventListener('click',async event=>{
- const button=event.target.closest('[data-home-thread],[data-home-event]');
+ const button=event.target.closest('[data-home-thread],[data-home-event],[data-home-crew]');
  if(!button)return;
  event.preventDefault();
  event.stopPropagation();
@@ -603,6 +617,11 @@ document.addEventListener('click',async event=>{
    state.discussionThread=Number(button.dataset.homeThread);
    state.section='collaboration';
    await refreshCollaboration();
+  }else if(button.dataset.homeCrew){
+   state.opsGig=Number(button.dataset.homeCrew);
+   state.opsTab='guests';
+   state.section='operations';
+   await refreshOperations();
   }else if(button.dataset.homeEvent){
    state.section='schedule';
    await refreshCalendar(state.calendarAll||false);
