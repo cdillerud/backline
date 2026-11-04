@@ -25,6 +25,7 @@ jobs:
         run: BACKLINE_LOCAL_DEV=1 python -m pytest -vv -x --ignore=tests/test_demo_accounts.py --ignore=tests/test_demo_browser.py
       - run: node --check src/static/app.js
       - run: node --check src/static/workspace.js
+      - run: node --check src/static/gigday.js
       - name: Check collaboration, media, sharing and PWA scripts
         run: |
           node --check src/static/collaboration.js
