@@ -14,6 +14,15 @@ def test_performance_view_large_type_and_running_order(account_server,accounts,w
         page.on("pageerror",lambda e:errors.append(str(e)))
         sign_in(page,account_server,"owner")
         page.evaluate("""() => {
+          window.__wakeStats={requested:0,released:0};
+          Object.defineProperty(navigator,'wakeLock',{configurable:true,value:{
+            request:async()=>{
+              window.__wakeStats.requested++;
+              return {release:async()=>{window.__wakeStats.released++},addEventListener:()=>{}};
+            }
+          }});
+        }""")
+        page.evaluate("""() => {
           state.data.setlists = [{
             id: 900001,title:'Synthetic Gig Set',event_id:null,
             songs:[
@@ -29,6 +38,14 @@ def test_performance_view_large_type_and_running_order(account_server,accounts,w
         expect(stage.get_by_text("Long Road Home",exact=True)).to_be_visible()
         stage.get_by_role("button",name="Increase stage font size").click()
         assert stage.evaluate("(el)=>Number(el.style.getPropertyValue('--stage-font-scale'))")>1
+        stage.get_by_role("button",name="Keep screen awake").click()
+        expect(stage.get_by_role("button",name="Allow screen sleep")).to_be_visible()
+        assert page.evaluate("window.__wakeStats.requested")==1
+        stage.get_by_role("button",name="Allow screen sleep").click()
+        expect(stage.get_by_role("button",name="Keep screen awake")).to_be_visible()
+        assert page.evaluate("window.__wakeStats.released")==1
+        stage.get_by_role("button",name="Keep screen awake").click()
+        expect(stage.get_by_role("button",name="Allow screen sleep")).to_be_visible()
         stage.get_by_role("button",name="Show running order").click()
         order=stage.get_by_role("navigation",name="Setlist running order")
         expect(order.get_by_role("button",name="3. Encore")).to_be_visible()
@@ -44,5 +61,6 @@ def test_performance_view_large_type_and_running_order(account_server,accounts,w
         page.screenshot(path=str(output/f"performance-{width}.png"),full_page=False)
         stage.get_by_role("button",name="Close performance view").click()
         expect(stage).to_have_count(0)
+        expect.poll(lambda:page.evaluate("window.__wakeStats.released")).to_be(2)
         assert not errors,errors
         browser.close()
