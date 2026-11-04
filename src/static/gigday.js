@@ -92,6 +92,23 @@ function gigday(){
    '<label for="gigdayRsvpNote">Note to bandmates</label><textarea id="gigdayRsvpNote" name="note" rows="2" maxlength="1000">'+esc(rsvp.note||'')+'</textarea>'+
    '<button type="submit" class="primary">Save my RSVP</button><p id="gigdayRsvpStatus" role="status" class="sub"></p></form>':
    '<p class="sub">'+(rsvp?'Open the event details to see attendance.':'Attendance data could not be loaded.')+'</p>')+'</section>';
+ // Actionable field checklist uses only already-loaded facts; it is not a readiness score.
+ const missing=[];
+ if(!advance.timezone)missing.push({title:'Time zone unconfirmed',detail:'Check the venue time zone before relying on these call times.',target:'calls'});
+ if(!advance.load_in)missing.push({title:'Load-in time not recorded',detail:'Confirm arrival instructions with the venue.',target:'calls'});
+ if(!advance.soundcheck)missing.push({title:'Soundcheck time not recorded',detail:'Check the full day-of-show timeline for updates.',target:'calls'});
+ if(!advance.venue_address)missing.push({title:'Venue address not recorded',detail:'Confirm the correct entrance and location.',target:'venue'});
+ if(!setlists.length)missing.push({title:'No linked setlist',detail:'Check the show music before going on stage.',target:'music'});
+ if(rsvp&&currentResponse==='unknown'&&canRespond)missing.push({title:'RSVP outstanding',detail:'Tell the band whether you are going.',target:'rsvp'});
+ if(assigned.length)missing.push({title:assigned.length+' open assignment'+(assigned.length===1?'':'s'),detail:'Review your own show-day tasks.',target:'tasks'});
+ if(pending.length)missing.push({title:pending.length+' urgent change'+(pending.length===1?'':'s')+' needs acknowledgement',detail:'Read the changes before the show.',target:'alerts'});
+ const beforeYouGo='<section class="gigdayPanel gigdayChecklist" aria-label="Before you go"><div class="gigdayPanelTitle"><h3>Before you go</h3>'+
+  '<span class="tag muted">'+missing.length+' item'+(missing.length===1?'':'s')+' to review</span></div>'+
+  (missing.length?'<div class="gigdayChecks">'+missing.map(item=>
+   '<div class="gigdayCheck"><div><strong>'+esc(item.title)+'</strong><p class="sub">'+esc(item.detail)+'</p></div>'+
+   '<button type="button" class="small" data-gigday-jump="'+item.target+'">Review</button></div>').join('')+'</div>':
+   '<p class="sub">No outstanding pre-show items identified from the records currently loaded. Confirm any last-minute changes with your bandmates.</p>')+
+  '<p class="sub">This checklist is informational, not a venue confirmation or safety certification.</p></section>';
  const manager=['owner','manager'].includes(role);
  return '<section class="gigdayScreen" aria-label="Musician gig-day workspace"><div class="gigdayHero"><div><span class="eyebrow">SHOW DAY · MY BACKLINE</span><h2>'+esc(chosen.title)+'</h2>'+
   '<p>'+datePretty(chosen.date)+' · '+esc(chosen.venue||'Venue TBD')+'</p>'+
@@ -100,7 +117,7 @@ function gigday(){
   '<div class="gigdayActionBar" aria-label="Gig-day quick actions"><button class="primary" data-gigday-rsvp>My RSVP</button>'+
   '<button data-gigday-jump="music">Setlist</button><button data-gigday-jump="tasks">My tasks</button>'+
   '<button data-gigday-jump="alerts">Urgent changes</button><button data-gigday-refresh aria-label="Refresh gig-day details">Refresh</button></div>'+
-  '<section class="gigdayPanel gigdayCallsPanel" aria-label="Show-day call times"><div class="gigdayPanelTitle"><h3>Where to be, and when</h3><span class="sub">'+esc(validZone)+'</span></div>'+
+  beforeYouGo+'<section class="gigdayPanel gigdayCallsPanel" aria-label="Show-day call times"><div class="gigdayPanelTitle"><h3>Where to be, and when</h3><span class="sub">'+esc(validZone)+'</span></div>'+
   '<div class="gigdayCallGrid">'+callCards+'</div><p class="sub">Times are venue-local. “Day +1/+2” means after the show date. TBD is not a confirmed call.</p></section>'+
   '<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Venue and contact"><h3>Venue & contact</h3><p><strong>'+esc(venue)+'</strong></p><p>'+esc(contact)+'</p>'+
   '<p class="sub">'+esc(advance.parking||'Parking and access not recorded')+'</p><div class="gigdayContactActions">'+contactActions+'</div></section>'+
@@ -173,7 +190,7 @@ document.addEventListener('click',async event=>{
   }
   if(button.hasAttribute('data-gigday-perform')){openSetlistPerformance(Number(button.dataset.gigdayPerform));return}
   if(button.hasAttribute('data-gigday-jump')){
-   const target={music:'[aria-label="Show music"]',tasks:'[aria-label="My show tasks"]',alerts:'[aria-label="Urgent show changes"]'}[button.dataset.gigdayJump];
+   const target={music:'[aria-label="Show music"]',tasks:'[aria-label="My show tasks"]',alerts:'[aria-label="Urgent show changes"]',calls:'[aria-label="Show-day call times"]',venue:'[aria-label="Venue and contact"]',rsvp:'[aria-label="My show availability"]'}[button.dataset.gigdayJump];
    const region=target?document.querySelector('.gigdayScreen '+target):null;
    region?.scrollIntoView({behavior:'smooth',block:'start'});
    const heading=region?.querySelector('h3');
