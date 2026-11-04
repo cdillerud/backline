@@ -28,3 +28,19 @@ Screenshots were produced at **320, 375, 390, 768 and 1280 pixels** for Home and
 The new five-viewport synthetic screenshots from [CI #1066](https://github.com/cdillerud/backline/actions/runs/41764681463), artifact `gigday-responsive-synthetic` (ID 13292066281), were downloaded and visually inspected. At 390px the previous Booking Tracker / Show Packets / Show Operations pill strip is absent; the page proceeds from the workspace header to the show context and sticky Gig Day shortcuts. The 390px full-page image remains within the phone viewport and the call cards, personal-task panel and fixed bottom workspace nav render without apparent horizontal clipping. The scrolled 390px image also shows the shortcut strip remaining onscreen above music/lodging/stage sections.
 
 The screenshot review is **visual evidence, not a real device performance or accessibility certification**. The CI run's five-width acceptance step passed; final comprehensive regression and the latest branch-head checks remain the release gates. The inline alert shortcut is now explicitly labeled `Urgent changes` to distinguish it from the full `All notifications` inbox.
+
+## Additional 320px screenshot remediation (extended sprint)
+A subsequent synthetic 320px full-page screenshot (from CI #1128's archived partial artifact) showed correct horizontal fit and successful sticky controls, but too much vertical scrolling when every missing show fact and schedule warning was expanded. The narrower design has now been adjusted to:
+- Render five milestone call cards in **two columns at 320px** rather than one.
+- Show the first three prioritized factual reminders, with the remainder in an accessible expandable list. Urgent acknowledgements appear before routine information where present; no warning is removed.
+- Show the first two timeline warnings with additional recorded warnings behind an explicit disclosure. The full running order remains visible.
+- Preserve the top-to-bottom information hierarchy: show identity, shortcuts, call times, venue/personal assignments, checklist, RSVP, changes, timeline, music, lodging and stage reference.
+- Offer a cleaner paper call sheet, optional offline warning/freshness timestamp, and a mobile-accessible on-stage view with optional screen wake lock.
+
+A five-viewport test now asserts the 320px two-column call layout, expandable reminders and timeline warnings, no horizontal overflow, on-stage performance accessibility and the print layout. These fixes have **not** been marked visually accepted or production-ready without the latest CI and updated screenshot review.
+
+## Validation notes
+- Older green CI #1076 is the certified base for the original mobile redesign.
+- New extended-sprint CI runs may be canceled when superseded, as intended. Only the **latest branch-head run** is a candidate for certification.
+- A synthetic print-click test intermittently observed duplicate invocations; the print handler now suppresses overlapping actions and the test records call stacks when it fails. Treat an unresolved recurrence as a release blocker.
+- No production or preview deployment has occurred.
