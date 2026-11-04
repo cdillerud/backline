@@ -75,3 +75,12 @@ This design has now advanced beyond the initial P1 foundation on the integration
 - Availability cards currently show up to three upcoming events, rather than a definitive calendar-wide conflict resolver.
 - Show readiness reports only fields present in band data, especially linked setlists; stage/rider/guest/lodging completeness needs a separate scoped projection.
 - CI must pass on the **final** branch head before any preview deployment; do not claim certification based on prior test runs.
+
+## Show readiness development increment
+- Home summarizes the next upcoming gig, recorded linked setlists and outstanding event-linked tasks for all authorized roles.
+- For signed-in owners/managers only, it fetches existing packet, stage, venue advance, approved/pending guest and lodging sources. It retains **aggregate counts and state only**, not guest names, hotel confirmation references, or crew identity lists.
+- Status is observational, not a percentage score or a guarantee of show readiness. Missing sources say unavailable; no times, venue confirmations, or completed steps are invented.
+- Lodging counts only non-cancelled stays explicitly linked to the selected show. Tour-level/unlinked stays are not silently attributed to that gig.
+- Home connects directly to setlists, show-specific task view, production packets and authorized crew operations.
+- Latest commit-series desktop/mobile tests cover conditional manager readiness and deep links; member-role tests assert manager-specific summaries are absent.
+- Release gate remains unchanged: a green **final head** CI run plus actual preview acceptance before deploying; no production merge.
