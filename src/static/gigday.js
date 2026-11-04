@@ -79,7 +79,7 @@ function gigday(){
   (pending.length?'<div class="list">'+pending.slice(0,8).map(a=>'<div class="entry"><div class="entryMain"><strong>'+esc(a.title)+'</strong></div>'+
    '<button type="button" class="small" data-gigday-ack="'+Number(a.id)+'">Acknowledge</button></div>').join('')+'</div>':
    '<p class="sub">'+(Array.isArray(alerts)?'No unacknowledged urgent changes for this show.':'Urgent changes could not be checked.')+'</p>')+
-  '<p class="sub" role="status" id="gigdayAlertStatus"></p></section>';
+  '<p class="sub" role="status" id="gigdayAlertStatus"></p><button type="button" class="small" data-gigday-updates>All notifications</button></section>';
  const rsvp=state.data.showOwnRsvp;
  const canRespond=['owner','manager','member'].includes(role);
  const currentResponse=rsvp?.response||'unknown';
@@ -98,8 +98,8 @@ function gigday(){
   '<span class="tag muted">'+(advance.status==='confirmed'?'Venue advance confirmed':'Advance not confirmed')+'</span></div>'+
   selected+'</div>'+
   '<div class="gigdayActionBar" aria-label="Gig-day quick actions"><button class="primary" data-gigday-rsvp>My RSVP</button>'+
-  '<button data-gigday-setlists>Setlist</button><button data-gigday-tasks>My tasks</button>'+
-  '<button data-gigday-updates>Notifications</button><button data-gigday-refresh aria-label="Refresh gig-day details">Refresh</button></div>'+
+  '<button data-gigday-jump="music">Setlist</button><button data-gigday-jump="tasks">My tasks</button>'+
+  '<button data-gigday-jump="alerts">Notifications</button><button data-gigday-refresh aria-label="Refresh gig-day details">Refresh</button></div>'+
   '<section class="gigdayPanel gigdayCallsPanel" aria-label="Show-day call times"><div class="gigdayPanelTitle"><h3>Where to be, and when</h3><span class="sub">'+esc(validZone)+'</span></div>'+
   '<div class="gigdayCallGrid">'+callCards+'</div><p class="sub">Times are venue-local. “Day +1/+2” means after the show date. TBD is not a confirmed call.</p></section>'+
   '<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Venue and contact"><h3>Venue & contact</h3><p><strong>'+esc(venue)+'</strong></p><p>'+esc(contact)+'</p>'+
@@ -133,7 +133,7 @@ document.addEventListener('change',async event=>{
  await openShowPacketGig(Number(event.target.value),'gigday');
 });
 document.addEventListener('click',async event=>{
- const button=event.target.closest('[data-gigday-rsvp],[data-gigday-setlists],[data-gigday-tasks],[data-gigday-updates],[data-gigday-refresh],[data-gigday-perform],[data-gigday-production],[data-gigday-crew],[data-gigday-schedule],[data-gigday-ack],[data-gigday-complete]');
+ const button=event.target.closest('[data-gigday-rsvp],[data-gigday-jump],[data-gigday-setlists],[data-gigday-tasks],[data-gigday-updates],[data-gigday-refresh],[data-gigday-perform],[data-gigday-production],[data-gigday-crew],[data-gigday-schedule],[data-gigday-ack],[data-gigday-complete]');
  if(!button)return;
  event.preventDefault();
  const gig=Number(state.showGig),band=state.band;
@@ -172,6 +172,14 @@ document.addEventListener('click',async event=>{
    return;
   }
   if(button.hasAttribute('data-gigday-perform')){openSetlistPerformance(Number(button.dataset.gigdayPerform));return}
+  if(button.hasAttribute('data-gigday-jump')){
+   const target={music:'[aria-label="Show music"]',tasks:'[aria-label="My show tasks"]',alerts:'[aria-label="Urgent show changes"]'}[button.dataset.gigdayJump];
+   const region=target?document.querySelector('.gigdayScreen '+target):null;
+   region?.scrollIntoView({behavior:'smooth',block:'start'});
+   const heading=region?.querySelector('h3');
+   if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true})}
+   return;
+  }
   if(button.hasAttribute('data-gigday-setlists')){state.gigdayReturn=gig;state.musicGig=gig;state.section='setlists';render();return}
   if(button.hasAttribute('data-gigday-tasks')){state.gigdayReturn=gig;state.prepGig=gig;state.section='tasks';render();return}
   if(button.hasAttribute('data-gigday-updates')){state.section='notifications';await refreshNotifications();return}
