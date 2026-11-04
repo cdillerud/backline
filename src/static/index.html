@@ -241,8 +241,13 @@
 .gigdayConnectivity{border:1px solid #a78a46;background:#3b301b;color:#f8e2a2;padding:12px 15px;border-radius:10px;font-size:13px}
 .gigdayConnectivity[hidden]{display:none!important}
 @media print{
- .gigdayActionBar,.gigdayFooterActions,.gigdayPicker,.gigdayFreshness,.gigdayConnectivity,
- .gigdayScreen button,.gigdayScreen form,.side,.mobileContextNav{display:none!important}
+ @page{margin:14mm}
+ body:has(.gigdayScreen){background:#fff!important;color:#000!important}
+ body:has(.gigdayScreen) .app{display:block!important;min-height:0!important}
+ body:has(.gigdayScreen) .main{display:block!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+ body:has(.gigdayScreen) .content{padding:0!important;margin:0!important;max-width:none!important}
+ body:has(.gigdayScreen) :is(.side,.top,.mobileNav,.mobileContextNav,.globalTools,.gigdayActionBar,.gigdayFooterActions,.gigdayPicker,.gigdayFreshness,.gigdayConnectivity){display:none!important}
+ .gigdayScreen button,.gigdayScreen form{display:none!important}
  .gigdayScreen{display:block;color:#000;background:#fff;max-width:none}
  .gigdayHero,.gigdayPanel,.gigdayCall,.gigdayTimeline li,.gigdayCheck{background:#fff!important;color:#000!important;border-color:#999!important}
  .gigdayPanel{break-inside:avoid;page-break-inside:avoid;margin:12px 0}
