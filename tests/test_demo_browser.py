@@ -89,6 +89,9 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert directions.get_attribute("href").startswith("https://www.google.com/maps/search/?api=1&query=")
             assert directions.get_attribute("rel")=="noopener noreferrer"
             assert focused.get_by_role("region",name="Urgent show changes").is_visible()
+            timeline=focused.get_by_role("region",name="Day-of-show timeline")
+            assert timeline.is_visible()
+            assert timeline.get_by_role("button",name="Open full call sheet").is_visible()
             stage=focused.get_by_role("region",name="Stage and audio setup")
             assert stage.is_visible()
             stage.get_by_text("View stage plot and numbered inputs").click()
