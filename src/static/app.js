@@ -509,10 +509,15 @@ function showops(){
   '<div><small>Show preparation</small><strong>'+personalTasks.length+' open show tasks</strong><button type="button" data-show-context="tasks">Review tasks</button></div></div>'+
   myView+'<div class="gigEssentialsActions"><button type="button" data-show-context="schedule">Attendance & calendar</button><button type="button" data-show-tab="timeline">Day-of-show details</button><button type="button" data-show-tab="advance">Advance & contacts</button></div></section>';
  const linkedSetlists=get('setlists').filter(x=>x.event_id===chosen.id);
- const gigDayCalls=[['Load-in',advanceSnapshot.load_in],['Soundcheck',advanceSnapshot.soundcheck],['Doors',advanceSnapshot.doors],['Showtime',advanceSnapshot.show_time],['Curfew',advanceSnapshot.curfew]];
+ const gigDayCalls=[['Load-in','load_in'],['Soundcheck','soundcheck'],['Doors','doors'],['Showtime','show_time'],['Curfew','curfew']];
+ const gigCall=(label,key)=>{
+  const time=advanceSnapshot[key],offset=Number(advanceSnapshot.day_offsets?.[key]||0);
+  return '<div class="gigDayCall"><small>'+label+'</small><strong>'+esc(time||'TBD')+'</strong>'+
+   (time?'<small>'+(offset?'Day +'+offset:'Show date')+'</small>':'')+'</div>';
+ };
  const gigDay='<section class="panel gigDayBrief" aria-label="My gig day"><div class="panelHeading"><h2>My gig day</h2><span class="tag muted">'+esc(advanceSnapshot.status==='confirmed'?'Advance confirmed':'Details subject to confirmation')+'</span></div>'+
   '<p class="sub">'+datePretty(chosen.date)+' · '+esc(chosen.venue||'Venue not recorded')+' · '+esc(advanceSnapshot.timezone||'Time zone not recorded')+'</p>'+
-  '<div class="gigDayCalls" aria-label="Recorded show calls">'+gigDayCalls.map(([label,value])=>'<div class="gigDayCall"><small>'+label+'</small><strong>'+esc(value||'TBD')+'</strong></div>').join('')+'</div>'+
+  '<div class="gigDayCalls" aria-label="Recorded show calls">'+gigDayCalls.map(([label,key])=>gigCall(label,key)).join('')+'</div>'+
   '<div class="gigDayDetails"><div><h3>Venue & contact</h3><p>'+esc(advanceSnapshot.venue_address||chosen.venue||'Location not recorded')+'</p><p class="sub">'+esc(showContact)+' · '+esc(advanceSnapshot.contact_phone||advanceSnapshot.contact_email||'Contact details not recorded')+'</p></div>'+
   '<div><h3>My preparation</h3><p>'+(rosterMember?assignedTasks.length+' assigned open task'+(assignedTasks.length===1?'':'s'):'Roster assignment not linked')+' · '+linkedSetlists.length+' linked setlist'+(linkedSetlists.length===1?'':'s')+'</p>'+
   (rosterMember&&assignedTasks.length?'<ul>'+assignedTasks.slice(0,3).map(t=>'<li>'+esc(t.title)+'</li>').join('')+'</ul>':'')+'</div></div>'+
