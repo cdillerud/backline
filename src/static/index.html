@@ -131,4 +131,32 @@
 .gigDayDetails li{overflow-wrap:anywhere}
 @media(max-width:800px){.gigDayCalls{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:580px){.gigDayCalls{grid-template-columns:repeat(2,minmax(0,1fr))}.gigDayDetails{grid-template-columns:1fr}.gigDayBrief .actions button{flex:1 1 145px}}
-</style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
+
+/* Gig Day: focused, touch-friendly musician view, separate from the production editor. */
+.gigdayScreen{display:grid;gap:16px;max-width:1160px;margin:0 auto;padding-bottom:20px}
+.gigdayHero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:22px;border:1px solid #334458;border-radius:16px;background:linear-gradient(120deg,#1e3140,#162330 70%)}
+.gigdayHero h2{font:700 clamp(23px,3.5vw,34px) 'Space Grotesk',sans-serif;margin:7px 0}
+.gigdayHero p{margin:6px 0 12px}
+.gigdayPicker{display:grid;gap:7px;font-size:12px;color:#bac9d7;min-width:min(300px,100%)}
+.gigdayPicker select{width:100%;max-width:380px}
+.gigdayActionBar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.gigdayActionBar button{min-height:46px;padding:11px 7px;font-weight:700}
+.gigdayPanel{min-width:0;border:1px solid #314457;background:#16212e;border-radius:14px;padding:20px}
+.gigdayPanel h3{font-size:18px;margin:0 0 13px}
+.gigdayPanelTitle{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.gigdayCallGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:11px;margin:17px 0}
+.gigdayCall{background:#213244;border:1px solid #455971;border-radius:12px;padding:18px 12px;min-width:0}
+.gigdayCall span,.gigdayCall small{display:block;color:#b2c0d0;font-size:12px}
+.gigdayCall strong{display:block;font-size:clamp(20px,2.4vw,28px);line-height:1.2;margin:10px 0 6px;overflow-wrap:anywhere}
+.gigdayColumns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.gigdayColumns .gigdayPanel{min-height:175px}
+.gigdayTaskList{padding-left:20px;margin:12px 0;display:grid;gap:8px}
+.gigdayTaskList small{display:block;color:#a8bad0}
+.gigdaySetlists{display:grid;gap:8px;margin-bottom:13px}
+.gigdayContactActions,.gigdayFooterActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}
+.gigdayLink{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border:1px solid #546b80;border-radius:9px;color:#dcecff;text-decoration:none;min-height:42px}
+.gigdayScreen button:focus-visible,.gigdayLink:focus-visible{outline:3px solid #b9fb74;outline-offset:2px}
+@media(max-width:850px){.gigdayActionBar{grid-template-columns:repeat(3,minmax(0,1fr))}.gigdayCallGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){.gigdayHero{padding:17px}.gigdayActionBar{grid-template-columns:repeat(2,minmax(0,1fr))}.gigdayActionBar button{min-height:50px}.gigdayCallGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.gigdayColumns{grid-template-columns:1fr}.gigdayPanel{padding:16px}}
+@media(max-width:360px){.gigdayCallGrid{grid-template-columns:1fr}.gigdayActionBar{grid-template-columns:1fr 1fr}}
+</style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/gigday.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
