@@ -55,6 +55,14 @@ def test_gig_day_mobile_view_and_show_switch(account_server,accounts,width):
         page.evaluate("window.__gigdayPrintCalls=0;window.print=()=>{window.__gigdayPrintCalls++}")
         gigday.get_by_role('button',name='Print gig-day sheet').click()
         assert page.evaluate("window.__gigdayPrintCalls")==1
+        if width==390:
+            page.emulate_media(media='print')
+            assert page.locator('.top').is_hidden()
+            assert page.locator('.side').is_hidden()
+            assert page.locator('.gigdayCallsPanel').is_visible()
+            assert page.locator('.app').evaluate('(el)=>getComputedStyle(el).display')=='block'
+            page.screenshot(path=str(snapshots/'gigday-print-390.png'),full_page=True)
+            page.emulate_media(media='screen')
         assert gigday.get_by_role('button',name='Setlist',exact=True).is_visible()
         gigday.get_by_role('button',name='Setlist',exact=True).click()
         assert gigday.get_by_role('region',name='Show music').get_by_role('heading',name='Show music').evaluate(
