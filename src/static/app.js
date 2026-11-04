@@ -204,14 +204,18 @@ function studio(){
 }
 
 async function openShowPacketGig(id){
- state.showGig=Number(id);
+ const band=state.band,session=sessionStorage.getItem('backline_session'),gig=Number(id);
+ state.showGig=gig;
+ const current=()=>state.band===band&&sessionStorage.getItem('backline_session')===session&&state.showGig===gig;
  try{
-  const base='/bands/'+state.band+'/gigs/'+state.showGig;
-  const [packets,files,templates,stage,advance,timeline,venue]=await Promise.all([
-   api(base+'/packet'),api(base+'/files'),api('/bands/'+state.band+'/show-templates'),api(base+'/stage'),api(base+'/advance'),api(base+'/timeline'),api('/bands/'+state.band+'/events/'+state.showGig+'/venue')]);
-  state.data.showPackets=packets;state.data.showFiles=files;state.data.showTemplates=templates;state.data.showStage=stage;state.data.showAdvance=advance;state.data.showTimeline=timeline;state.data.showVenue=venue;
+  const base='/bands/'+band+'/gigs/'+gig;
+  const [packets,files,templates,stage,advance,timeline,venue,lodging]=await Promise.all([
+   api(base+'/packet'),api(base+'/files'),api('/bands/'+band+'/show-templates'),api(base+'/stage'),api(base+'/advance'),api(base+'/timeline'),api('/bands/'+band+'/events/'+gig+'/venue'),
+   session?api('/bands/'+band+'/lodging').catch(()=>null):Promise.resolve(null)]);
+  if(!current())return;
+  state.data.showPackets=packets;state.data.showFiles=files;state.data.showTemplates=templates;state.data.showStage=stage;state.data.showAdvance=advance;state.data.showTimeline=timeline;state.data.showVenue=venue;state.data.showLodging=lodging;
   state.section='showops';render();
- }catch(error){toast(error.message,true)}
+ }catch(error){if(current())toast(error.message,true)}
 }
 
 async function refreshTours(){
