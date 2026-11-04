@@ -340,7 +340,7 @@ function openSetlistPerformance(id){
  const setlist=get('setlists').find(x=>Number(x.id)===Number(id));
  if(!setlist)return;
  const songs=Array.isArray(setlist.songs)?setlist.songs:[];
- let index=0,fontScale=1,showOrder=false;
+ let index=0,fontScale=1,showOrder=false,wakeLock=null,wakeMessage='Screen sleep may occur during performance.';
  const dialog=document.createElement('dialog');
  dialog.className='timelineDialog performanceDialog';
  dialog.setAttribute('aria-label','Performance view: '+setlist.title);
@@ -354,7 +354,9 @@ function openSetlistPerformance(id){
    (next&&next.song_key?'<small>Key '+esc(next.song_key)+'</small>':'')+'</div>'+
    '<div class="performanceControls"><button type="button" data-perform-prev '+(index===0?'disabled':'')+'>← Previous</button><button type="button" data-perform-next '+(index>=songs.length-1?'disabled':'')+'>Next →</button></div>'+
    '<div class="performanceToolbar"><button type="button" data-perform-font="smaller" aria-label="Reduce stage font size">A−</button><button type="button" data-perform-font="larger" aria-label="Increase stage font size">A+</button>'+
-   '<button type="button" data-perform-order aria-expanded="'+showOrder+'">'+(showOrder?'Hide running order':'Show running order')+'</button></div>'+
+   '<button type="button" data-perform-order aria-expanded="'+showOrder+'">'+(showOrder?'Hide running order':'Show running order')+'</button>'+
+   '<button type="button" data-perform-wake>'+(wakeLock?'Allow screen sleep':'Keep screen awake')+'</button></div>'+
+   '<p class="performanceWakeStatus sub" role="status">'+esc(wakeMessage)+'</p>'+
    (showOrder?'<nav class="performanceOrder" aria-label="Setlist running order">'+songs.map((s,i)=>'<button type="button" data-perform-jump="'+i+'" class="'+(i===index?'active':'')+'" aria-current="'+(i===index?'step':'false')+'">'+(i+1)+'. '+esc(s.title)+'</button>').join('')+'</nav>':'')+
    '<p class="sub">Use left and right arrow keys to change songs. Running order is read-only. Esc closes this view.</p>';
   if(dialog.open)dialog.focus();
@@ -368,6 +370,21 @@ function openSetlistPerformance(id){
   if(target.hasAttribute('data-perform-next')){moveTo(index+1);return}
   if(target.hasAttribute('data-perform-jump')){moveTo(Number(target.dataset.performJump));return}
   if(target.hasAttribute('data-perform-order')){showOrder=!showOrder;paint();return}
+  if(target.hasAttribute('data-perform-wake')){
+   if(wakeLock){
+    const held=wakeLock;wakeLock=null;wakeMessage='Screen sleep allowed.';paint();
+    Promise.resolve(held.release()).catch(()=>{});return;
+   }
+   if(!navigator.wakeLock?.request){wakeMessage='Screen wake lock is unavailable on this device.';paint();return}
+   navigator.wakeLock.request('screen').then(lock=>{
+    if(!dialog.open){lock.release().catch(()=>{});return}
+    wakeLock=lock;wakeMessage='Screen wake lock active. Your device may still override it.';
+    lock.addEventListener?.('release',()=>{
+     if(wakeLock===lock){wakeLock=null;wakeMessage='Screen wake lock released by the device.';if(dialog.open)paint()}
+    });paint();
+   }).catch(()=>{wakeMessage='Could not prevent screen sleep. Check device permissions.';if(dialog.open)paint()});
+   return;
+  }
   if(target.dataset.performFont==='larger'){fontScale=Math.min(1.6,Math.round((fontScale+.15)*100)/100);paint();return}
   if(target.dataset.performFont==='smaller'){fontScale=Math.max(.85,Math.round((fontScale-.15)*100)/100);paint();return}
  });
@@ -376,7 +393,11 @@ function openSetlistPerformance(id){
   if(event.key==='ArrowRight'&&index<songs.length-1){event.preventDefault();moveTo(index+1)}
   if(event.key==='ArrowLeft'&&index>0){event.preventDefault();moveTo(index-1)}
  });
- dialog.addEventListener('close',()=>dialog.remove(),{once:true});
+ dialog.addEventListener('close',()=>{
+  const held=wakeLock;wakeLock=null;
+  if(held)Promise.resolve(held.release()).catch(()=>{});
+  dialog.remove();
+ },{once:true});
  document.body.append(dialog);paint();dialog.showModal();dialog.focus();
 }
 document.addEventListener('click',event=>{
