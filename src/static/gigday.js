@@ -47,6 +47,16 @@ function gigday(){
    (songs.length>20?'<p class="sub">+'+(songs.length-20)+' more songs in performance view</p>':'')+'</div>';
  }).join('')+'</div>':
   '<p class="sub">No setlists are linked to this show yet.</p>';
+ const stage=state.data.showStage||{items:[],inputs:[]};
+ const stageItems=Array.isArray(stage.items)?stage.items:[],stageInputs=Array.isArray(stage.inputs)?stage.inputs:[];
+ const stageSection='<section class="gigdayPanel gigdayStage" aria-label="Stage and audio setup"><h3>Stage & inputs</h3>'+
+  '<p class="sub">'+stageItems.length+' stage elements · '+stageInputs.length+' audio inputs recorded</p>'+
+  '<details><summary>View stage plot and numbered inputs</summary>'+
+   (stageItems.length?stagePreview(stage):'<p class="sub">No stage layout recorded for this show.</p>')+
+   (stageInputs.length?'<ol class="gigdayInputs">'+stageInputs.slice().sort((a,b)=>Number(a.channel)-Number(b.channel)).map(input=>
+    '<li><strong>CH '+Number(input.channel)+'</strong> · '+esc(input.source||'Unlabeled')+
+    (input.microphone?' · '+esc(input.microphone):'')+'</li>').join('')+'</ol>':'<p class="sub">No audio input list recorded.</p>')+
+  '</details></section>';
  const hotel=rooms.length?rooms.map(r=>'<div class="entry"><div><strong>'+esc(r.hotel)+'</strong><p class="sub">'+esc(r.label)+
   (r.checkIn?' · Check-in '+esc(String(r.checkIn).slice(0,10)):'')+'</p></div></div>').join(''):
   '<p class="sub">No personal hotel room linked to this show.</p>';
@@ -86,7 +96,7 @@ function gigday(){
   tasks+'<p id="gigdayTaskStatus" class="sub" role="status"></p><button class="small" data-gigday-tasks>Show task list</button></section>'+
   '<section class="gigdayPanel" aria-label="Show music"><h3>Show music</h3>'+repertoire+
   '<button class="small" data-gigday-setlists>Manage show setlists</button></section>'+
-  '<section class="gigdayPanel" aria-label="Personal lodging"><h3>My lodging</h3>'+hotel+'</section></div>'+
+  '<section class="gigdayPanel" aria-label="Personal lodging"><h3>My lodging</h3>'+hotel+'</section>'+stageSection+'</div>'+
   '<div class="gigdayFooterActions"><button data-gigday-production>Detailed production</button>'+
   (manager?'<button data-gigday-crew>Crew & guests</button>':'')+
   '<button data-gigday-schedule>Back to schedule</button></div></section>';
