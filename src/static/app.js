@@ -170,10 +170,12 @@ function fullDashboard(){
   ['Guest requests',readinessData.guests?(readinessData.guests.approved+' approved · '+readinessData.guests.pending+' pending'):'Status unavailable'],
   ['Lodging',readinessData.lodging?(readinessData.lodging.stays+' linked stays · '+readinessData.lodging.rooms+' rooms'):'Status unavailable']
  ]:[];
+ const showTasks=nextGig?get('tasks').filter(t=>Number(t.event_id)===Number(nextGig.id)&&!t.completed):[];
  const readinessRows=operational.map(([label,detail])=>'<div class="entry"><div class="entryMain"><strong>'+esc(label)+'</strong><small>'+esc(detail)+'</small></div></div>').join('');
+ const taskRow='<div class="entry"><div class="entryMain"><strong>Outstanding show tasks</strong><small>'+showTasks.length+' task'+(showTasks.length===1?'':'s')+' open</small></div><button class="small" data-home-show-tasks="'+(nextGig?.id||'')+'">View tasks</button></div>';
  const readiness=panel('Next show preparation',nextGig?
   '<p><strong>'+esc(nextGig.title)+'</strong></p><p class="sub">'+datePretty(nextGig.date)+' · '+esc(nextGig.venue||'Venue not recorded')+'</p>'+
-  '<div class="list"><div class="entry"><div class="entryMain"><strong>Setlists</strong><small>'+linked.length+' linked to this show</small></div></div>'+readinessRows+'</div>'+
+  '<div class="list"><div class="entry"><div class="entryMain"><strong>Setlists</strong><small>'+linked.length+' linked to this show</small></div><button class="small" data-home-show-setlists="'+nextGig.id+'">Open setlists</button></div>'+taskRow+readinessRows+'</div>'+
   (!readinessData?'<p class="sub">Detailed production readiness is available to band managers; missing data is never counted as complete.</p>':'')+
   '<div class="actions"><button data-show-gig="'+nextGig.id+'">Open production</button>'+
   (readinessData?'<button data-home-crew="'+nextGig.id+'">Crew & guests</button>':'')+'</div>':
@@ -608,12 +610,20 @@ document.addEventListener('click',event=>{
  }
 });
 document.addEventListener('click',async event=>{
- const button=event.target.closest('[data-home-thread],[data-home-event],[data-home-crew]');
+ const button=event.target.closest('[data-home-thread],[data-home-event],[data-home-crew],[data-home-show-tasks],[data-home-show-setlists]');
  if(!button)return;
  event.preventDefault();
  event.stopPropagation();
  try{
-  if(button.dataset.homeThread){
+  if(button.dataset.homeShowTasks){
+   state.prepGig=Number(button.dataset.homeShowTasks);
+   state.section='tasks';
+   render();
+  }else if(button.dataset.homeShowSetlists){
+   state.musicGig=Number(button.dataset.homeShowSetlists);
+   state.section='setlists';
+   render();
+  }else if(button.dataset.homeThread){
    state.discussionThread=Number(button.dataset.homeThread);
    state.section='collaboration';
    await refreshCollaboration();
