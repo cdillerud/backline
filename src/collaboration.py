@@ -183,6 +183,31 @@ def attach(db):
             con.execute('INSERT INTO collaboration_audit(band_id,actor_id,action,reference,created_at) VALUES(?,?,?,?,?)',
                         (band_id,user_id,'link_roster',str(member_id),int(time.time())))
         return {'linked':True}
+    @router.post('/api/bands/{band_id}/gigs/{event_id}/tasks/{task_id}/complete-mine')
+    def complete_my_show_task(band_id:int,event_id:int,task_id:int,request:Request):
+        """Self-completion only: band membership, roster identity, gig and task must all match."""
+        uid=actor(request)
+        with db() as con:
+            con.execute('BEGIN IMMEDIATE')
+            membership=con.execute('SELECT role FROM band_users WHERE band_id=? AND user_id=?',
+                                   (band_id,uid)).fetchone()
+            if not membership or membership['role'] not in ('owner','manager','member'):
+                raise HTTPException(403,'Band member access required')
+            event=record(con,'events',band_id,event_id)
+            if event['kind']!='Gig':raise HTTPException(422,'This is not a show')
+            roster=con.execute('SELECT member_id FROM roster_accounts WHERE band_id=? AND user_id=?',
+                               (band_id,uid)).fetchone()
+            if not roster:raise HTTPException(403,'Link your band account to a roster member first')
+            row=record(con,'workspace_tasks',band_id,task_id)
+            task=json.loads(row['body_json'])
+            if task.get('event_id')!=event_id or task.get('assignee_id')!=roster['member_id']:
+                raise HTTPException(403,'Only your assigned tasks for this show can be completed')
+            if not task.get('completed'):
+                task['completed']=True
+                con.execute('UPDATE workspace_tasks SET body_json=? WHERE band_id=? AND id=?',
+                            (json.dumps(task),band_id,task_id))
+        return {'completed':True}
+
     @router.get('/api/bands/{band_id}/events/{event_id}/rsvps')
     def rsvps(band_id:int,event_id:int,request:Request):
         actor(request)
