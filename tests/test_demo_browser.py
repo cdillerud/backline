@@ -91,7 +91,7 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert focused.get_by_role("region",name="Urgent show changes").is_visible()
             assert focused.get_by_role("region",name="Show music").get_by_text("Example Opener").is_visible()
             assert focused.get_by_role("region",name="Show music").get_by_text("Example Closer").is_visible()
-            assert focused.get_by_role("button",name="My RSVP").is_visible()
+            assert focused.get_by_role("button",name="My RSVP",exact=True).is_visible()
             own_rsvp=focused.get_by_role("region",name="My show availability")
             assert own_rsvp.is_visible()
             own_rsvp.get_by_label("Response").select_option("maybe")
