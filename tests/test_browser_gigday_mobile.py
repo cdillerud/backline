@@ -52,9 +52,12 @@ def test_gig_day_mobile_view_and_show_switch(account_server,accounts,width):
         assert gigday.get_by_role('button',name='Refresh').is_visible()
         assert gigday.get_by_text('Show details last loaded',exact=False).is_visible()
         assert gigday.get_by_role('button',name='Print gig-day sheet').is_visible()
-        page.evaluate("window.__gigdayPrintCalls=0;window.print=()=>{window.__gigdayPrintCalls++}")
+        page.evaluate("""() => {
+          window.__gigdayPrintCalls=0;window.__gigdayPrintStacks=[];
+          window.print=()=>{window.__gigdayPrintCalls++;window.__gigdayPrintStacks.push(new Error('Print call').stack)};
+        }""")
         gigday.get_by_role('button',name='Print gig-day sheet').click()
-        assert page.evaluate("window.__gigdayPrintCalls")==1
+        assert page.evaluate("window.__gigdayPrintCalls")==1, page.evaluate("({stacks:window.__gigdayPrintStacks,lastPrint:state.gigdayLastPrintMs,now:Date.now()})")
         if width==390:
             page.emulate_media(media='print')
             assert page.locator('.top').is_hidden()
