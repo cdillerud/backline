@@ -99,4 +99,22 @@
 .mobileContextNav button.active{border-color:#b9fb74;color:#b9fb74;background:#263a2c}}
 .hubUpcoming{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:10px 0 14px}.hubUpcomingItem{display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left;padding:14px;background:#1b2534;color:inherit;border:1px solid #384556;border-radius:12px;min-width:0}.hubUpcomingItem:hover,.hubUpcomingItem:focus-visible{border-color:#b9fb74}.hubUpcomingItem small{color:#a7b9d1}.hubConversation{text-align:left}
 .calendarDay[data-calendar-day]{cursor:default}.calendarDay[data-calendar-day]:hover{background:#203046}.calendarDay[data-calendar-day]:focus-visible{outline:2px solid #b9fb74;outline-offset:2px}.calendarEvent--show{border-color:#5aafff!important;background:#142d45}.calendarEvent--rehearsal{border-color:#b9fb74!important;background:#20392d}.calendarEvent--meeting{border-color:#d7a1ff!important;background:#332441}.calendarTypeLegend{display:flex;flex-wrap:wrap;gap:14px;margin:10px 0}.calendarTypeLegend span{display:inline-flex;align-items:center;gap:6px}.calendarTypeLegend i{width:10px;height:10px;border-radius:50%;display:inline-block}.calendarTypeLegend .show i{background:#5aafff}.calendarTypeLegend .rehearsal i{background:#b9fb74}.calendarTypeLegend .meeting i{background:#d7a1ff}
+
+/* Band Home v0.5: band-first overview with responsive action and overview cards. */
+.bandHomeHeader{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:22px}
+.bandHomeHeader h2{font:700 clamp(23px,3vw,34px) 'Space Grotesk',sans-serif;margin:5px 0 8px}
+.bandHomeQuickActions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bandHomeQuickActions button{white-space:normal}
+.bandHomeStats{grid-template-columns:repeat(5,minmax(0,1fr))}
+.bandHomeStat{text-align:left;color:inherit;cursor:pointer;min-width:0}
+.bandHomeStat strong{line-height:1.1}
+.bandHomeStat small{display:block;color:#9cacc0;margin-top:8px;font-size:12px}
+.bandHomeStat:hover{border-color:#7287a1}
+.bandHomeStat:focus-visible{outline:3px solid #b9fb74;outline-offset:2px}
+.bandHomeGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.bandHomeGrid .panel{margin-bottom:0}
+.bandHomeGrid .panel:first-child{grid-column:1/-1}
+@media(max-width:1000px){.bandHomeStats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.bandHomeStats{grid-template-columns:repeat(2,minmax(0,1fr))}.bandHomeGrid{grid-template-columns:1fr}.bandHomeGrid .panel:first-child{grid-column:auto}.bandHomeQuickActions{width:100%}.bandHomeQuickActions button{flex:1 1 140px}}
+@media(max-width:380px){.bandHomeStats{grid-template-columns:1fr}}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
