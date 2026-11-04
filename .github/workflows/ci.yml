@@ -34,6 +34,14 @@ jobs:
           node --check src/static/pwa.js
           node --check src/static/operations.js
           node --check src/static/service-worker.js
+      - name: Capture synthetic mobile visual acceptance screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gigday-responsive-synthetic
+          path: artifacts/gigday/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Audit production dependencies
         run: python -m pip_audit -r requirements.txt
       - name: Compile application modules
