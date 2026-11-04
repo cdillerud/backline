@@ -12,6 +12,15 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
         errors=[]
         page.on("pageerror",lambda err:errors.append(str(err)))
         sign_in(page,account_server,"owner")
+        # Band-first landing page reuses existing authorized records and working routes.
+        page.locator('[data-go="dashboard"]:visible').first.click()
+        expect(page.get_by_text("Your band home")).to_be_visible()
+        expect(page.locator(".bandHomeStats .bandHomeStat")).to_have_count(5)
+        expect(page.get_by_role("button",name="+ Add song")).to_be_visible()
+        expect(page.get_by_role("button",name="+ Add event")).to_be_visible()
+        page.locator(".bandHomeQuickActions [data-action='song']").click()
+        expect(page.get_by_text("Add song",exact=True)).to_be_visible()
+        page.locator("#entryForm [data-action='close']").click()
         page.locator('[data-go="schedule"]:visible').first.click()
         expect(page.locator("#calendarMonth")).to_be_visible()
         assert page.get_by_role("tablist",name="Schedule views").count()==0
