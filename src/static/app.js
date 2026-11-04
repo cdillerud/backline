@@ -207,6 +207,7 @@ async function openShowPacketGig(id,destination='showops'){
  const band=state.band,session=sessionStorage.getItem('backline_session'),gig=Number(id);
  state.showGig=gig;
  const current=()=>state.band===band&&sessionStorage.getItem('backline_session')===session&&state.showGig===gig;
+ if(destination==='gigday'){state.gigdayLoading=gig;state.gigdayError=null;state.section='gigday';render()}
  try{
   const base='/bands/'+band+'/gigs/'+gig;
   const [packets,files,templates,stage,advance,timeline,venue,lodging,alerts]=await Promise.all([
@@ -215,8 +216,8 @@ async function openShowPacketGig(id,destination='showops'){
    session?api('/bands/'+band+'/operations/alerts?event_id='+gig).catch(()=>null):Promise.resolve(null)]);
   if(!current())return;
   state.data.showPackets=packets;state.data.showFiles=files;state.data.showTemplates=templates;state.data.showStage=stage;state.data.showAdvance=advance;state.data.showTimeline=timeline;state.data.showVenue=venue;state.data.showLodging=lodging;state.data.showAlerts=Array.isArray(alerts)?alerts.map(a=>({id:a.id,title:a.title,created_at:a.created_at,acknowledged_at:a.acknowledged_at})):null;
-  state.section=destination;render();
- }catch(error){if(current())toast(error.message,true)}
+  state.gigdayLoading=null;state.gigdayError=null;state.section=destination;render();
+ }catch(error){if(current()){if(destination==='gigday'){state.gigdayLoading=null;state.gigdayError=error.message;render()}toast(error.message,true)}}
 }
 
 async function refreshTours(){
