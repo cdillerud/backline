@@ -17,11 +17,11 @@ function workspaceNavigation(mobile=false){
  if(mobile)return WORKSPACES.filter(w=>visibleDestination(w[0])).map(([id,icon,label,sections])=>
   '<button class="'+(sections.includes(state.section)?'active':'')+'" data-go="'+id+'" aria-label="'+label+'">'+icon+'<span>'+label+'</span></button>').join('');
  const main=WORKSPACES.filter(w=>visibleDestination(w[0])).map(([id,icon,label,sections])=>
-  '<button data-go="'+id+'" class="'+(sections.includes(state.section)?'active':'')+'" aria-current="'+(sections.includes(state.section)?'page':'false')+'"><span>'+icon+'</span><span class="navName">'+label+'</span></button>').join('');
+  '<button data-go="'+id+'" aria-label="'+esc(label)+'" class="'+(sections.includes(state.section)?'active':'')+'" aria-current="'+(sections.includes(state.section)?'page':'false')+'"><span aria-hidden="true">'+icon+'</span><span class="navName">'+label+'</span></button>').join('');
  const sub=nav.filter(([id])=>current[3].includes(id)&&id!==current[0]&&visibleDestination(id)&&current[0]!=='collaboration');
  return '<nav class="nav" aria-label="Primary workspaces">'+main+'</nav>'+
   (sub.length?'<div class="overline">'+current[2]+' tools</div><nav class="nav workspaceSubnav" aria-label="'+current[2]+' tools">'+
-   sub.map(([id,icon,label])=>'<button data-go="'+id+'" class="'+(state.section===id?'active':'')+'" aria-current="'+(state.section===id?'page':'false')+'"><span>'+icon+'</span><span class="navName">'+label+'</span></button>').join('')+'</nav>':'');
+   sub.map(([id,icon,label])=>'<button data-go="'+id+'" aria-label="'+esc(label)+'" class="'+(state.section===id?'active':'')+'" aria-current="'+(state.section===id?'page':'false')+'"><span aria-hidden="true">'+icon+'</span><span class="navName">'+label+'</span></button>').join('')+'</nav>':'');
 }
 
 function mobileContextNavigation(){
@@ -30,7 +30,7 @@ function mobileContextNavigation(){
  const workspace=workspaceFor(state.section);
  const tools=nav.filter(([id])=>workspace[3].includes(id)&&id!==workspace[0]&&visibleDestination(id)&&workspace[0]!=='collaboration');
  return tools.length?'<nav class="mobileContextNav" aria-label="'+workspace[2]+' tools">'+
- tools.map(([id,icon,label])=>'<button data-go="'+id+'" class="'+(state.section===id?'active':'')+'">'+esc(label)+'</button>').join('')+'</nav>':'';
+ tools.map(([id,icon,label])=>'<button data-go="'+id+'" class="'+(state.section===id?'active':'')+'" aria-current="'+(state.section===id?'page':'false')+'">'+esc(label)+'</button>').join('')+'</nav>':'';
 }
 const $=s=>document.querySelector(s);const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const dollars=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format((n||0)/100);
