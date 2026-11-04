@@ -498,7 +498,8 @@ function showops(){
  const calls=[['Load-in',advanceSnapshot.load_in],['Soundcheck',advanceSnapshot.soundcheck],['Doors',advanceSnapshot.doors],['Showtime',advanceSnapshot.show_time]].filter(x=>x[1]);
  const personalTasks=get('tasks').filter(t=>t.event_id===chosen.id&&!t.completed);
  const signedInUser=state.data.collaboration?.user_id;
- const rosterMember=get('members').find(m=>Number(m.user_id)===Number(signedInUser)&&signedInUser!=null);
+ const rosterLink=(state.data.collaboration?.members||[]).find(m=>signedInUser!=null&&Number(m.id)===Number(signedInUser));
+ const rosterMember=rosterLink?.member_id!=null?get('members').find(m=>Number(m.id)===Number(rosterLink.member_id)):null;
  const assignedTasks=rosterMember?personalTasks.filter(t=>Number(t.assignee_id)===Number(rosterMember.id)):[];
  const myView=signedInUser!=null?'<div class="gigPersonal"><h4>My show</h4><p>'+(rosterMember?assignedTasks.length+' task'+(assignedTasks.length===1?'':'s')+' assigned to me':'Personal assignment not linked to roster')+'</p><button type="button" data-show-rsvp>My RSVP</button></div>':'';
  const essentials='<section class="gigEssentials" aria-label="Gig essentials"><div class="gigEssentialsHead"><div><span class="eyebrow">AT A GLANCE</span><h3>Gig essentials</h3></div><span class="tag muted">'+esc(chosen.status||'Status not recorded')+'</span></div><div class="gigEssentialsGrid">'+
