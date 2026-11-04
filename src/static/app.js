@@ -25,6 +25,8 @@ function workspaceNavigation(mobile=false){
 }
 
 function mobileContextNavigation(){
+ // Gig Day already exposes show-specific actions; redundant module pills obscure the calls on phones.
+ if(state.section==='gigday')return '';
  const workspace=workspaceFor(state.section);
  const tools=nav.filter(([id])=>workspace[3].includes(id)&&id!==workspace[0]&&visibleDestination(id)&&workspace[0]!=='collaboration');
  return tools.length?'<nav class="mobileContextNav" aria-label="'+workspace[2]+' tools">'+
