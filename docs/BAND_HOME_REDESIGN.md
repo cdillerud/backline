@@ -93,3 +93,10 @@ This design has now advanced beyond the initial P1 foundation on the integration
 - Responsive two-column mobile call cards; browser coverage checks the page, call labels, linked synthetic personal task and opening Gig Day from a calendar event.
 - No stage or tour-data migration, public page, live notification delivery, production deployment, or additional private API exposure.
 - Acceptance still requires final-commit GitHub Actions success and authenticated preview/real-device review. A previous green CI run does not certify these newest changes.
+
+### Gig-day follow-up: private lodging, date offsets and stale-response safety
+- Opening a show's gig-day view also reads the existing membership-scoped lodging API. It does not query private hotel information through an anonymous endpoint. A member receives only rooms assigned to them by the server; managers filter their broader authorized results down to their own room before rendering **My lodging**.
+- Only active stays explicitly linked by `event_id` to the selected gig are eligible. No other occupants, internal notes or confirmation references appear in the gig-day summary.
+- Recorded call times show the original venue-local `HH:MM` and explicit `Day +1`/`Day +2` labels from the stored advancement; unknown times remain TBD and the recorded time zone is displayed.
+- Async show packet loading checks gig ID, band ID and session before replacing the visible show, preventing an earlier selection's late response from replacing a later selection.
+- Schedule's gig event dialog and the Home's next-show action now both open My Gig Day; synthetic browser acceptance checks those contextual paths.
