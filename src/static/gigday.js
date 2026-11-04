@@ -102,11 +102,11 @@ function gigday(){
   '<button data-gigday-updates>Notifications</button><button data-gigday-refresh aria-label="Refresh gig-day details">Refresh</button></div>'+
   '<section class="gigdayPanel gigdayCallsPanel" aria-label="Show-day call times"><div class="gigdayPanelTitle"><h3>Where to be, and when</h3><span class="sub">'+esc(validZone)+'</span></div>'+
   '<div class="gigdayCallGrid">'+callCards+'</div><p class="sub">Times are venue-local. “Day +1/+2” means after the show date. TBD is not a confirmed call.</p></section>'+
-  rsvpPanel+alertPanel+runOfShow+'<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Venue and contact"><h3>Venue & contact</h3><p><strong>'+esc(venue)+'</strong></p><p>'+esc(contact)+'</p>'+
+  '<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Venue and contact"><h3>Venue & contact</h3><p><strong>'+esc(venue)+'</strong></p><p>'+esc(contact)+'</p>'+
   '<p class="sub">'+esc(advance.parking||'Parking and access not recorded')+'</p><div class="gigdayContactActions">'+contactActions+'</div></section>'+
   '<section class="gigdayPanel" aria-label="My show tasks"><div class="gigdayPanelTitle"><h3>My assignments</h3><span class="tag muted">'+assigned.length+' open</span></div>'+
-  tasks+'<p id="gigdayTaskStatus" class="sub" role="status"></p><button class="small" data-gigday-tasks>Show task list</button></section>'+
-  '<section class="gigdayPanel" aria-label="Show music"><h3>Show music</h3>'+repertoire+
+  tasks+'<p id="gigdayTaskStatus" class="sub" role="status"></p><button class="small" data-gigday-tasks>Show task list</button></section></div>'+
+  rsvpPanel+alertPanel+runOfShow+'<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Show music"><h3>Show music</h3>'+repertoire+
   '<button class="small" data-gigday-setlists>Manage show setlists</button></section>'+
   '<section class="gigdayPanel" aria-label="Personal lodging"><h3>My lodging</h3>'+hotel+'</section>'+stageSection+'</div>'+
   '<div class="gigdayFooterActions"><button data-gigday-production>Detailed production</button>'+
