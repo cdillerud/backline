@@ -21,6 +21,10 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
         expect(page.get_by_role("heading",name="Music & preparation")).to_be_visible()
         expect(page.get_by_role("heading",name="Next show preparation")).to_be_visible()
         expect(page.get_by_role("heading",name="Recent band activity")).to_be_visible()
+        if page.locator("[data-home-thread]").count():
+            page.locator("[data-home-thread]").first.click()
+            expect(page.get_by_role("heading",name="Conversations",exact=True)).to_be_visible()
+            page.locator('[data-go="dashboard"]:visible').first.click()
         if page.locator("[data-home-event]").count():
             page.locator("[data-home-event]").first.click()
             expect(page.get_by_role("dialog",name="Event details:",exact=False)).to_be_visible()
