@@ -80,7 +80,7 @@ function fullDashboard(){
  const songs=get('songs'), recordings=get('recordings'), allEvents=get('events');
  const tasks=get('tasks').filter(t=>!t.completed).slice().sort((a,b)=>(a.due_date||'9999').localeCompare(b.due_date||'9999'));
  const followups=get('booking-followups'), due=Array.isArray(followups.items)?followups.items:[];
- const canManage=['owner','manager','treasurer'].includes(state.accountRole);
+ const canManage=['owner','manager'].includes(state.accountRole);
  const rehearsalCount=allEvents.filter(e=>e.kind==='Rehearsal'&&e.date>=today()).length;
  const gigCount=allEvents.filter(e=>e.kind==='Gig'&&e.date>=today()).length;
  const band=state.bands.find(b=>b.id===state.band)||{name:'Your band'};
@@ -97,7 +97,7 @@ function fullDashboard(){
  const next=panel('Coming up',events.length?'<div class="list">'+events.slice(0,5).map(e=>
   '<div class="entry"><div class="entryMain"><span class="tag muted">'+esc(e.kind||'Event')+'</span><strong>'+esc(e.title)+'</strong><small>'+datePretty(e.date)+' · '+esc(e.time||'Time TBD')+' · '+esc(e.venue||'Location TBD')+'</small></div>'+
   (e.kind==='Gig'&&e.id?'<button class="small" data-show-gig="'+e.id+'">Open show</button>':'<button class="small" data-go="schedule">Schedule</button>')+'</div>').join('')+'</div>':
-  '<p class="sub">No upcoming shows or rehearsals recorded.</p><button data-action="event">Add an event</button>',
+  '<p class="sub">No upcoming shows or rehearsals recorded.</p>'+(canManage?'<button data-action="event">Add an event</button>':''),
   '<button class="small" data-go="schedule">Open calendar</button>');
  const focus=[
   ...tasks.slice(0,4).map(t=>({title:t.title,detail:t.due_date?'Due '+datePretty(t.due_date):'No due date',route:'tasks',kind:'Task'})),
