@@ -46,6 +46,15 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert spotlight.get_by_role("button",name="My Gig Day").is_visible()
             assert spotlight.get_by_role("button",name="Details & RSVP").is_visible()
             assert page.locator(".bandHomeStat").count()==5
+            readiness=page.locator(".homeReadinessDisclosure")
+            assert readiness.count()==1
+            assert readiness.get_attribute("open") is None
+            assert page.get_by_text("Outstanding show tasks",exact=True).is_visible()
+            readiness.locator("summary").click()
+            assert readiness.get_attribute("open") is not None
+            assert readiness.get_by_text("Venue advance",exact=True).is_visible()
+            readiness.locator("summary").click()
+            assert readiness.get_attribute("open") is None
             assert page.evaluate("""() => {
                 const spot=document.querySelector('.homeGigSpotlight');
                 const stat=document.querySelector('.bandHomeStats');
