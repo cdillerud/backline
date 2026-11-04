@@ -236,4 +236,18 @@
 .gigdayCheck button{flex-shrink:0;min-height:44px}
 @media(max-width:800px){.gigdayChecks{grid-template-columns:1fr}}
 @media(max-width:380px){.gigdayCheck{flex-wrap:wrap}.gigdayCheck button{width:100%}}
+
+.gigdayFreshness{color:#aebdcd;font-size:12px;margin:0 4px}
+.gigdayConnectivity{border:1px solid #a78a46;background:#3b301b;color:#f8e2a2;padding:12px 15px;border-radius:10px;font-size:13px}
+.gigdayConnectivity[hidden]{display:none!important}
+@media print{
+ .gigdayActionBar,.gigdayFooterActions,.gigdayPicker,.gigdayFreshness,.gigdayConnectivity,
+ .gigdayScreen button,.gigdayScreen form,.side,.mobileContextNav{display:none!important}
+ .gigdayScreen{display:block;color:#000;background:#fff;max-width:none}
+ .gigdayHero,.gigdayPanel,.gigdayCall,.gigdayTimeline li,.gigdayCheck{background:#fff!important;color:#000!important;border-color:#999!important}
+ .gigdayPanel{break-inside:avoid;page-break-inside:avoid;margin:12px 0}
+ .gigdayColumns{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .gigdayCallGrid{grid-template-columns:repeat(5,minmax(0,1fr))}
+ .gigdayScreen :is(.sub,small,span,p,strong,h2,h3){color:#000!important}
+}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/gigday.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
