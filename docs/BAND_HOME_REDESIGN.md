@@ -84,3 +84,12 @@ This design has now advanced beyond the initial P1 foundation on the integration
 - Home connects directly to setlists, show-specific task view, production packets and authorized crew operations.
 - Latest commit-series desktop/mobile tests cover conditional manager readiness and deep links; member-role tests assert manager-specific summaries are absent.
 - Release gate remains unchanged: a green **final head** CI run plus actual preview acceptance before deploying; no production merge.
+
+## Gig-day musician experience — development increment
+- The show production page now leads with a **My gig day** summary accessible from Band Home and from a Gig's Schedule details dialog. This is an additional compact presentation of existing records, not a parallel show entity.
+- Displayed: confirmed vs unconfirmed advance label, show date/venue, load-in, soundcheck, doors, show, curfew, applicable day offsets and recorded venue time zone; missing times explicitly show TBD.
+- The personal preparation area resolves the signed-in band account through `collaboration.members[].member_id`, then matches tasks by that roster member ID; previously it incorrectly expected `user_id` on the general members collection.
+- Context actions navigate to attendance, show-specific tasks and setlists, detailed timeline, and manager-only crew/guest operations. They reuse existing route and permission boundaries.
+- Responsive two-column mobile call cards; browser coverage checks the page, call labels, linked synthetic personal task and opening Gig Day from a calendar event.
+- No stage or tour-data migration, public page, live notification delivery, production deployment, or additional private API exposure.
+- Acceptance still requires final-commit GitHub Actions success and authenticated preview/real-device review. A previous green CI run does not certify these newest changes.
