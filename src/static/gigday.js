@@ -131,7 +131,7 @@ function gigday(){
   beforeYouGo+rsvpPanel+alertPanel+runOfShow+'<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Show music"><h3>Show music</h3>'+repertoire+
   '<button class="small" data-gigday-setlists>Manage show setlists</button></section>'+
   '<section class="gigdayPanel" aria-label="Personal lodging"><h3>My lodging</h3>'+hotel+'</section>'+stageSection+'</div>'+
-  '<div class="gigdayFooterActions"><button data-gigday-production>Detailed production</button>'+
+  '<div class="gigdayFooterActions"><button data-gigday-print>Print gig-day sheet</button><button data-gigday-production>Detailed production</button>'+
   (manager?'<button data-gigday-crew>Crew & guests</button>':'')+
   '<button data-gigday-schedule>Back to schedule</button></div></section>';
 }
@@ -161,7 +161,7 @@ document.addEventListener('change',async event=>{
  await openShowPacketGig(Number(event.target.value),'gigday');
 });
 document.addEventListener('click',async event=>{
- const button=event.target.closest('[data-gigday-rsvp],[data-gigday-jump],[data-gigday-setlists],[data-gigday-tasks],[data-gigday-updates],[data-gigday-refresh],[data-gigday-perform],[data-gigday-production],[data-gigday-crew],[data-gigday-schedule],[data-gigday-ack],[data-gigday-complete]');
+ const button=event.target.closest('[data-gigday-rsvp],[data-gigday-jump],[data-gigday-setlists],[data-gigday-tasks],[data-gigday-updates],[data-gigday-refresh],[data-gigday-perform],[data-gigday-production],[data-gigday-print],[data-gigday-crew],[data-gigday-schedule],[data-gigday-ack],[data-gigday-complete]');
  if(!button)return;
  event.preventDefault();
  const gig=Number(state.showGig),band=state.band;
@@ -192,6 +192,7 @@ document.addEventListener('click',async event=>{
    }catch(error){if(button.isConnected){button.disabled=false;document.querySelector('#gigdayAlertStatus').textContent=error.message}}
    return;
   }
+  if(button.hasAttribute('data-gigday-print')){window.print();return}
   if(button.hasAttribute('data-gigday-refresh')){await openShowPacketGig(gig,'gigday');return}
   if(button.hasAttribute('data-gigday-rsvp')){
    const panel=document.querySelector('.gigdayRsvp');
