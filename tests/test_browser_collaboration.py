@@ -80,6 +80,11 @@ def test_member_collaboration_live_updates_and_notifications(account_server,acco
         expect(person.get_by_role('heading',name='Recent conversations')).to_be_visible()
         assert person.locator('[data-home-crew]').count()==0
         assert person.get_by_text('Production documents',exact=True).count()==0
+        person.evaluate("() => openShowPacketGig(Number(get('events').find(e => e.kind === 'Gig').id),'gigday')")
+        person.get_by_role('region',name='Musician gig-day workspace').wait_for(state='visible',timeout=15000)
+        assert person.get_by_role('button',name='Crew & guests').count()==0
+        assert person.get_by_role('region',name='Show-day call times').is_visible()
+        assert person.get_by_role('region',name='Urgent show changes').is_visible()
         navigate(person,'schedule')
         person.evaluate("() => openCalendarEventDialog(Number(get('events')[0].id))")
         person.get_by_role('button',name='Availability & RSVPs').click()
