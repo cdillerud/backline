@@ -234,8 +234,7 @@ document.addEventListener('click',async event=>{
   state.scheduleSelected=id;openCalendarEventDialog(id);return
  }
  if(b.dataset.scheduleGigDay){
-  state.showTab='timeline';
-  await openShowPacketGig(Number(b.dataset.scheduleGigDay));
+  await openShowPacketGig(Number(b.dataset.scheduleGigDay),'gigday');
   return;
  }
  if(b.dataset.schedulePacket){await openShowPacketGig(Number(b.dataset.schedulePacket));return}
