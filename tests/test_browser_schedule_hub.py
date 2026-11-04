@@ -20,6 +20,13 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
         expect(page.get_by_role("heading",name="Availability & RSVPs")).to_be_visible()
         expect(page.get_by_role("heading",name="Music & preparation")).to_be_visible()
         expect(page.get_by_role("heading",name="Next show preparation")).to_be_visible()
+        if page.locator("[data-home-show-setlists]").count():
+            page.locator("[data-home-show-setlists]").first.click()
+            expect(page.get_by_role("heading",name="Setlist Studio",exact=True)).to_be_visible()
+            page.locator('[data-go="dashboard"]:visible').first.click()
+            page.locator("[data-home-show-tasks]").first.click()
+            expect(page.get_by_role("heading",name="Tasks",exact=True)).to_be_visible()
+            page.locator('[data-go="dashboard"]:visible').first.click()
         # Manager-facing show checklist is sourced from existing production records.
         if page.locator("[data-home-crew]").count():
             expect(page.get_by_text("Venue advance",exact=True)).to_be_visible()
