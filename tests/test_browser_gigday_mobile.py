@@ -31,6 +31,7 @@ def test_gig_day_mobile_view_and_show_switch(account_server,accounts,width):
         expect(gigday.get_by_role('region',name='Day-of-show timeline')).to_be_visible()
         expect(gigday.get_by_role('region',name='Stage and audio setup')).to_be_visible()
         expect(gigday.get_by_role('region',name='My show availability')).to_be_visible()
+        expect(gigday.get_by_role('region',name='Before you go')).to_be_visible()
         assert gigday.locator('.gigdayCall').count()==5
         page.screenshot(path=str(snapshots/f'gigday-{width}.png'),full_page=True)
         assert not page.evaluate('document.documentElement.scrollWidth > window.innerWidth')
@@ -42,6 +43,11 @@ def test_gig_day_mobile_view_and_show_switch(account_server,accounts,width):
             assert rail.evaluate('(el)=>{const r=el.getBoundingClientRect();return r.top>=-1&&r.top<70&&r.bottom>0}')
             page.screenshot(path=str(snapshots/f'gigday-scrolled-{width}.png'),full_page=False)
             assert gigday.get_by_role('button',name='My RSVP',exact=True).is_visible()
+        checklist=gigday.get_by_role('region',name='Before you go')
+        if checklist.locator('[data-gigday-jump]').count():
+            checklist.locator('[data-gigday-jump]').first.click()
+            assert page.get_by_role('heading',name='My Gig Day',exact=True).is_visible()
+        assert not page.evaluate('document.documentElement.scrollWidth > window.innerWidth')
         assert gigday.get_by_role('button',name='My RSVP',exact=True).is_visible()
         assert gigday.get_by_role('button',name='Refresh').is_visible()
         assert gigday.get_by_role('button',name='Setlist',exact=True).is_visible()
