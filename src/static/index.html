@@ -212,4 +212,18 @@
 @media(prefers-reduced-motion:reduce){
  .gigdayScreen *{scroll-behavior:auto}
 }
+
+/* Musician performance view: large, adjustable, glanceable on-stage type. */
+.performanceDialog{max-height:min(94dvh,950px);overflow-y:auto}
+.performanceSongTitle{font-size:clamp(32px,calc(5.5vw * var(--stage-font-scale,1)),88px)!important;overflow-wrap:anywhere}
+.performanceNext{display:grid;gap:6px;background:#213446;border:1px solid #58728a;border-radius:12px;padding:16px;margin:0 0 15px}
+.performanceNext strong{font-size:clamp(22px,calc(2.6vw * var(--stage-font-scale,1)),38px);overflow-wrap:anywhere}
+.performanceNext small{color:#c4d3e1}
+.performanceToolbar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.performanceToolbar button{min-height:46px}
+.performanceOrder{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.performanceOrder button{text-align:left;min-height:46px;overflow-wrap:anywhere}
+.performanceOrder button.active{background:#b9fb74;color:#172417;font-weight:800}
+.performanceDialog :is(button):focus-visible{outline:3px solid #b9fb74;outline-offset:2px}
+@media(max-width:600px){.performanceDialog{width:96vw;max-height:96dvh;padding:15px}.performanceOrder{grid-template-columns:1fr}.performanceControls{gap:8px}.performanceSongTitle{font-size:clamp(31px,calc(9vw * var(--stage-font-scale,1)),70px)!important}}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/gigday.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
