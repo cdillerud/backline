@@ -177,7 +177,7 @@ function fullDashboard(){
   '<p><strong>'+esc(nextGig.title)+'</strong></p><p class="sub">'+datePretty(nextGig.date)+' · '+esc(nextGig.venue||'Venue not recorded')+'</p>'+
   '<div class="list"><div class="entry"><div class="entryMain"><strong>Setlists</strong><small>'+linked.length+' linked to this show</small></div><button class="small" data-home-show-setlists="'+nextGig.id+'">Open setlists</button></div>'+taskRow+readinessRows+'</div>'+
   (!readinessData?'<p class="sub">Detailed production readiness is available to band managers; missing data is never counted as complete.</p>':'')+
-  '<div class="actions"><button data-show-gig="'+nextGig.id+'">Open production</button>'+
+  '<div class="actions"><button data-home-gig-day="'+nextGig.id+'">My gig day</button><button data-show-gig="'+nextGig.id+'">Open production</button>'+
   (readinessData?'<button data-home-crew="'+nextGig.id+'">Crew & guests</button>':'')+'</div>':
   '<p class="sub">No upcoming shows recorded.</p>','<button data-go="touring" class="small">Shows & Tours</button>');
  return '<section class="dashboardIntro bandHomeHeader"><div><span class="eyebrow">Your band home</span><h2>'+esc(band.name)+'</h2><p class="sub">The next gig, the music and the people — together.</p></div>'+quick+'</section>'+
@@ -508,6 +508,17 @@ function showops(){
   '<div><small>Show preparation</small><strong>'+personalTasks.length+' open show tasks</strong><button type="button" data-show-context="tasks">Review tasks</button></div></div>'+
   myView+'<div class="gigEssentialsActions"><button type="button" data-show-context="schedule">Attendance & calendar</button><button type="button" data-show-tab="timeline">Day-of-show details</button><button type="button" data-show-tab="advance">Advance & contacts</button></div></section>';
  const linkedSetlists=get('setlists').filter(x=>x.event_id===chosen.id);
+ const gigDayCalls=[['Load-in',advanceSnapshot.load_in],['Soundcheck',advanceSnapshot.soundcheck],['Doors',advanceSnapshot.doors],['Showtime',advanceSnapshot.show_time],['Curfew',advanceSnapshot.curfew]];
+ const gigDay='<section class="panel gigDayBrief" aria-label="My gig day"><div class="panelHeading"><h2>My gig day</h2><span class="tag muted">'+esc(advanceSnapshot.status==='confirmed'?'Advance confirmed':'Details subject to confirmation')+'</span></div>'+
+  '<p class="sub">'+datePretty(chosen.date)+' · '+esc(chosen.venue||'Venue not recorded')+' · '+esc(advanceSnapshot.timezone||'Time zone not recorded')+'</p>'+
+  '<div class="gigDayCalls" aria-label="Recorded show calls">'+gigDayCalls.map(([label,value])=>'<div class="gigDayCall"><small>'+label+'</small><strong>'+esc(value||'TBD')+'</strong></div>').join('')+'</div>'+
+  '<div class="gigDayDetails"><div><h3>Venue & contact</h3><p>'+esc(advanceSnapshot.venue_address||chosen.venue||'Location not recorded')+'</p><p class="sub">'+esc(showContact)+' · '+esc(advanceSnapshot.contact_phone||advanceSnapshot.contact_email||'Contact details not recorded')+'</p></div>'+
+  '<div><h3>My preparation</h3><p>'+(rosterMember?assignedTasks.length+' assigned open task'+(assignedTasks.length===1?'':'s'):'Roster assignment not linked')+' · '+linkedSetlists.length+' linked setlist'+(linkedSetlists.length===1?'':'s')+'</p>'+
+  (rosterMember&&assignedTasks.length?'<ul>'+assignedTasks.slice(0,3).map(t=>'<li>'+esc(t.title)+'</li>').join('')+'</ul>':'')+'</div></div>'+
+  '<div class="actions"><button type="button" data-show-rsvp>My RSVP</button><button type="button" data-show-context="tasks">Show tasks</button>'+
+  '<button type="button" data-show-context="setlists">Show setlists</button><button type="button" data-show-tab="timeline">Detailed timeline</button>'+
+  (['owner','manager'].includes(state.accountRole)?'<button type="button" data-gig-day-crew="'+chosen.id+'">Crew & guests</button>':'')+'</div>'+
+  '<p class="sub">Only recorded times are displayed. Confirm venue time zone and any overnight calls with the advance.</p></section>';
  const setlistSummary='<section class="showMusicSummary" aria-label="Show setlists"><div><h3>Setlists for this show</h3><p class="sub">'+(linkedSetlists.length?linkedSetlists.length+' linked setlist'+(linkedSetlists.length===1?'':'s'):'No setlist linked yet')+'</p></div><div class="actions">'+
   linkedSetlists.map(x=>'<button type="button" data-show-performance="'+x.id+'">Perform: '+esc(x.title)+'</button>').join('')+
   '<button type="button" data-show-context="setlists">'+(linkedSetlists.length?'Manage setlists':'Create a setlist')+'</button></div></section>';
@@ -521,7 +532,7 @@ function showops(){
   '<button type="button" data-show-context="finance"><strong>5 · Settlement</strong><small>'+(existingSettlement?'Recorded':'Not recorded')+'</small></button></div></section>';
  const tabs=[['stage','Stage & inputs'],['advance','Advances & riders'],['timeline','Day of show'],['files','Contracts & files']];
  const active=state.showTab||'stage';
- html+=summary+essentials+journey+setlistSummary+'<div class="showTabBar" role="tablist">'+tabs.map(([key,label])=>'<button role="tab" aria-selected="'+(active===key)+'" class="'+(active===key?'selected':'')+'" data-show-tab="'+key+'">'+label+'</button>').join('')+'</div>';
+ html+=summary+gigDay+essentials+journey+setlistSummary+'<div class="showTabBar" role="tablist">'+tabs.map(([key,label])=>'<button role="tab" aria-selected="'+(active===key)+'" class="'+(active===key?'selected':'')+'" data-show-tab="'+key+'">'+label+'</button>').join('')+'</div>';
 
  if(active==='advance'){
  html+=venueLinkPanel();
@@ -610,12 +621,20 @@ document.addEventListener('click',event=>{
  }
 });
 document.addEventListener('click',async event=>{
- const button=event.target.closest('[data-home-thread],[data-home-event],[data-home-crew],[data-home-show-tasks],[data-home-show-setlists]');
+ const button=event.target.closest('[data-home-thread],[data-home-event],[data-home-crew],[data-home-gig-day],[data-home-show-tasks],[data-home-show-setlists],[data-gig-day-crew]');
  if(!button)return;
  event.preventDefault();
  event.stopPropagation();
  try{
-  if(button.dataset.homeShowTasks){
+  if(button.dataset.gigDayCrew){
+   state.opsGig=Number(button.dataset.gigDayCrew);
+   state.opsTab='guests';
+   state.section='operations';
+   await refreshOperations();
+  }else if(button.dataset.homeGigDay){
+   state.showTab='timeline';
+   await openShowPacketGig(Number(button.dataset.homeGigDay));
+  }else if(button.dataset.homeShowTasks){
    state.prepGig=Number(button.dataset.homeShowTasks);
    state.section='tasks';
    render();
