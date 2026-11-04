@@ -44,3 +44,13 @@ A five-viewport test now asserts the 320px two-column call layout, expandable re
 - New extended-sprint CI runs may be canceled when superseded, as intended. Only the **latest branch-head run** is a candidate for certification.
 - A synthetic print-click test intermittently observed duplicate invocations; the print handler now suppresses overlapping actions and the test records call stacks when it fails. Treat an unresolved recurrence as a release blocker.
 - No production or preview deployment has occurred.
+
+## Stage and paper acceptance follow-up
+Synthetic browser artifacts from the extended sprint were reviewed at 320px phone width and in the 390px on-stage and print views.
+
+- **Performance mode:** A running-order jump could leave the dialog scrolled near the bottom, hiding the newly selected song title. Song navigation now restores the scroll origin on each previous/next/jump. The performance browser test checks this explicitly.
+- **Paper briefing:** The print-media 390px screenshot showed the original five-column call cards breaking `TBD` across lines, and dark status/warning backgrounds reducing contrast on white paper. Print now uses a three-column call layout with legible typography, white status chips, and dark warning text on a white background.
+- **Expanded information for print:** The printer lifecycle opens normally collapsed extra checklist items, timeline warnings and stage details temporarily, restoring the previous disclosure state after printing. This ensures the printable sheet does not silently omit recorded facts hidden on screen.
+- **Handset briefing:** At 320px the phone layout now uses two columns for recorded calls, and the first three prioritized reminders stay visible with remaining reminders and schedule warnings behind labelled disclosures.
+
+All findings use synthetic fixtures. Print invocation deduplication remains checked by the browser tests. No device-level wake-lock guarantee, offline-edit guarantee, or production acceptance is inferred from synthetic screenshots. The final integration commit must pass complete CI after all these changes.
