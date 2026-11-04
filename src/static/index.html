@@ -255,4 +255,15 @@
  .gigdayCallGrid{grid-template-columns:repeat(5,minmax(0,1fr))}
  .gigdayScreen :is(.sub,small,span,p,strong,h2,h3){color:#000!important}
 }
+
+/* Compact narrow-phone brief: two-column calls and progressively disclosed reminders. */
+.gigdayMoreChecks{margin:8px 0}
+.gigdayMoreChecks summary,.gigdayScheduleWarnings summary{cursor:pointer;min-height:44px;padding:10px 12px;border:1px solid #49647b;border-radius:9px;font-weight:600}
+.gigdayMoreChecks summary:focus-visible,.gigdayScheduleWarnings summary:focus-visible{outline:3px solid #b9fb74;outline-offset:2px}
+.gigdayMoreChecks[open] summary,.gigdayScheduleWarnings details[open] summary{margin-bottom:10px}
+@media(max-width:360px){
+ .gigdayCallGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .gigdayCall{padding:12px 9px}
+ .gigdayCall strong{font-size:clamp(19px,6.8vw,24px)}
+}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/gigday.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
