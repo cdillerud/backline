@@ -89,6 +89,11 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert directions.get_attribute("href").startswith("https://www.google.com/maps/search/?api=1&query=")
             assert directions.get_attribute("rel")=="noopener noreferrer"
             assert focused.get_by_role("region",name="Urgent show changes").is_visible()
+            stage=focused.get_by_role("region",name="Stage and audio setup")
+            assert stage.is_visible()
+            stage.get_by_text("View stage plot and numbered inputs").click()
+            assert stage.locator("details").get_attribute("open") is not None
+            assert stage.get_by_text("No audio input list recorded.").count() <= 1
             assert focused.get_by_role("region",name="Show music").get_by_text("Example Opener").is_visible()
             assert focused.get_by_role("region",name="Show music").get_by_text("Example Closer").is_visible()
             assert focused.get_by_role("button",name="My RSVP",exact=True).is_visible()
