@@ -97,10 +97,13 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             own_rsvp.get_by_label("Response").select_option("maybe")
             own_rsvp.get_by_label("Note to bandmates").fill("Synthetic demo arrival check")
             own_rsvp.get_by_role("button",name="Save my RSVP").click()
-            own_rsvp.get_by_text("Maybe",exact=True).wait_for(state="visible",timeout=15000)
+            own_rsvp.locator(".tag").get_by_text("Maybe",exact=True).wait_for(state="visible",timeout=15000)
+            assert own_rsvp.get_by_label("Response").input_value()=="maybe"
             assert own_rsvp.get_by_label("Note to bandmates").input_value()=="Synthetic demo arrival check"
+            focused.get_by_role("button",name="My RSVP",exact=True).click()
+            assert own_rsvp.get_by_label("Response").evaluate("(node)=>document.activeElement===node")
             focused.get_by_role("button",name="Refresh").click()
-            own_rsvp.get_by_text("Maybe",exact=True).wait_for(state="visible",timeout=15000)
+            own_rsvp.locator(".tag").get_by_text("Maybe",exact=True).wait_for(state="visible",timeout=15000)
             assert focused.get_by_role("button",name="Notifications").is_visible()
             assert focused.get_by_role("button",name="Setlist",exact=True).is_visible()
             focused.get_by_role("button",name="Detailed production").click()
