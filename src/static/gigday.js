@@ -99,7 +99,7 @@ function gigday(){
   selected+'</div>'+
   '<div class="gigdayActionBar" aria-label="Gig-day quick actions"><button class="primary" data-gigday-rsvp>My RSVP</button>'+
   '<button data-gigday-jump="music">Setlist</button><button data-gigday-jump="tasks">My tasks</button>'+
-  '<button data-gigday-jump="alerts">Notifications</button><button data-gigday-refresh aria-label="Refresh gig-day details">Refresh</button></div>'+
+  '<button data-gigday-jump="alerts">Urgent changes</button><button data-gigday-refresh aria-label="Refresh gig-day details">Refresh</button></div>'+
   '<section class="gigdayPanel gigdayCallsPanel" aria-label="Show-day call times"><div class="gigdayPanelTitle"><h3>Where to be, and when</h3><span class="sub">'+esc(validZone)+'</span></div>'+
   '<div class="gigdayCallGrid">'+callCards+'</div><p class="sub">Times are venue-local. “Day +1/+2” means after the show date. TBD is not a confirmed call.</p></section>'+
   '<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Venue and contact"><h3>Venue & contact</h3><p><strong>'+esc(venue)+'</strong></p><p>'+esc(contact)+'</p>'+
