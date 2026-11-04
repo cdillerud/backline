@@ -39,6 +39,26 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             page.get_by_text("Confirm showcase stage plot (demo)").first.wait_for(state="visible",timeout=15000)
             page.get_by_text("Finalize rehearsal set transitions (demo)").first.wait_for(state="visible",timeout=15000)
             assert page.locator("[data-show-gig]").count() >= 1
+            # Home first presents the next gig's actionable context, not just metrics.
+            spotlight=page.locator(".homeGigSpotlight")
+            assert spotlight.count()==1
+            assert spotlight.get_by_text("Regional showcase (demo)").is_visible()
+            assert spotlight.get_by_role("button",name="My Gig Day").is_visible()
+            assert spotlight.get_by_role("button",name="Details & RSVP").is_visible()
+            assert page.locator(".bandHomeStat").count()==5
+            assert page.evaluate("""() => {
+                const spot=document.querySelector('.homeGigSpotlight');
+                const stat=document.querySelector('.bandHomeStats');
+                const card=document.querySelector('.bandHomeGrid');
+                return spot.compareDocumentPosition(stat)&Node.DOCUMENT_POSITION_FOLLOWING
+                    && stat.compareDocumentPosition(card)&Node.DOCUMENT_POSITION_FOLLOWING;
+            }""")
+            for width in (320,390,768,1280):
+                page.set_viewport_size({"width":width,"height":850})
+                assert page.evaluate("document.documentElement.scrollWidth <= innerWidth+1"),f"Home overflow at {width}px"
+                assert spotlight.get_by_role("button",name="My Gig Day").is_visible()
+                assert page.locator(".bandHomeStat").count()==5
+            page.set_viewport_size({"width":1280,"height":850})
             page.locator("[data-go='collaboration']").first.click()
             page.get_by_text("Weekend show preparation (demo)").first.wait_for(state="visible",timeout=15000)
             page.get_by_role("heading",name="Conversations",exact=True).wait_for(state="visible",timeout=15000)
