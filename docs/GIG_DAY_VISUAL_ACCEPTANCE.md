@@ -23,3 +23,8 @@ Screenshots were produced at **320, 375, 390, 768 and 1280 pixels** for Home and
 2. Latest artifact shows no duplicate mobile module pills or offscreen/overlapping controls, especially around the sticky action bar and fixed bottom workspace nav.
 3. Band owner and normal member behavior verified; only authorized private guest, rooming and task data shown.
 4. Explicit preview release approval where required. **Do not merge/deploy production** as part of visual acceptance.
+
+## Post-remediation visual review
+The new five-viewport synthetic screenshots from [CI #1066](https://github.com/cdillerud/backline/actions/runs/41764681463), artifact `gigday-responsive-synthetic` (ID 13292066281), were downloaded and visually inspected. At 390px the previous Booking Tracker / Show Packets / Show Operations pill strip is absent; the page proceeds from the workspace header to the show context and sticky Gig Day shortcuts. The 390px full-page image remains within the phone viewport and the call cards, personal-task panel and fixed bottom workspace nav render without apparent horizontal clipping. The scrolled 390px image also shows the shortcut strip remaining onscreen above music/lodging/stage sections.
+
+The screenshot review is **visual evidence, not a real device performance or accessibility certification**. The CI run's five-width acceptance step passed; final comprehensive regression and the latest branch-head checks remain the release gates. The inline alert shortcut is now explicitly labeled `Urgent changes` to distinguish it from the full `All notifications` inbox.
