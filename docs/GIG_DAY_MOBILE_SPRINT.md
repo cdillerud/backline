@@ -39,3 +39,13 @@ The player can change the selected show without leaving Gig Day, refresh the sna
 
 ## Out of scope
 Automatic arrival geofencing, background push/email, maps/navigation, guest roster disclosure, payment settlement, and automatically declaring a show ready based on partial records.
+
+## Follow-on sprint — inline musician workflow
+The stand-alone Gig Day view is now extended with:
+- An **inline personal RSVP editor**: the signed-in user can choose Going, Maybe, Can't go or Not answered, optionally provide a short note and save through the established self-only RSVP endpoint. Only the user's response and note are stored in the Gig Day page state, not the band's full attendance roster.
+- A Gig Day RSVP shortcut that focuses the inline form instead of navigating away. Save refreshes the server state; band/session/gig guards prevent stale writes being rendered into another show.
+- **Venue directions** using a map search for the recorded venue address (or name if no address was recorded). No location or travel-time claim is fabricated.
+- An expandable **stage and audio reference** with the existing stage layout and channel-numbered input list; empty shows clearly say nothing is recorded.
+- Desktop and mobile-focused regression assertions and member access coverage for the inline RSVP form; script syntax checks remain in CI.
+
+Release gate: the original mobile build passed CI #998. These follow-on commits must pass their own final-head CI before preview use; production remains unchanged.
