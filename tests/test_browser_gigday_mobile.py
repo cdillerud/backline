@@ -30,6 +30,16 @@ def test_gig_day_mobile_view_and_show_switch(account_server,accounts,width):
         assert gigday.get_by_role('button',name='My RSVP',exact=True).is_visible()
         assert gigday.get_by_role('button',name='Refresh').is_visible()
         assert gigday.get_by_role('button',name='Setlist',exact=True).is_visible()
+        gigday.get_by_role('button',name='Setlist',exact=True).click()
+        assert gigday.get_by_role('region',name='Show music').get_by_role('heading',name='Show music').evaluate(
+            '(el)=>document.activeElement===el')
+        assert page.get_by_role('heading',name='My Gig Day',exact=True).is_visible()
+        gigday.get_by_role('button',name='My tasks',exact=True).click()
+        assert gigday.get_by_role('region',name='My show tasks').get_by_role('heading',name='My assignments').evaluate(
+            '(el)=>document.activeElement===el')
+        gigday.get_by_role('button',name='Notifications',exact=True).click()
+        assert gigday.get_by_role('region',name='Urgent show changes').get_by_role('heading',name='Urgent show changes').evaluate(
+            '(el)=>document.activeElement===el')
         picker=page.get_by_role('combobox',name='Choose gig day show')
         picker.select_option(str(second_gig))
         expect(gigday.get_by_role('heading',name='Second synthetic show')).to_be_visible()
