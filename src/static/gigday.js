@@ -9,6 +9,10 @@ function gigday(){
  const chosen=gigs.find(e=>Number(e.id)===Number(state.showGig));
  if(!chosen)return '<section class="panel"><h2>Choose a show</h2><p class="sub">Open a scheduled show to see its calls, music, personal work and travel information.</p><button data-go="schedule">Open schedule</button></section>';
  const advance=state.data.showAdvance||{},role=state.data.collaboration?.role;
+ const fetched=state.data.showLoadedAt;
+ const loadedLabel=Number.isFinite(fetched)?new Date(fetched).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'Unknown';
+ const connectivity='<div id="gigdayConnectivity" class="gigdayConnectivity" role="status" '+(navigator.onLine?'hidden':'')+'>'+
+  'You appear to be offline. These are the last loaded show details; saving updates requires a connection.</div>';
  const validZone=advance.timezone||'Time zone not recorded';
  const calls=[['Load-in','load_in'],['Soundcheck','soundcheck'],['Doors','doors'],['Showtime','show_time'],['Curfew','curfew']];
  const callCards=calls.map(([label,key])=>{
@@ -114,6 +118,7 @@ function gigday(){
   '<p>'+datePretty(chosen.date)+' · '+esc(chosen.venue||'Venue TBD')+'</p>'+
   '<span class="tag muted">'+(advance.status==='confirmed'?'Venue advance confirmed':'Advance not confirmed')+'</span></div>'+
   selected+'</div>'+
+  '<p class="gigdayFreshness">Show details last loaded '+esc(loadedLabel)+' (device time). Refresh to check for changes.</p>'+connectivity+
   '<div class="gigdayActionBar" aria-label="Gig-day quick actions"><button class="primary" data-gigday-rsvp>My RSVP</button>'+
   '<button data-gigday-jump="music">Setlist</button><button data-gigday-jump="tasks">My tasks</button>'+
   '<button data-gigday-jump="alerts">Urgent changes</button><button data-gigday-refresh aria-label="Refresh gig-day details">Refresh</button></div>'+
@@ -130,6 +135,12 @@ function gigday(){
   (manager?'<button data-gigday-crew>Crew & guests</button>':'')+
   '<button data-gigday-schedule>Back to schedule</button></div></section>';
 }
+function updateGigDayConnectivity(){
+ const el=document.querySelector('#gigdayConnectivity');
+ if(el)el.hidden=navigator.onLine;
+}
+window.addEventListener('online',updateGigDayConnectivity);
+window.addEventListener('offline',updateGigDayConnectivity);
 document.addEventListener('submit',async event=>{
  if(event.target.id!=='gigdayRsvpForm')return;
  event.preventDefault();
