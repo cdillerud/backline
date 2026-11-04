@@ -69,7 +69,12 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             page.locator("[data-calendar-event]").filter(has_text="Full-band rehearsal (demo)").wait_for(state="visible",timeout=15000)
             page.locator("[data-go='songs']").first.click()
             page.get_by_text("Example Opener").first.wait_for(state="visible",timeout=15000)
-            page.evaluate("() => openShowPacketGig(Number(get('events').find(e => e.kind === 'Gig').id))")
+            page.locator("[data-go='schedule']").first.click()
+            page.evaluate("() => openCalendarEventDialog(Number(get('events').find(e => e.kind === 'Gig').id))")
+            event_dialog=page.get_by_role("dialog",name="Event details:",exact=False)
+            assert event_dialog.get_by_role("button",name="My gig day").is_visible()
+            event_dialog.get_by_role("button",name="My gig day").click()
+            assert page.get_by_role("region",name="My gig day").is_visible()
             page.get_by_role("heading",name="Show workflow",exact=True).wait_for(state="visible",timeout=15000)
             assert page.locator(".showJourneySteps button").count()==5
             essentials = page.get_by_role("region",name="Gig essentials")
