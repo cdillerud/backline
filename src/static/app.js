@@ -175,11 +175,11 @@ function fullDashboard(){
   ['Lodging',readinessData.lodging?(readinessData.lodging.stays+' linked stays · '+readinessData.lodging.rooms+' rooms'):'Status unavailable']
  ]:[];
  const showTasks=nextGig?get('tasks').filter(t=>Number(t.event_id)===Number(nextGig.id)&&!t.completed):[];
- const readinessRows=operational.map(([label,detail])=>'<div class="entry"><div class="entryMain"><strong>'+esc(label)+'</strong><small>'+esc(detail)+'</small></div></div>').join('');
+ const readinessRows=operational.length?'<details class="homeReadinessDisclosure"><summary>Production snapshot · '+operational.length+' details</summary><div class="list">'+operational.map(([label,detail])=>'<div class="entry"><div class="entryMain"><strong>'+esc(label)+'</strong><small>'+esc(detail)+'</small></div></div>').join('')+'</div></details>':'';
  const taskRow='<div class="entry"><div class="entryMain"><strong>Outstanding show tasks</strong><small>'+showTasks.length+' task'+(showTasks.length===1?'':'s')+' open</small></div><button class="small" data-home-show-tasks="'+(nextGig?.id||'')+'">View tasks</button></div>';
  const readiness=panel('Next show preparation',nextGig?
   '<p><strong>'+esc(nextGig.title)+'</strong></p><p class="sub">'+datePretty(nextGig.date)+' · '+esc(nextGig.venue||'Venue not recorded')+'</p>'+
-  '<div class="list"><div class="entry"><div class="entryMain"><strong>Setlists</strong><small>'+linked.length+' linked to this show</small></div><button class="small" data-home-show-setlists="'+nextGig.id+'">Open setlists</button></div>'+taskRow+readinessRows+'</div>'+
+  '<div class="list"><div class="entry"><div class="entryMain"><strong>Setlists</strong><small>'+linked.length+' linked to this show</small></div><button class="small" data-home-show-setlists="'+nextGig.id+'">Open setlists</button></div>'+taskRow+'</div>'+readinessRows+
   (!readinessData?'<p class="sub">Detailed production readiness is available to band managers; missing data is never counted as complete.</p>':'')+
   '<div class="actions"><button data-home-gig-day="'+nextGig.id+'">My gig day</button><button data-show-gig="'+nextGig.id+'">Open production</button>'+
   (readinessData?'<button data-home-crew="'+nextGig.id+'">Crew & guests</button>':'')+'</div>':
