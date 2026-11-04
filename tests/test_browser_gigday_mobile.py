@@ -52,7 +52,7 @@ def test_gig_day_mobile_view_and_show_switch(account_server,accounts,width):
         gigday.get_by_role('button',name='My tasks',exact=True).click()
         assert gigday.get_by_role('region',name='My show tasks').get_by_role('heading',name='My assignments').evaluate(
             '(el)=>document.activeElement===el')
-        gigday.get_by_role('button',name='Notifications',exact=True).click()
+        gigday.get_by_role('button',name='Urgent changes',exact=True).click()
         assert gigday.get_by_role('region',name='Urgent show changes').get_by_role('heading',name='Urgent show changes').evaluate(
             '(el)=>document.activeElement===el')
         picker=page.get_by_role('combobox',name='Choose gig day show')
