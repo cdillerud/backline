@@ -50,6 +50,11 @@ def test_gig_day_mobile_view_and_show_switch(account_server,accounts,width):
         assert not page.evaluate('document.documentElement.scrollWidth > window.innerWidth')
         assert gigday.get_by_role('button',name='My RSVP',exact=True).is_visible()
         assert gigday.get_by_role('button',name='Refresh').is_visible()
+        assert gigday.get_by_text('Show details last loaded',exact=False).is_visible()
+        assert gigday.get_by_role('button',name='Print gig-day sheet').is_visible()
+        page.evaluate("window.__gigdayPrintCalls=0;window.print=()=>{window.__gigdayPrintCalls++}")
+        gigday.get_by_role('button',name='Print gig-day sheet').click()
+        assert page.evaluate("window.__gigdayPrintCalls")==1
         assert gigday.get_by_role('button',name='Setlist',exact=True).is_visible()
         gigday.get_by_role('button',name='Setlist',exact=True).click()
         assert gigday.get_by_role('region',name='Show music').get_by_role('heading',name='Show music').evaluate(
@@ -79,5 +84,11 @@ def test_gig_day_mobile_view_and_show_switch(account_server,accounts,width):
         }""",first_gig)
         assert remaining=='dashboard'
         expect(page.get_by_role('heading',name='Home',exact=True)).to_be_visible()
+        page.evaluate('(id)=>openShowPacketGig(id,"gigday")',first_gig)
+        expect(gigday.get_by_role('region',name='Show-day call times')).to_be_visible()
+        page.context.set_offline(True)
+        expect(gigday.locator('#gigdayConnectivity')).to_be_visible()
+        page.context.set_offline(False)
+        expect(gigday.locator('#gigdayConnectivity')).to_be_hidden()
         assert not failures,failures
         browser.close()
