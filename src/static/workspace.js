@@ -98,7 +98,7 @@ function openCalendarEventDialog(id){
  modal.className='timelineDialog calendarEventDialog';
  modal.setAttribute('aria-label','Event details: '+item.title);
  const action=(name,label)=>'<button type="button" '+name+'="'+id+'">'+label+'</button>';
- const extras=kind==='Gig'?action('data-schedule-packet','Show production'):
+ const extras=kind==='Gig'?action('data-schedule-gig-day','My gig day')+action('data-schedule-packet','Show production'):
   kind==='Rehearsal'?action('data-rehearsal-plan','Objectives & notes')+
    '<button type="button" data-go="songs">Songs to practice</button>'+
    '<button type="button" data-go="setlists">Rehearsal repertoire</button>'+
@@ -125,7 +125,7 @@ function openCalendarEventDialog(id){
  },{once:true});
  modal.addEventListener('click',event=>{
   if(event.target===modal||event.target.closest('[data-schedule-close]')){modal.close();return}
-  if(event.target.closest('[data-schedule-edit],[data-schedule-move],[data-assign-calendar],[data-schedule-packet],[data-rehearsal-plan],[data-go]')){
+  if(event.target.closest('[data-schedule-edit],[data-schedule-move],[data-assign-calendar],[data-schedule-packet],[data-schedule-gig-day],[data-rehearsal-plan],[data-go]')){
    modal.close();
   }
  });
@@ -208,7 +208,7 @@ async function openRehearsalPlan(id){
  dialog.showModal();
 }
 document.addEventListener('click',async event=>{
- const b=event.target.closest('[data-schedule-packet],[data-schedule-rsvp],[data-calendar-event],[data-schedule-details],[data-schedule-move],[data-schedule-edit],[data-schedule-close],[data-rehearsal-plan]');if(!b)return;
+ const b=event.target.closest('[data-schedule-gig-day],[data-schedule-packet],[data-schedule-rsvp],[data-calendar-event],[data-schedule-details],[data-schedule-move],[data-schedule-edit],[data-schedule-close],[data-rehearsal-plan]');if(!b)return;
  if(b.dataset.rehearsalPlan){try{await openRehearsalPlan(Number(b.dataset.rehearsalPlan))}catch(error){toast(error.message,true)}return}
  if(b.hasAttribute('data-schedule-close')){document.querySelector('#calendarEventDialog')?.close();state.scheduleSelected=null;return}
  if(b.dataset.scheduleMove){
@@ -232,6 +232,11 @@ document.addEventListener('click',async event=>{
  if(b.dataset.calendarEvent){
   const id=Number(b.dataset.calendarEvent);
   state.scheduleSelected=id;openCalendarEventDialog(id);return
+ }
+ if(b.dataset.scheduleGigDay){
+  state.showTab='timeline';
+  await openShowPacketGig(Number(b.dataset.scheduleGigDay));
+  return;
  }
  if(b.dataset.schedulePacket){await openShowPacketGig(Number(b.dataset.schedulePacket));return}
  if(b.dataset.scheduleRsvp){await openEventAttendance(Number(b.dataset.scheduleRsvp));return}
