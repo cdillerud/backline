@@ -169,6 +169,17 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             page.locator('[data-perform-setlist="99999"]').click()
             performance = page.get_by_role("dialog",name="Performance view: Browser performance check")
             performance.get_by_role("heading",name="Opening number").wait_for(state="visible")
+            assert performance.get_by_text("Second number",exact=True).is_visible()  # Up next
+            performance.get_by_role("button",name="Increase stage font size").click()
+            assert performance.evaluate("(el)=>Number(el.style.getPropertyValue('--stage-font-scale'))") > 1
+            performance.get_by_role("button",name="Show running order").click()
+            order=performance.get_by_role("navigation",name="Setlist running order")
+            assert order.get_by_role("button",name="1. Opening number").is_visible()
+            order.get_by_role("button",name="2. Second number").click()
+            performance.get_by_role("heading",name="Second number").wait_for(state="visible")
+            assert performance.get_by_text("End of set").is_visible()
+            performance.get_by_role("button",name="Previous").click()
+            performance.get_by_role("heading",name="Opening number").wait_for(state="visible")
             performance.get_by_role("button",name="Next").click()
             performance.get_by_role("heading",name="Second number").wait_for(state="visible")
             performance.get_by_role("button",name="Close performance view").click()
