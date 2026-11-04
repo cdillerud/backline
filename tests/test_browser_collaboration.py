@@ -215,8 +215,16 @@ def test_shared_venue_and_calendar_subscription_ui(account_server,accounts,width
         dialog.get_by_role('button',name='Confirm sharing',exact=True).click()
         expect(dialog.get_by_role('button',name='Revoke',exact=True)).to_be_visible()
         dialog.get_by_role('button',name='Close',exact=True).click()
-        owner.evaluate("() => {state.showGig=12345;state.gigdayReturn=12345;state.gigdayLoading=12345;state.gigdayError='synthetic old-band error';state.data.showLoadedAt=1000;}")
+        owner.evaluate("""() => {
+          state.data.setlists=[{id:900099,title:'Private synthetic set',event_id:null,
+            songs:[{id:1,title:'Private cue',song_key:'G',bpm:100}]}];
+          openSetlistPerformance(900099);
+          state.showGig=12345;state.gigdayReturn=12345;state.gigdayLoading=12345;
+          state.gigdayError='synthetic old-band error';state.data.showLoadedAt=1000;
+        }""")
+        expect(owner.get_by_role('dialog',name='Performance view: Private synthetic set')).to_be_visible()
         owner.locator('#bandPicker:visible,#mobileBandPicker:visible').select_option(str(other))
+        expect(owner.get_by_role('dialog',name='Performance view: Private synthetic set')).to_have_count(0)
         expect(owner.get_by_role('heading',name='Home',exact=True)).to_be_visible()
         assert owner.evaluate("() => state.showGig===null && state.gigdayReturn===null && state.gigdayLoading===null && state.gigdayError===null")
         assert owner.evaluate("() => state.data.showLoadedAt===undefined")
