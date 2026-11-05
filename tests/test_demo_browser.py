@@ -85,10 +85,34 @@ def test_demo_account_browser_login_and_hub(tmp_path):
                     throw new Error('Featured gig RSVP was omitted from the bounded fetch');
             }""")
             assert page.evaluate("state.data.homeSignals.attendance.length")==4
-            assert page.locator(".homeGigSpotlight").get_by_text("Going",exact=True).is_visible()
+            assert page.evaluate("""() => {
+                const gig=state.data.events.find(e=>e.kind==='Gig'&&e.title.includes('Regional showcase'));
+                const record=state.data.homeSignals.attendance.find(a=>a.id===gig.id);
+                return record&&Array.isArray(record.rows);
+            }""")
+            assert "RSVP not loaded" not in page.locator(".homeGigSpotlight").inner_text()
             page.evaluate("""async () => {
                 state.data.events=state.data.events.filter(e=>e.id>0);
                 await refreshHomeSignals();render();
+            }""")
+            # A cancelled gig must not become Next Gig, count as an upcoming show,
+            # or reappear among Coming up dates.
+            page.evaluate("""() => {
+                const d=new Date();d.setDate(d.getDate()+1);
+                const x={id:-97,kind:'Gig',title:'Cancelled test show',venue:'No venue',
+                  date:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),
+                  time:'18:00',status:'Canceled'};
+                state.data.events.push(x);
+                state.data.dashboard.upcoming.push(x);
+                render();
+            }""")
+            assert page.locator(".homeGigSpotlight").get_by_text("Regional showcase (demo)").is_visible()
+            assert page.get_by_text("Cancelled test show").count()==0
+            assert page.get_by_role("button",name="Shows: 2").count()==1
+            page.evaluate("""() => {
+                state.data.events=state.data.events.filter(e=>e.id!==-97);
+                state.data.dashboard.upcoming=state.data.dashboard.upcoming.filter(e=>e.id!==-97);
+                render();
             }""")
             assert page.locator(".bandHomeQuickActions button[data-action='song']").is_hidden()
             page.locator(".homeActionMenu summary").click()
