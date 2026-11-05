@@ -51,6 +51,45 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert attention.locator(".entry").first.get_by_text("Confirm showcase stage plot (demo)").is_visible()
             assert attention.locator(".entry").first.get_by_text("Assigned to you").is_visible()
             assert spotlight.get_by_text("My RSVP:").count()==1
+            assert page.get_by_role("heading",name="Other RSVPs").count()==0
+            coming=page.locator(".bandHomeGrid .panel").filter(has=page.get_by_role("heading",name="Coming up"))
+            assert coming.count()==1
+            assert coming.get_by_text("My RSVP:").count()>=1
+            # Overdue is computed from recorded ISO due dates, not fabricated readiness.
+            original_due=page.evaluate("""() => {
+                const task=state.data.tasks.find(t=>t.title==='Confirm showcase stage plot (demo)');
+                return task.due_date;
+            }""")
+            page.evaluate("""() => {
+                const task=state.data.tasks.find(t=>t.title==='Confirm showcase stage plot (demo)');
+                task.due_date='2000-01-01';render();
+            }""")
+            assert page.locator(".bandHomeGrid .panel").first.get_by_text("Overdue",exact=True).is_visible()
+            page.evaluate("""due => {
+                const task=state.data.tasks.find(t=>t.title==='Confirm showcase stage plot (demo)');
+                task.due_date=due;render();
+            }""",original_due)
+            # More than three earlier rehearsals must not crowd out the next gig's own RSVP.
+            page.route("**/api/bands/*/events/-*/rsvps",
+                lambda route:route.fulfill(status=200,content_type="application/json",body="[]"))
+            page.evaluate("""async () => {
+                const next=state.data.events.find(e=>e.kind==='Gig'&&e.title.includes('Regional showcase'));
+                for(let i=1;i<=3;i++){
+                    const d=new Date();d.setDate(d.getDate()+i);
+                    state.data.events.push({id:-i,kind:'Rehearsal',title:'Extra test rehearsal '+i,
+                      date:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),
+                      time:'18:00',venue:'Synthetic room'});
+                }
+                await refreshHomeSignals();render();
+                if(!state.data.homeSignals.attendance.some(e=>Number(e.id)===Number(next.id)))
+                    throw new Error('Featured gig RSVP was omitted from the bounded fetch');
+            }""")
+            assert page.evaluate("state.data.homeSignals.attendance.length")==4
+            assert page.locator(".homeGigSpotlight").get_by_text("Going",exact=True).is_visible()
+            page.evaluate("""async () => {
+                state.data.events=state.data.events.filter(e=>e.id>0);
+                await refreshHomeSignals();render();
+            }""")
             assert page.locator(".bandHomeQuickActions button[data-action='song']").is_hidden()
             page.locator(".homeActionMenu summary").click()
             assert page.locator(".homeActionMenu button[data-action='song']").is_visible()
