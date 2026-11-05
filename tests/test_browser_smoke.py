@@ -40,12 +40,12 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             assert page.locator("#app").is_visible()
             assert page.get_by_role("heading",name="Home",exact=True).count()>0
             assert page.locator("nav[aria-label='Primary workspaces'] > button").count()==6
-            page.get_by_role("heading",name="What needs attention",exact=True).wait_for(state="visible")
+            page.get_by_role("heading",name="What needs your attention",exact=True).wait_for(state="visible")
             page.locator("[data-go='collaboration']").first.click()
-            page.get_by_role("heading",name="Band Hub",exact=True).wait_for(state="visible")
+            page.get_by_role("heading",name="Bandmates",exact=True).wait_for(state="visible")
             page.locator("[data-go='dashboard']").first.click()
             page.locator("[data-go='collaboration']").first.click()
-            page.get_by_role("heading",name="Band Hub",exact=True).wait_for(state="visible")
+            page.get_by_role("heading",name="Bandmates",exact=True).wait_for(state="visible")
             page.get_by_role("heading",name="Conversations",exact=True).wait_for(state="visible")
             page.get_by_text("Conversations stay private",exact=True).wait_for(state="visible")
             page.locator("[data-go='songs']").first.click()
@@ -187,7 +187,7 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             page.get_by_role('tab',name='Contracts & files').click()
             assert page.get_by_text('Contracts and show files').count()>0
             page.locator("[data-go='touring']").first.click()
-            page.get_by_role("heading",name="Tour Routing",exact=True).wait_for(state="visible",timeout=15000)
+            page.get_by_role("heading",name="Shows & Tours",exact=True).wait_for(state="visible",timeout=15000)
             page.get_by_role("tab",name="Day of show").click()
             expect(page.get_by_text("Tour day sheets",exact=True)).to_be_visible()
             expect(page.get_by_text("Show days and travel stops in chronological order",exact=False)).to_be_visible()
@@ -209,7 +209,7 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             mobile.locator(".mobileNav [data-go='songs']").click()
             mobile.get_by_role("heading",name="Song Library",exact=True).wait_for(state="visible",timeout=15000)
             mobile.locator(".mobileNav [data-go='touring']").click()
-            mobile.get_by_role("heading",name="Tour Routing",exact=True).wait_for(state="visible",timeout=15000)
+            mobile.get_by_role("heading",name="Shows & Tours",exact=True).wait_for(state="visible",timeout=15000)
             assert not mobile_errors,mobile_errors
             mobile.close()
             browser.close()
