@@ -99,7 +99,7 @@ async function refreshCalendar(all=false){
  }catch(error){if(current())toast(error.message,true)}
 }
 function scheduleBoard(){
- const canManage=['owner','manager'].includes(state.accountRole)||!sessionStorage.getItem('backline_session');
+ const canManage=canEditBandEvents();
  const head='<div class="toolbar"><p>All your shows and rehearsals in one place. Select a date for details and availability.</p>'+(canManage?'<button class="primary" data-action="event">+ Add event</button>':'')+'</div>';
  return head+calendarBoard();
 }
@@ -128,9 +128,9 @@ function openCalendarEventDialog(id){
   (calendar?'<div><dt>Calendar</dt><dd>'+esc(calendar.calendar_name||kind)+'</dd></div>':'')+'</dl>'+
   (item.notes?'<section class="calendarEventNotes"><h3>Notes</h3><p>'+esc(item.notes)+'</p></section>':'')+
   '<section id="calendarAttendance" class="calendarAttendance" hidden aria-label="Event attendance"></section>'+
-  '<div class="actions calendarDialogActions">'+action('data-schedule-edit','Edit event')+
-  action('data-schedule-move','Change date')+action('data-assign-calendar','Choose calendar')+
-  '<button type="button" data-schedule-rsvp="'+id+'" aria-controls="calendarAttendance" aria-expanded="false">Availability & RSVPs</button>'+extras+'</div>';
+  '<div class="actions calendarDialogActions">'+(canEditBandEvents()?action('data-schedule-edit','Edit event')+
+  action('data-schedule-move','Change date')+action('data-assign-calendar','Choose calendar'):'')+
+  '<button type="button" data-schedule-rsvp="'+id+'" aria-controls="calendarAttendance" aria-expanded="false">My availability & RSVPs</button>'+extras+'</div>';
  document.body.append(modal);
  const origin=document.activeElement;
  modal.addEventListener('close',()=>{
@@ -256,14 +256,17 @@ document.addEventListener('click',async event=>{
  if(b.dataset.schedulePacket){await openShowPacketGig(Number(b.dataset.schedulePacket));return}
  if(b.dataset.scheduleRsvp){await openEventAttendance(Number(b.dataset.scheduleRsvp));return}
 });
+function canEditBandEvents(){return !sessionStorage.getItem('backline_session')||['owner','manager'].includes(state.accountRole)}
 function calendarBoard(){
  const month=state.calendarMonth||today().slice(0,7),rows=(state.data.calendarEvents||[]).filter(event=>event.date.startsWith(month));
  const [year,m]=month.split('-').map(Number),days=new Date(year,m,0).getDate(),offset=(new Date(year,m-1,1).getDay()+6)%7;
+ const canManage=canEditBandEvents();
  let cells=Array.from({length:offset},()=>'<div></div>');
- for(let day=1;day<=days;day++){const date=month+'-'+String(day).padStart(2,'0'),events=rows.filter(event=>event.date===date);cells.push('<div class="calendarDay" data-calendar-day="'+date+'" tabindex="0" role="button" aria-label="Create event on '+date+'" title="Double-click or use Add to create an event"><strong>'+day+'</strong><button type="button" class="calendarDayAdd" data-calendar-add="'+date+'" aria-label="Add event on '+date+'">+</button>'+events.map(event=>{const kind=get('events').find(e=>e.id===event.id)?.kind||event.kind||'';const type=/^(gig|show)$/i.test(kind)?'show':/^rehearsal$/i.test(kind)?'rehearsal':/^(session|meeting)$/i.test(kind)?'meeting':'other';return '<div class="calendarEvent calendarEvent--'+type+'"'+(type==='other'?' style="border-color:'+esc(event.calendar_color||'#567')+'"':'')+'>'+(event.band_id===state.band?'<button class="scheduleEventLink" data-calendar-event="'+event.id+'" draggable="true" title="Click for details or drag to reschedule" data-calendar-kind="'+esc(get('events').find(e=>e.id===event.id)?.kind||event.kind||'')+'"><strong>'+esc(event.title)+'</strong></button>':'<strong>'+esc(event.title)+'</strong>')+'<small>'+esc(event.calendar_name)+' · '+esc(event.advance.show_time||event.time||'Time TBC')+'</small>'+(state.calendarAll?'<small>'+esc(event.band_name)+'</small>':'')+'</div>'}).join('')+'</div>')}
+ for(let day=1;day<=days;day++){const date=month+'-'+String(day).padStart(2,'0'),events=rows.filter(event=>event.date===date);cells.push('<div class="calendarDay" data-calendar-day="'+date+'"'+(canManage?' tabindex="0" role="button" aria-label="Create event on '+date+'" title="Double-click or use Add to create an event"':'')+'><strong>'+day+'</strong>'+(canManage?'<button type="button" class="calendarDayAdd" data-calendar-add="'+date+'" aria-label="Add event on '+date+'">+</button>':'')+events.map(event=>{const kind=get('events').find(e=>e.id===event.id)?.kind||event.kind||'';const type=/^(gig|show)$/i.test(kind)?'show':/^rehearsal$/i.test(kind)?'rehearsal':/^(session|meeting)$/i.test(kind)?'meeting':'other';return '<div class="calendarEvent calendarEvent--'+type+'"'+(type==='other'?' style="border-color:'+esc(event.calendar_color||'#567')+'"':'')+'>'+(event.band_id===state.band?'<button class="scheduleEventLink" data-calendar-event="'+event.id+'" draggable="true" title="Click for details or drag to reschedule" data-calendar-kind="'+esc(get('events').find(e=>e.id===event.id)?.kind||event.kind||'')+'"><strong>'+esc(event.title)+'</strong></button>':'<strong>'+esc(event.title)+'</strong>')+'<small>'+esc(event.calendar_name)+' · '+esc(event.advance.show_time||event.time||'Time TBC')+'</small>'+(state.calendarAll?'<small>'+esc(event.band_name)+'</small>':'')+'</div>'}).join('')+'</div>')}
  return panel('Band calendars','<div class="actions"><button type="button" data-calendar-month-step="-1" aria-label="Previous month">‹</button><button type="button" data-calendar-today>Today</button><button type="button" data-calendar-month-step="1" aria-label="Next month">›</button><label>Month<input id="calendarMonth" type="month" value="'+esc(month)+'"></label><button data-calendar-all>'+(state.calendarAll?'This band only':'My bands combined')+'</button><button data-new-calendar>+ Calendar</button><button data-calendar-export>Download iCal</button><button data-calendar-subscriptions>Subscriptions</button></div><p class="sub">Double-click a day to add a dated event. Use Enter on a focused day, or + Add event on touch devices.</p><div class="calendarTypeLegend" aria-label="Event colors"><span class="show"><i></i>Shows</span><span class="rehearsal"><i></i>Rehearsals</span><span class="meeting"><i></i>Meetings</span></div><div class="calendarWrap"><div class="calendarGrid">'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day=>'<strong>'+day+'</strong>').join('')+cells.join('')+'</div></div>');
 }
 function createEventOnCalendarDate(day){
+ if(!canEditBandEvents())return;
  if(!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(day))return;
  state.eventDraftDate=day;state.modal='event';render();
 }
