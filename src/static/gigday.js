@@ -1,0 +1,250 @@
+/* Gig Day: a mobile-first, musician-facing read of existing band-scoped show records.
+ * This creates no new show entities and never exposes unrelated guests/room occupants. */
+function gigday(){
+ if(state.gigdayLoading===Number(state.showGig))
+  return '<section class="gigdayScreen" aria-label="Musician gig-day workspace" aria-busy="true"><div class="gigdayPanel" role="status"><h2>Loading gig day…</h2><p>Getting the latest show calls, assignments and updates.</p></div></section>';
+ if(state.gigdayError)
+  return '<section class="gigdayScreen" aria-label="Musician gig-day workspace"><div class="gigdayPanel" role="alert"><h2>Show details unavailable</h2><p>'+esc(state.gigdayError)+'</p><div class="actions"><button data-gigday-refresh>Retry</button><button data-gigday-schedule>Back to schedule</button></div></div></section>';
+ const gigs=get('events').filter(e=>e.kind==='Gig').slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+ const chosen=gigs.find(e=>Number(e.id)===Number(state.showGig));
+ if(!chosen)return '<section class="panel"><h2>Choose a show</h2><p class="sub">Open a scheduled show to see its calls, music, personal work and travel information.</p><button data-go="schedule">Open schedule</button></section>';
+ const advance=state.data.showAdvance||{},role=state.data.collaboration?.role;
+ const fetched=state.data.showLoadedAt;
+ const loadedLabel=Number.isFinite(fetched)?new Date(fetched).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'Unknown';
+ const connectivity='<div id="gigdayConnectivity" class="gigdayConnectivity" role="status" '+(navigator.onLine?'hidden':'')+'>'+
+  'You appear to be offline. These are the last loaded show details; saving updates requires a connection.</div>';
+ const validZone=advance.timezone||'Time zone not recorded';
+ const calls=[['Load-in','load_in'],['Soundcheck','soundcheck'],['Doors','doors'],['Showtime','show_time'],['Curfew','curfew']];
+ const callCards=calls.map(([label,key])=>{
+  const value=advance[key],day=Number(advance.day_offsets?.[key]||0);
+  return '<div class="gigdayCall"><span>'+label+'</span><strong>'+esc(value||'TBD')+'</strong>'+
+   (value?'<small>'+(day?'Day +'+day:'Show date')+'</small>':'<small>Not recorded</small>')+'</div>';
+ }).join('');
+ const userId=state.data.collaboration?.user_id;
+ const link=(state.data.collaboration?.members||[]).find(m=>userId!=null&&Number(m.id)===Number(userId));
+ const rosterId=link?.member_id;
+ const assigned=rosterId!=null?get('tasks').filter(t=>!t.completed&&Number(t.event_id)===Number(chosen.id)&&Number(t.assignee_id)===Number(rosterId)):[];
+ const setlists=get('setlists').filter(s=>Number(s.event_id)===Number(chosen.id));
+ const lodging=state.data.showLodging;
+ const stays=(lodging?.items||[]).filter(s=>!s.cancelled&&Number(s.event_id)===Number(chosen.id));
+ const rooms=stays.flatMap(stay=>(stay.rooms||[]).filter(room=>
+  !lodging?.can_manage||(room.people||[]).some(person=>Number(person.id)===Number(userId))
+ ).map(room=>({hotel:stay.hotel||'Hotel not recorded',label:room.label||'Room assigned',checkIn:stay.check_in})));
+ const selected='<label class="gigdayPicker">Selected show<select id="gigdayShowPicker" aria-label="Choose gig day show">'+
+  gigs.map(e=>'<option value="'+Number(e.id)+'" '+(e.id===chosen.id?'selected':'')+'>'+esc(datePretty(e.date)+' · '+e.title)+'</option>').join('')+'</select></label>';
+ const venue=advance.venue_address||chosen.venue||'Venue location not recorded';
+ const contact=advance.production_contact||advance.venue_contact||'Contact not recorded';
+ const phone=String(advance.contact_phone||'').trim();
+ const phoneDigits=phone.replace(/[^+0-9]/g,'');
+ const directions=advance.venue_address||chosen.venue||'';
+ const directionsLink=directions?'<a class="gigdayLink" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(directions)+'" target="_blank" rel="noopener noreferrer">Venue directions</a>':'';
+ const contactActions=directionsLink+(phoneDigits.length>=7?'<a class="gigdayLink" href="tel:'+esc(phoneDigits)+'">Call venue contact</a>':'')+
+  (String(advance.contact_email||'').includes('@')?'<a class="gigdayLink" href="mailto:'+encodeURIComponent(advance.contact_email)+'">Email venue contact</a>':'');
+ const tasks=assigned.length?'<ul class="gigdayTaskList">'+assigned.slice(0,5).map(t=>'<li><span>'+esc(t.title)+(t.due_date?' <small>Due '+datePretty(t.due_date)+'</small>':'')+'</span>'+
+  '<button type="button" class="small" data-gigday-complete="'+Number(t.id)+'" aria-label="Mark '+esc(t.title)+' complete">Mark done</button></li>').join('')+'</ul>':
+  '<p class="sub">'+(rosterId==null?'Your band account is not yet linked to a roster member.':'No open tasks assigned to you for this show.')+'</p>';
+ const repertoire=setlists.length?'<div class="gigdaySetlists">'+setlists.map(s=>{
+  const songs=Array.isArray(s.songs)?s.songs:[];
+  return '<div class="gigdaySetlist"><div class="entry"><strong>'+esc(s.title)+'</strong><button class="small" data-gigday-perform="'+Number(s.id)+'">Performance view</button></div>'+
+   (songs.length?'<ol class="gigdaySongs">'+songs.slice(0,20).map(song=>'<li>'+esc(song.title||'Untitled song')+
+    (song.song_key?' <small>· '+esc(song.song_key)+'</small>':'')+'</li>').join('')+'</ol>':'<p class="sub">No songs on this setlist yet.</p>')+
+   (songs.length>20?'<p class="sub">+'+(songs.length-20)+' more songs in performance view</p>':'')+'</div>';
+ }).join('')+'</div>':
+  '<p class="sub">No setlists are linked to this show yet.</p>';
+ const timeline=state.data.showTimeline;
+ const showCalls=Array.isArray(timeline?.entries)?timeline.entries:[];
+ const scheduleWarnings=Array.isArray(timeline?.warnings)?timeline.warnings:[];
+ const renderWarnings=items=>items.map(w=>'<p class="scheduleWarning">'+esc(w)+'</p>').join('');
+ const runOfShow='<section class="gigdayPanel gigdayRunOfShow" aria-label="Day-of-show timeline"><div class="gigdayPanelTitle"><h3>Day-of-show timeline</h3>'+
+  '<span class="tag muted">'+(timeline?esc(timeline.status||'Draft'):'Unavailable')+'</span></div>'+
+  (scheduleWarnings.length?'<div class="gigdayScheduleWarnings">'+renderWarnings(scheduleWarnings.slice(0,2))+
+   (scheduleWarnings.length>2?'<details><summary>Show '+(scheduleWarnings.length-2)+' more schedule warnings</summary>'+renderWarnings(scheduleWarnings.slice(2))+'</details>':'')+'</div>':'')+
+  (showCalls.length?'<ol class="gigdayTimeline">'+showCalls.map(entry=>'<li><time>'+esc(entry.time||'TBD')+
+   (entry.day_offset?' <small>Day +'+Number(entry.day_offset)+'</small>':'')+'</time>'+
+   '<div><strong>'+esc(entry.title||'Untitled call')+'</strong>'+
+   ((entry.owner||entry.location)?'<p class="sub">'+esc([entry.owner,entry.location].filter(Boolean).join(' · '))+'</p>':'')+
+   (entry.notes?'<p class="sub">'+esc(entry.notes)+'</p>':'')+'</div></li>').join('')+'</ol>':
+   '<p class="sub">No day-of-show timeline entries recorded for this performance.</p>')+
+  '<button type="button" class="small" data-gigday-production>Open full call sheet</button></section>';
+ const stage=state.data.showStage||{items:[],inputs:[]};
+ const stageItems=Array.isArray(stage.items)?stage.items:[],stageInputs=Array.isArray(stage.inputs)?stage.inputs:[];
+ const stageSection='<section class="gigdayPanel gigdayStage" aria-label="Stage and audio setup"><h3>Stage & inputs</h3>'+
+  '<p class="sub">'+stageItems.length+' stage elements · '+stageInputs.length+' audio inputs recorded</p>'+
+  '<details><summary>View stage plot and numbered inputs</summary>'+
+   (stageItems.length?stagePreview(stage):'<p class="sub">No stage layout recorded for this show.</p>')+
+   (stageInputs.length?'<ol class="gigdayInputs">'+stageInputs.slice().sort((a,b)=>Number(a.channel)-Number(b.channel)).map(input=>
+    '<li><strong>CH '+Number(input.channel)+'</strong> · '+esc(input.source||'Unlabeled')+
+    (input.microphone?' · '+esc(input.microphone):'')+'</li>').join('')+'</ol>':'<p class="sub">No audio input list recorded.</p>')+
+  '</details></section>';
+ const hotel=rooms.length?rooms.map(r=>'<div class="entry"><div><strong>'+esc(r.hotel)+'</strong><p class="sub">'+esc(r.label)+
+  (r.checkIn?' · Check-in '+esc(String(r.checkIn).slice(0,10)):'')+'</p></div></div>').join(''):
+  '<p class="sub">No personal hotel room linked to this show.</p>';
+ const alerts=state.data.showAlerts;
+ const pending=Array.isArray(alerts)?alerts.filter(a=>!a.acknowledged_at):[];
+ const alertPanel='<section class="gigdayPanel gigdayAlerts" aria-label="Urgent show changes"><div class="gigdayPanelTitle"><h3>Urgent show changes</h3>'+
+  '<span class="tag muted">'+(Array.isArray(alerts)?pending.length+' awaiting acknowledgement':'Status unavailable')+'</span></div>'+
+  (pending.length?'<div class="list">'+pending.slice(0,8).map(a=>'<div class="entry"><div class="entryMain"><strong>'+esc(a.title)+'</strong></div>'+
+   '<button type="button" class="small" data-gigday-ack="'+Number(a.id)+'">Acknowledge</button></div>').join('')+'</div>':
+   '<p class="sub">'+(Array.isArray(alerts)?'No unacknowledged urgent changes for this show.':'Urgent changes could not be checked.')+'</p>')+
+  '<p class="sub" role="status" id="gigdayAlertStatus"></p><button type="button" class="small" data-gigday-updates>All notifications</button></section>';
+ const rsvp=state.data.showOwnRsvp;
+ const canRespond=['owner','manager','member'].includes(role);
+ const currentResponse=rsvp?.response||'unknown';
+ const statusLabel={yes:'Going',maybe:'Maybe',no:"Can't go",unknown:'Not answered'};
+ const rsvpPanel='<section class="gigdayPanel gigdayRsvp" aria-label="My show availability"><div class="gigdayPanelTitle"><h3>My availability</h3>'+
+  '<span class="tag muted">'+(rsvp?esc(statusLabel[currentResponse]||'Not answered'):'Unavailable')+'</span></div>'+
+  (canRespond&&rsvp?'<form id="gigdayRsvpForm"><label for="gigdayRsvpResponse">Response</label>'+
+   '<select name="response" id="gigdayRsvpResponse">'+[['unknown','Not answered'],['yes','Going'],['maybe','Maybe'],['no',"Can't go"]].map(([value,name])=>
+    '<option value="'+value+'" '+(currentResponse===value?'selected':'')+'>'+name+'</option>').join('')+'</select>'+
+   '<label for="gigdayRsvpNote">Note to bandmates</label><textarea id="gigdayRsvpNote" name="note" rows="2" maxlength="1000">'+esc(rsvp.note||'')+'</textarea>'+
+   '<button type="submit" class="primary">Save my RSVP</button><p id="gigdayRsvpStatus" role="status" class="sub"></p></form>':
+   '<p class="sub">'+(rsvp?'Open the event details to see attendance.':'Attendance data could not be loaded.')+'</p>')+'</section>';
+ // Actionable field checklist uses only already-loaded facts; it is not a readiness score.
+ const missing=[];
+ if(!advance.timezone)missing.push({title:'Time zone unconfirmed',detail:'Check the venue time zone before relying on these call times.',target:'calls'});
+ if(!advance.load_in)missing.push({title:'Load-in time not recorded',detail:'Confirm arrival instructions with the venue.',target:'calls'});
+ if(!advance.soundcheck)missing.push({title:'Soundcheck time not recorded',detail:'Check the full day-of-show timeline for updates.',target:'calls'});
+ if(!advance.venue_address)missing.push({title:'Venue address not recorded',detail:'Confirm the correct entrance and location.',target:'venue'});
+ if(!setlists.length)missing.push({title:'No linked setlist',detail:'Check the show music before going on stage.',target:'music'});
+ if(rsvp&&currentResponse==='unknown'&&canRespond)missing.push({title:'RSVP outstanding',detail:'Tell the band whether you are going.',target:'rsvp'});
+ if(assigned.length)missing.push({title:assigned.length+' open assignment'+(assigned.length===1?'':'s'),detail:'Review your own show-day tasks.',target:'tasks'});
+ if(pending.length)missing.push({title:pending.length+' urgent change'+(pending.length===1?'':'s')+' needs acknowledgement',detail:'Read the changes before the show.',target:'alerts'});
+ const reviewPriority={alerts:0,calls:1,venue:2,rsvp:3,tasks:4,music:5};
+ missing.sort((a,b)=>(reviewPriority[a.target]??6)-(reviewPriority[b.target]??6));
+ const renderChecks=items=>items.map(item=>
+  '<div class="gigdayCheck"><div><strong>'+esc(item.title)+'</strong><p class="sub">'+esc(item.detail)+'</p></div>'+
+  '<button type="button" class="small" data-gigday-jump="'+item.target+'">Review</button></div>').join('');
+ const beforeYouGo='<section class="gigdayPanel gigdayChecklist" aria-label="Before you go"><div class="gigdayPanelTitle"><h3>Before you go</h3>'+
+  '<span class="tag muted">'+missing.length+' item'+(missing.length===1?'':'s')+' to review</span></div>'+
+  (missing.length?'<div class="gigdayChecks">'+renderChecks(missing.slice(0,3))+'</div>'+
+    (missing.length>3?'<details class="gigdayMoreChecks"><summary>Show '+(missing.length-3)+' more reminders</summary>'+
+     '<div class="gigdayChecks">'+renderChecks(missing.slice(3))+'</div></details>':''):
+   '<p class="sub">No outstanding pre-show items identified from the records currently loaded. Confirm any last-minute changes with your bandmates.</p>')+
+  '<p class="sub">This checklist is informational, not a venue confirmation or safety certification.</p></section>';
+ const manager=['owner','manager'].includes(role);
+ return '<section class="gigdayScreen" aria-label="Musician gig-day workspace"><div class="gigdayHero"><div><span class="eyebrow">SHOW DAY · MY BACKLINE</span><h2>'+esc(chosen.title)+'</h2>'+
+  '<p>'+datePretty(chosen.date)+' · '+esc(chosen.venue||'Venue TBD')+'</p>'+
+  '<span class="tag muted">'+(advance.status==='confirmed'?'Venue advance confirmed':'Advance not confirmed')+'</span></div>'+
+  selected+'</div>'+
+  '<p class="gigdayFreshness">Show details last loaded '+esc(loadedLabel)+' (device time). Refresh to check for changes.</p>'+connectivity+
+  '<div class="gigdayActionBar" aria-label="Gig-day quick actions"><button class="primary" data-gigday-rsvp>My RSVP</button>'+
+  '<button data-gigday-jump="music">Setlist</button><button data-gigday-jump="tasks">My tasks</button>'+
+  '<button data-gigday-jump="alerts">Urgent changes</button><button data-gigday-refresh aria-label="Refresh gig-day details">Refresh</button></div>'+
+  '<section class="gigdayPanel gigdayCallsPanel" aria-label="Show-day call times"><div class="gigdayPanelTitle"><h3>Where to be, and when</h3><span class="sub">'+esc(validZone)+'</span></div>'+
+  '<div class="gigdayCallGrid">'+callCards+'</div><p class="sub">Times are venue-local. “Day +1/+2” means after the show date. TBD is not a confirmed call.</p></section>'+
+  '<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Venue and contact"><h3>Venue & contact</h3><p><strong>'+esc(venue)+'</strong></p><p>'+esc(contact)+'</p>'+
+  '<p class="sub">'+esc(advance.parking||'Parking and access not recorded')+'</p><div class="gigdayContactActions">'+contactActions+'</div></section>'+
+  '<section class="gigdayPanel" aria-label="My show tasks"><div class="gigdayPanelTitle"><h3>My assignments</h3><span class="tag muted">'+assigned.length+' open</span></div>'+
+  tasks+'<p id="gigdayTaskStatus" class="sub" role="status"></p><button class="small" data-gigday-tasks>Show task list</button></section></div>'+
+  beforeYouGo+rsvpPanel+alertPanel+runOfShow+'<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Show music"><h3>Show music</h3>'+repertoire+
+  '<button class="small" data-gigday-setlists>Manage show setlists</button></section>'+
+  '<section class="gigdayPanel" aria-label="Personal lodging"><h3>My lodging</h3>'+hotel+'</section>'+stageSection+'</div>'+
+  '<div class="gigdayFooterActions"><button type="button" data-gigday-print>Print gig-day sheet</button><button data-gigday-production>Detailed production</button>'+
+  (manager?'<button data-gigday-crew>Crew & guests</button>':'')+
+  '<button data-gigday-schedule>Back to schedule</button></div></section>';
+}
+// Paper briefing includes disclosure content without changing what was open on screen.
+let gigdayPrintExpandedDetails=[];
+window.addEventListener('beforeprint',()=>{
+ const additional=[...document.querySelectorAll('.gigdayScreen details:not([open])')];
+ additional.forEach(details=>{
+  if(!gigdayPrintExpandedDetails.includes(details))gigdayPrintExpandedDetails.push(details);
+  details.open=true;
+ });
+});
+window.addEventListener('afterprint',()=>{
+ gigdayPrintExpandedDetails.forEach(details=>{if(details.isConnected)details.open=false});
+ gigdayPrintExpandedDetails=[];
+});
+function updateGigDayConnectivity(){
+ const el=document.querySelector('#gigdayConnectivity');
+ if(el)el.hidden=navigator.onLine;
+}
+window.addEventListener('online',updateGigDayConnectivity);
+window.addEventListener('offline',updateGigDayConnectivity);
+document.addEventListener('submit',async event=>{
+ if(event.target.id!=='gigdayRsvpForm')return;
+ event.preventDefault();
+ const form=event.target,button=form.querySelector('[type="submit"]');
+ const band=state.band,gig=Number(state.showGig),token=sessionStorage.getItem('backline_session');
+ button.disabled=true;
+ try{
+  await api('/bands/'+band+'/events/'+gig+'/rsvp',{method:'PUT',body:JSON.stringify(Object.fromEntries(new FormData(form)))});
+  if(state.band!==band||Number(state.showGig)!==gig||sessionStorage.getItem('backline_session')!==token)return;
+  await openShowPacketGig(gig,'gigday');
+  if(state.band===band&&Number(state.showGig)===gig&&sessionStorage.getItem('backline_session')===token)toast('Your RSVP saved');
+ }catch(error){
+  if(form.isConnected){const status=form.querySelector('#gigdayRsvpStatus');if(status)status.textContent=error.message;button.disabled=false}
+ }
+});
+document.addEventListener('change',async event=>{
+ if(event.target.id!=='gigdayShowPicker')return;
+ await openShowPacketGig(Number(event.target.value),'gigday');
+});
+document.addEventListener('click',async event=>{
+ const button=event.target.closest('[data-gigday-rsvp],[data-gigday-jump],[data-gigday-setlists],[data-gigday-tasks],[data-gigday-updates],[data-gigday-refresh],[data-gigday-perform],[data-gigday-production],[data-gigday-print],[data-gigday-crew],[data-gigday-schedule],[data-gigday-ack],[data-gigday-complete]');
+ if(!button)return;
+ event.preventDefault();
+ const gig=Number(state.showGig),band=state.band;
+ try{
+  if(button.hasAttribute('data-gigday-complete')){
+   const id=Number(button.dataset.gigdayComplete),token=sessionStorage.getItem('backline_session');
+   if(!Number.isSafeInteger(id)||id<=0)return;
+   button.disabled=true;
+   try{
+    await api('/bands/'+band+'/gigs/'+gig+'/tasks/'+id+'/complete-mine',{method:'POST'});
+    const updated=await api('/bands/'+band+'/tasks');
+    if(state.band!==band||Number(state.showGig)!==gig||sessionStorage.getItem('backline_session')!==token)return;
+    state.data.tasks=updated;
+    if(state.section==='gigday')render();
+    toast('Your task marked complete');
+   }catch(error){
+    if(button.isConnected){button.disabled=false;const status=document.querySelector('#gigdayTaskStatus');if(status)status.textContent=error.message}
+   }
+   return;
+  }
+  if(button.hasAttribute('data-gigday-ack')){
+   const id=Number(button.dataset.gigdayAck);
+   if(!Number.isSafeInteger(id)||id<=0)return;
+   button.disabled=true;
+   try{
+    await api('/me/operations-alerts/'+id+'/acknowledge',{method:'POST'});
+    if(state.band===band&&Number(state.showGig)===gig){await openShowPacketGig(gig,'gigday');toast('Urgent change acknowledged')}
+   }catch(error){if(button.isConnected){button.disabled=false;document.querySelector('#gigdayAlertStatus').textContent=error.message}}
+   return;
+  }
+  if(button.hasAttribute('data-gigday-print')){
+   event.stopImmediatePropagation();
+   const now=Date.now();
+   if(now-Number(state.gigdayLastPrintMs||0)<1000)return;
+   state.gigdayLastPrintMs=now;
+   window.print();
+   return;
+  }
+  if(button.hasAttribute('data-gigday-refresh')){await openShowPacketGig(gig,'gigday');return}
+  if(button.hasAttribute('data-gigday-rsvp')){
+   const panel=document.querySelector('.gigdayRsvp');
+   panel?.scrollIntoView({behavior:'smooth',block:'start'});
+   panel?.querySelector('select,button')?.focus({preventScroll:true});
+   return;
+  }
+  if(button.hasAttribute('data-gigday-perform')){openSetlistPerformance(Number(button.dataset.gigdayPerform));return}
+  if(button.hasAttribute('data-gigday-jump')){
+   const target={music:'[aria-label="Show music"]',tasks:'[aria-label="My show tasks"]',alerts:'[aria-label="Urgent show changes"]',calls:'[aria-label="Show-day call times"]',venue:'[aria-label="Venue and contact"]',rsvp:'[aria-label="My show availability"]'}[button.dataset.gigdayJump];
+   const region=target?document.querySelector('.gigdayScreen '+target):null;
+   region?.scrollIntoView({behavior:'smooth',block:'start'});
+   const heading=region?.querySelector('h3');
+   if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true})}
+   return;
+  }
+  if(button.hasAttribute('data-gigday-setlists')){state.gigdayReturn=gig;state.musicGig=gig;state.section='setlists';render();return}
+  if(button.hasAttribute('data-gigday-tasks')){state.gigdayReturn=gig;state.prepGig=gig;state.section='tasks';render();return}
+  if(button.hasAttribute('data-gigday-updates')){state.section='notifications';await refreshNotifications();return}
+  if(button.hasAttribute('data-gigday-production')){await openShowPacketGig(gig,'showops');return}
+  if(button.hasAttribute('data-gigday-crew')){
+   if(!['owner','manager'].includes(state.data.collaboration?.role))return;
+   state.opsGig=gig;state.opsTab='guests';state.section='operations';await refreshOperations();return;
+  }
+  if(button.hasAttribute('data-gigday-schedule')){state.section='schedule';await refreshCalendar(state.calendarAll||false);return}
+ }catch(error){toast(error.message,true)}
+});

@@ -6,17 +6,39 @@ import os, sqlite3, json, datetime
 from contextlib import contextmanager
 from pathlib import Path
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from .version import VERSION
+
 ROOT = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get('BACKLINE_DB', ROOT.parent / 'backline.db'))
-app = FastAPI(title='Backline API', version='0.1.0')
+app = FastAPI(title='Backline API', version=VERSION)
 app.mount('/static', StaticFiles(directory=str(ROOT/'static')), name='static')
+from .recovery import setup as setup_recovery, issue as issue_recovery, redeem as redeem_recovery
+from .invitations import setup as setup_invites, create as create_invite, accept as accept_invite, accept_existing, revoke as revoke_invite
+from .booking import setup as setup_booking, attach as attach_booking
+from .ai_studio import setup as setup_studio, attach as attach_studio
+from .show_ops import setup as setup_show_ops, attach as attach_show_ops
+from .show_files import setup as setup_show_files, attach as attach_show_files
+from .tax_records import setup as setup_tax_records, attach as attach_tax_records
+from .tour_routes import setup as setup_tour_routes, attach as attach_tour_routes
+from .stage_plots import setup as setup_stage_plots, attach as attach_stage_plots
+from .itinerary_imports import setup as setup_itinerary_imports, attach as attach_itinerary_imports
+from .show_logistics import setup as setup_show_logistics, attach as attach_show_logistics
+from .operations_audit import setup as setup_operations_audit, attach as attach_operations_audit
+from .sharing import setup as setup_sharing, attach as attach_sharing
+from .media_pages import setup as setup_media_pages, attach as attach_media_pages
+from .collaboration import setup as setup_collaboration, attach as attach_collaboration
+from .calendars import setup as setup_calendars, attach as attach_calendars
+from .workspace_ops import setup as setup_workspace_ops, attach as attach_workspace_ops
+from .venue_advance import setup as setup_venue_advance, attach as attach_venue_advance
 from .security import install_preview_auth
 install_preview_auth(app)
+from .accounts import account_tables, install_accounts, hash_password, verify_password, make_session, login_locked, login_failure, login_success
+install_accounts(app, lambda: db())
 
 @contextmanager
 def db():
@@ -44,6 +66,35 @@ def init_db():
         CREATE TABLE IF NOT EXISTS settlements (id INTEGER PRIMARY KEY, event_id INTEGER NOT NULL UNIQUE REFERENCES events(id), reserve_basis_points INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
         CREATE TABLE IF NOT EXISTS settlement_shares (id INTEGER PRIMARY KEY, settlement_id INTEGER NOT NULL REFERENCES settlements(id), member_id INTEGER NOT NULL REFERENCES members(id), amount_cents INTEGER NOT NULL CHECK(amount_cents>=0), UNIQUE(settlement_id,member_id));
         ''')
+        account_tables(c)
+        setup_invites(c)
+        setup_recovery(c)
+        setup_booking(c)
+        setup_studio(c)
+        setup_show_ops(c)
+        setup_show_files(c)
+        setup_tax_records(c)
+        setup_tour_routes(c)
+        setup_stage_plots(c)
+        setup_venue_advance(c)
+        setup_workspace_ops(c)
+        setup_calendars(c)
+        setup_collaboration(c)
+        setup_media_pages(c)
+        setup_sharing(c)
+        setup_operations_audit(c)
+        setup_show_logistics(c)
+        setup_itinerary_imports(c)
+        if os.getenv('BACKLINE_DEMO_ACCOUNTS')=='1':
+            # Explicit opt-in for a disposable, fresh database. Never retrofit legacy data.
+            if os.getenv('BACKLINE_DEMO_SEED')!='1' or os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
+                raise RuntimeError('Authenticated demo requires demo seeding and account authorization enabled')
+            password=os.getenv('BACKLINE_DEMO_PASSWORD','')
+            from .demo_seed import seed_accounts
+            seed_accounts(c,password)
+        elif os.getenv('BACKLINE_DEMO_SEED')=='1' and os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
+            from .demo_seed import seed
+            seed(c)
         if not c.execute('SELECT 1 FROM bands LIMIT 1').fetchone():
             c.execute('INSERT INTO bands(name,genre,description) VALUES(?,?,?)',('My Band','Rock / Americana','Your band workspace'))
 
@@ -113,15 +164,139 @@ class SettlementInput(BaseModel):
     reserve_percent: int = Field(default=0,ge=0,le=100)
 
 @app.get('/')
-def home(): return FileResponse(ROOT/'static'/'index.html')
+def home(): return FileResponse(ROOT/'static'/'index.html',headers={'Cache-Control':'no-store, max-age=0', 'Pragma':'no-cache'})
+@app.get('/service-worker.js')
+def service_worker(): return FileResponse(ROOT/'static'/'service-worker.js',media_type='application/javascript',headers={'Cache-Control':'no-store'})
 @app.get('/api/health')
-def health(): return {'status':'ok','version':'0.1.0'}
-@app.get('/api/bands')
-def bands(): return fetchall('SELECT * FROM bands ORDER BY id')
-@app.post('/api/bands',status_code=201)
-def add_band(data:BandInput):
+def health(): return {'status':'ok','version':VERSION,'build_sha':os.getenv('BACKLINE_BUILD_SHA','development')}
+class LoginInput(BaseModel):
+    email: str
+    password: str
+
+@app.post('/api/auth/login')
+def login(payload: LoginInput):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED') != '1':
+        raise HTTPException(404,'Not enabled')
+    email=payload.email.strip().lower()
     with db() as c:
-        cur=c.execute('INSERT INTO bands(name,genre,description) VALUES(?,?,?)',(data.name.strip(),data.genre,data.description));return {'id':cur.lastrowid}
+        if login_locked(c,email):
+            raise HTTPException(429,'Login temporarily unavailable')
+        row=c.execute('SELECT id,password_hash FROM users WHERE email=?',(email,)).fetchone()
+        if not row or not verify_password(payload.password,row['password_hash']):
+            login_failure(c,email)
+            c.commit()
+            raise HTTPException(401,'Invalid credentials')
+        login_success(c,email)
+        return {'access_token':make_session(c,row['id']),'token_type':'bearer'}
+
+@app.post('/api/auth/logout')
+def logout(request: Request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED') != '1':
+        raise HTTPException(404,'Not enabled')
+    token=request.headers.get('authorization','')[7:]
+    import hashlib
+    with db() as c:
+        c.execute('DELETE FROM sessions WHERE token_hash=?',
+                  (hashlib.sha256(token.encode()).hexdigest(),))
+    return {'ok':True}
+
+@app.post('/api/auth/logout-all')
+def logout_everywhere(request: Request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED') != '1':
+        raise HTTPException(404,'Not enabled')
+    with db() as c:
+        c.execute('DELETE FROM sessions WHERE user_id=?',
+                  (request.state.user['id'],))
+    return {'ok':True}
+
+class InviteInput(BaseModel):
+    email: str
+    role: str = 'member'
+
+class AcceptInviteInput(BaseModel):
+    token: str
+    email: str
+    display_name: str = Field(min_length=1,max_length=120)
+    password: str
+
+@app.post('/api/bands/{band_id}/invitations',status_code=201)
+def invite_member(band_id:int, payload:InviteInput, request:Request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
+        raise HTTPException(404,'Not enabled')
+    with db() as c:
+        token=create_invite(c,band_id,request.state.user['id'],payload.email,payload.role)
+    # Staging only; never log or expose invitation tokens to non-inviting members.
+    return {'invite_token':token,'expires_in_days':7,'delivery':'manual'}
+
+@app.post('/api/auth/accept-invite',status_code=201)
+def accept_invitation(payload:AcceptInviteInput):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
+        raise HTTPException(404,'Not enabled')
+    with db() as c:
+        return accept_invite(c,payload.token,payload.email,payload.display_name,payload.password)
+
+class ExistingInviteInput(BaseModel):
+    token: str = Field(min_length=20,max_length=200)
+
+@app.post('/api/auth/accept-existing-invite',status_code=201)
+def accept_existing_invitation(payload: ExistingInviteInput, request: Request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
+        raise HTTPException(404,'Not enabled')
+    with db() as c:
+        return accept_existing(c,payload.token,request.state.user['id'])
+
+class RevokeInviteInput(BaseModel):
+    token: str = Field(min_length=20,max_length=200)
+
+@app.post('/api/bands/{band_id}/invitations/revoke')
+def revoke_invitation(band_id:int, payload:RevokeInviteInput, request:Request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
+        raise HTTPException(404,'Not enabled')
+    with db() as c:
+        return revoke_invite(c,band_id,request.state.user['id'],payload.token)
+
+class RecoveryRequest(BaseModel):
+    email: str
+
+class RecoveryRedeem(BaseModel):
+    token: str = Field(min_length=20,max_length=200)
+    password: str
+
+@app.post('/api/bands/{band_id}/account-recovery')
+def recovery_issue(band_id:int,payload:RecoveryRequest,request:Request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
+        raise HTTPException(404,'Not enabled')
+    with db() as c:
+        token=issue_recovery(c,request.state.user['id'],band_id,payload.email)
+    return {'recovery_token':token,'expires_in_minutes':30,'delivery':'manual'}
+
+@app.post('/api/auth/recover')
+def recovery_redeem(payload:RecoveryRedeem):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':
+        raise HTTPException(404,'Not enabled')
+    with db() as c:
+        return redeem_recovery(c,payload.token,payload.password)
+
+@app.get('/api/auth/me')
+def current_user(request: Request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED') != '1':
+        raise HTTPException(404,'Not enabled')
+    return request.state.user
+
+@app.get('/api/bands')
+def bands(request: Request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED') == '1':
+        return fetchall('''SELECT b.* FROM bands b JOIN band_users bu ON bu.band_id=b.id
+            WHERE bu.user_id=? ORDER BY b.id''',(request.state.user['id'],))
+    return fetchall('SELECT * FROM bands ORDER BY id')
+@app.post('/api/bands',status_code=201)
+def add_band(data:BandInput, request: Request):
+    with db() as c:
+        cur=c.execute('INSERT INTO bands(name,genre,description) VALUES(?,?,?)',(data.name.strip(),data.genre,data.description))
+        if os.getenv('BACKLINE_ACCOUNTS_ENABLED') == '1':
+            c.execute('INSERT INTO band_users(band_id,user_id,role) VALUES(?,?,?)',
+                      (cur.lastrowid,request.state.user['id'],'owner'))
+        return {'id':cur.lastrowid}
 @app.patch('/api/bands/{band_id}')
 def update_band(band_id:int,data:BandInput):
     band_exists(band_id)
@@ -135,15 +310,58 @@ def add_member(band_id:int,data:MemberInput):
     band_exists(band_id)
     with db() as c:
         cur=c.execute('INSERT INTO members(band_id,name,instrument,email,role) VALUES(?,?,?,?,?)',(band_id,data.name.strip(),data.instrument,data.email,data.role));return {'id':cur.lastrowid}
+def financial_access(band_id,request):
+    if os.getenv('BACKLINE_ACCOUNTS_ENABLED')!='1':return True
+    from .accounts import authorized
+    with db() as con:return authorized(con,request.state.user['id'],band_id,'GET',f'/api/bands/{band_id}/finance')
+
 @app.get('/api/bands/{band_id}/events')
-def events(band_id:int):
-    band_exists(band_id);return fetchall('SELECT * FROM events WHERE band_id=? ORDER BY date,time,id',(band_id,))
+def events(band_id:int,request:Request):
+    band_exists(band_id)
+    rows=fetchall('''SELECT e.*,cl.kind AS classified_kind FROM events e LEFT JOIN event_classifications cl ON cl.event_id=e.id AND cl.band_id=e.band_id WHERE e.band_id=? ORDER BY e.date,e.time,e.id''',(band_id,))
+    allowed=financial_access(band_id,request)
+    for row in rows:
+        row['kind']=row.pop('classified_kind') or row['kind']
+        if not allowed:row.pop('fee_cents',None)
+    return rows
 @app.post('/api/bands/{band_id}/events',status_code=201)
 def add_event(band_id:int,data:EventInput):
     band_exists(band_id)
-    if data.kind not in ('Gig','Rehearsal'):raise HTTPException(422,'Invalid event kind')
+    if data.kind not in ('Gig','Rehearsal','Meeting','Session'):raise HTTPException(422,'Invalid event kind')
     with db() as c:
-        cur=c.execute('INSERT INTO events(band_id,kind,title,venue,date,time,status,notes,fee_cents) VALUES(?,?,?,?,?,?,?,?,?)',(band_id,data.kind,data.title,data.venue,str(data.date),data.time,data.status,data.notes,cents(data.fee)));return {'id':cur.lastrowid}
+        cur=c.execute('INSERT INTO events(band_id,kind,title,venue,date,time,status,notes,fee_cents) VALUES(?,?,?,?,?,?,?,?,?)',(band_id,'Rehearsal' if data.kind in ('Session','Meeting') else data.kind,data.title,data.venue,str(data.date),data.time,data.status,data.notes,cents(data.fee)))
+        if data.kind in ('Session','Meeting'):c.execute("INSERT INTO event_classifications(event_id,band_id,kind) VALUES(?,?,?)",(cur.lastrowid,band_id,data.kind))
+        return {'id':cur.lastrowid}
+@app.put('/api/bands/{band_id}/events/{event_id}')
+def edit_event(band_id:int,event_id:int,data:EventInput):
+    band_exists(band_id)
+    if data.kind not in ('Gig','Rehearsal','Meeting','Session'):
+        raise HTTPException(422,'Invalid event kind')
+    with db() as c:
+        current=c.execute('SELECT id FROM events WHERE id=? AND band_id=?',(event_id,band_id)).fetchone()
+        if not current:raise HTTPException(404,'Event not found in this band')
+        stored_kind='Rehearsal' if data.kind in ('Session','Meeting') else data.kind
+        c.execute('''UPDATE events SET kind=?,title=?,venue=?,date=?,time=?,status=?,notes=?,fee_cents=?
+            WHERE id=? AND band_id=?''',(stored_kind,data.title.strip(),data.venue,str(data.date),
+            data.time,data.status,data.notes,cents(data.fee),event_id,band_id))
+        c.execute('DELETE FROM event_classifications WHERE event_id=? AND band_id=?',(event_id,band_id))
+        if data.kind in ('Session','Meeting'):
+            c.execute('INSERT INTO event_classifications(event_id,band_id,kind) VALUES(?,?,?)',
+                (event_id,band_id,data.kind))
+    return {'id':event_id,'ok':True}
+
+class EventReschedule(BaseModel):
+    date: datetime.date
+
+@app.put('/api/bands/{band_id}/events/{event_id}/reschedule')
+def reschedule_event(band_id:int,event_id:int,data:EventReschedule):
+    band_exists(band_id)
+    with db() as c:
+        event=c.execute('SELECT id,date,title FROM events WHERE band_id=? AND id=?',(band_id,event_id)).fetchone()
+        if not event:raise HTTPException(404,'Event not found in this band')
+        c.execute('UPDATE events SET date=? WHERE id=? AND band_id=?',(str(data.date),event_id,band_id))
+    return {'id':event_id,'date':str(data.date)}
+
 @app.get('/api/bands/{band_id}/songs')
 def songs(band_id:int):
     band_exists(band_id);return fetchall('SELECT * FROM songs WHERE band_id=? ORDER BY title',(band_id,))
@@ -181,6 +399,21 @@ def add_transaction(band_id:int,data:TransactionInput):
     if data.kind=='payout' and data.member_id is None:raise HTTPException(422,'Payout requires member')
     with db() as c:
         valid_member(c,band_id,data.member_id);valid_event(c,band_id,data.event_id)
+        if data.kind == 'payout' and data.event_id is not None:
+            share = c.execute("""SELECT ss.amount_cents
+                FROM settlement_shares ss
+                JOIN settlements se ON se.id=ss.settlement_id
+                WHERE se.event_id=? AND ss.member_id=?""",
+                (data.event_id, data.member_id)).fetchone()
+            if share is not None:
+                paid = c.execute("""SELECT COALESCE(SUM(t.amount_cents),0)
+                    FROM transactions t
+                    WHERE t.event_id=? AND t.member_id=?
+                    AND t.kind='payout' AND t.reversal_of IS NULL
+                    AND NOT EXISTS (SELECT 1 FROM transactions rev WHERE rev.reversal_of=t.id)""",
+                    (data.event_id, data.member_id)).fetchone()[0]
+                if paid + amount > share['amount_cents']:
+                    raise HTTPException(422,'Payout exceeds member settlement share')
         cur=c.execute('INSERT INTO transactions(band_id,event_id,member_id,kind,amount_cents,category,description,date) VALUES(?,?,?,?,?,?,?,?)',(band_id,data.event_id,data.member_id,data.kind,amount,data.category,data.description,str(data.date)))
         return {'id':cur.lastrowid}
 @app.post('/api/bands/{band_id}/transactions/{transaction_id}/reverse',status_code=201)
@@ -207,7 +440,7 @@ def settlements(band_id:int):
     band_exists(band_id)
     rows=fetchall('SELECT s.*,e.title event_title,e.date event_date FROM settlements s JOIN events e ON s.event_id=e.id WHERE e.band_id=? ORDER BY s.id DESC',(band_id,))
     for r in rows:
-        r['shares']=fetchall('''SELECT ss.*,m.name member_name,(SELECT COALESCE(SUM(t.amount_cents),0) FROM transactions t WHERE t.member_id=ss.member_id AND t.event_id=s.event_id AND t.kind='payout') paid_cents FROM settlement_shares ss JOIN members m ON m.id=ss.member_id JOIN settlements s ON s.id=ss.settlement_id WHERE ss.settlement_id=?''',(r['id'],))
+        r['shares']=fetchall('''SELECT ss.*,m.name member_name,(SELECT COALESCE(SUM(t.amount_cents),0) FROM transactions t WHERE t.member_id=ss.member_id AND t.event_id=s.event_id AND t.kind='payout' AND t.reversal_of IS NULL AND NOT EXISTS (SELECT 1 FROM transactions rev WHERE rev.reversal_of=t.id)) paid_cents FROM settlement_shares ss JOIN members m ON m.id=ss.member_id JOIN settlements s ON s.id=ss.settlement_id WHERE ss.settlement_id=?''',(r['id'],))
     return rows
 @app.post('/api/bands/{band_id}/events/{event_id}/settle',status_code=201)
 def settle(band_id:int,event_id:int,data:SettlementInput):
@@ -230,12 +463,37 @@ def settle(band_id:int,event_id:int,data:SettlementInput):
         for i,mid in enumerate(ids):c.execute('INSERT INTO settlement_shares(settlement_id,member_id,amount_cents) VALUES(?,?,?)',(sid,mid,base+(1 if i<remainder else 0)))
         return {'id':sid,'net_cents':net,'reserve_cents':retained,'distributable_cents':available}
 @app.get('/api/bands/{band_id}/dashboard')
-def dashboard(band_id:int):
+def dashboard(band_id:int,request:Request):
     band_exists(band_id)
     today=datetime.date.today().isoformat()
     with db() as c:
-        upcoming=[dict(r) for r in c.execute('SELECT * FROM events WHERE band_id=? AND date>=? ORDER BY date,time LIMIT 6',(band_id,today))]
+        upcoming=[dict(r) for r in c.execute('''SELECT e.*,cl.kind AS classified_kind FROM events e LEFT JOIN event_classifications cl ON cl.event_id=e.id AND cl.band_id=e.band_id WHERE e.band_id=? AND e.date>=? ORDER BY e.date,e.time LIMIT 6''',(band_id,today))]
+        for event in upcoming:event['kind']=event.pop('classified_kind') or event['kind']
         counts={'members':c.execute('SELECT COUNT(*) FROM members WHERE band_id=? AND active=1',(band_id,)).fetchone()[0], 'songs':c.execute('SELECT COUNT(*) FROM songs WHERE band_id=?',(band_id,)).fetchone()[0], 'gigs':c.execute("SELECT COUNT(*) FROM events WHERE band_id=? AND kind='Gig' AND date>=?",(band_id,today)).fetchone()[0]}
-    return {'upcoming':upcoming,'counts':counts,'finance':finance(band_id)}
+    allowed=financial_access(band_id,request)
+    if not allowed:
+        for event in upcoming:event.pop('fee_cents',None)
+    result={'upcoming':upcoming,'counts':counts}
+    if allowed:result['finance']=finance(band_id)
+    return result
 
+app.include_router(attach_booking(db))
+app.include_router(attach_studio(db))
+app.include_router(attach_show_ops(db))
+app.include_router(attach_show_files(db))
+app.include_router(attach_tax_records(db))
+app.include_router(attach_tour_routes(db))
+app.include_router(attach_stage_plots(db))
+app.include_router(attach_venue_advance(db))
+app.include_router(attach_workspace_ops(db))
+app.include_router(attach_calendars(db))
+app.include_router(attach_collaboration(db))
+app.include_router(attach_media_pages(db))
+app.include_router(attach_sharing(db))
+app.include_router(attach_operations_audit(db))
+app.include_router(attach_show_logistics(db))
+from .rehearsal_plans import attach as attach_rehearsal_plans, setup as setup_rehearsal_plans
+app.include_router(attach_rehearsal_plans(db))
+with db() as _rehearsal_db:setup_rehearsal_plans(_rehearsal_db)
+app.include_router(attach_itinerary_imports(db))
 init_db()

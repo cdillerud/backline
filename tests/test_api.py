@@ -31,6 +31,28 @@ def test_core_workflows():
         t=client.get(b+'/transactions').json()[0]
         assert client.post(b+f'/transactions/{t["id"]}/reverse').status_code==201
         assert client.post(b+f'/transactions/{t["id"]}/reverse').status_code==409
+        # Settlement payout history must respect reversals and payout ceilings.
+        payout=client.post(b+'/transactions',json={
+            'kind':'payout','member_id':ids[0],'event_id':gig,
+            'amount':'20.00','date':'2026-11-07','description':'Drummer settlement'
+        })
+        assert payout.status_code==201, payout.text
+        excess=client.post(b+'/transactions',json={
+            'kind':'payout','member_id':ids[0],'event_id':gig,
+            'amount':'100.00','date':'2026-11-07','description':'Exceeds share'
+        })
+        assert excess.status_code==422, excess.text
+        shares=client.get(b+'/settlements').json()[0]['shares']
+        assert next(x for x in shares if x['member_id']==ids[0])['paid_cents']==2000
+        assert client.post(b+f'/transactions/{payout.json()["id"]}/reverse').status_code==201
+        shares=client.get(b+'/settlements').json()[0]['shares']
+        assert next(x for x in shares if x['member_id']==ids[0])['paid_cents']==0
+        # Reversed payouts do not consume the original settlement allocation.
+        retry=client.post(b+'/transactions',json={
+            'kind':'payout','member_id':ids[0],'event_id':gig,
+            'amount':'20.00','date':'2026-11-07','description':'Corrected settlement'
+        })
+        assert retry.status_code==201, retry.text
         other=client.post('/api/bands',json={'name':'Other'}).json()['id']
         assert client.get(f'/api/bands/{other}/members').json()==[]
         assert client.post(f'/api/bands/{other}/setlists',json={'title':'Fake','song_ids':[song]}).status_code==422
