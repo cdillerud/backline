@@ -46,6 +46,21 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert spotlight.get_by_role("button",name="My Gig Day").is_visible()
             assert spotlight.get_by_role("button",name="RSVP & details").is_visible()
             assert page.locator(".bandHomeStat").count()==5
+            # v0.6: a show is the entry point to the date's actions.
+            page.locator(".homeGigSpotlight .homeShowOpen").click()
+            overview=page.get_by_role("region",name="Selected event overview")
+            assert overview.is_visible()
+            assert overview.get_by_text("Regional showcase (demo)").is_visible()
+            assert overview.get_by_role("button",name="See or update my RSVP").is_visible()
+            assert overview.get_by_role("button",name="Open Gig Day").is_visible()
+            assert overview.get_by_role("button",name="View setlists").is_visible()
+            assert overview.get_by_role("button",name="View tasks").is_visible()
+            overview.get_by_role("button",name="Back to calendar").click()
+            page.get_by_role("heading",name="Calendar",exact=True).wait_for(state="visible")
+            assert page.locator("#calendarMonth").input_value()==page.evaluate("get(\'events\').find(e=>e.title===\'Regional showcase (demo)\').date.slice(0,7)")
+            page.locator('[data-go="dashboard"]:visible').first.click()
+            page.locator('.bandHomeGrid').wait_for(state='visible',timeout=15000)
+            spotlight=page.locator(".homeGigSpotlight")
             music_focus=page.locator(".bandHomeGrid .panel").filter(
                 has=page.get_by_role("heading",name="Music to revisit"))
             assert music_focus.count()==1
@@ -167,7 +182,7 @@ def test_demo_account_browser_login_and_hub(tmp_path):
                 assert page.locator(".bandHomeStat").count()==5
                 if width==768:
                     # Tablet rail hides visible labels; explicit accessible names remain.
-                    assert page.get_by_role("navigation",name="Primary workspaces").get_by_role("button",name="Shows").count()==1
+                    assert page.get_by_role("navigation",name="Primary workspaces").get_by_role("button",name="Calendar").count()==1
                 if width==320:
                     assert page.locator(".mobileNav [data-go='dashboard']").count()==1
             page.set_viewport_size({"width":1280,"height":850})

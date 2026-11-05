@@ -1,4 +1,4 @@
-"""Authenticated six-workspace UX smoke test at practical device widths.
+"""Authenticated four-destination musician UX smoke test at practical device widths.
 
 Uses disposable synthetic test accounts; does not access the live Fly preview.
 """
@@ -14,11 +14,9 @@ def test_primary_workspaces_are_navigable_without_document_overflow(
         account_server, accounts, width):
     labels = [
         ("dashboard", "Home"),
+        ("schedule", "Calendar"),
         ("songs", "Song Library"),
-        ("schedule", "Schedule"),
-        ("touring", "Shows & Tours"),
         ("collaboration", "Bandmates"),
-        ("finance", "Band Finances"),
     ]
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
@@ -52,6 +50,16 @@ def test_primary_workspaces_are_navigable_without_document_overflow(
             )
             if route in ("dashboard", "songs", "schedule", "collaboration"):
                 page.screenshot(path=str(output / f"workspace-{route}-{width}.png"), full_page=True)
+        # Management is a separate, authorized surface, never a fifth primary tab.
+        assert page.locator('nav[aria-label="Primary workspaces"] > button').count()==4
+        page.locator('.accountMenu summary').click()
+        page.locator('.accountMenu [data-go="manage"]').click()
+        expect(page.locator('.top h1')).to_have_text('Manage')
+        assert page.locator('.manageTool[data-go="touring"]').count()==1
+        assert page.locator('.manageTool[data-go="finance"]').count()==1
+        assert page.evaluate(
+            "() => document.documentElement.scrollWidth <= window.innerWidth + 1"
+        ), f"Management overflows at {width}px"
         assert not failures, f"Client JavaScript errors at {width}px: {failures}"
         browser.close()
 
@@ -64,9 +72,11 @@ def test_member_workspace_navigation_does_not_offer_finance(account_server, acco
         expect(page.locator(".top h1")).to_have_text("Home")
         assert page.locator('.mobileNav [data-go="finance"]').count() == 0
         page.locator('.mobileNav [data-go="schedule"]').click()
-        expect(page.locator('.top h1')).to_have_text('Schedule')
+        expect(page.locator('.top h1')).to_have_text('Calendar')
         assert page.locator('[data-action="event"]').count() == 0
         assert page.locator('nav[aria-label="Primary workspaces"] [data-go="finance"]').count() == 0
+        assert page.locator('[data-go="manage"]').count() == 0
+        assert page.locator('.calendarDayAdd').count() == 0
         assert page.evaluate(
             "() => document.documentElement.scrollWidth <= window.innerWidth + 1"
         )

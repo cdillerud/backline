@@ -9,11 +9,20 @@ import pytest
 from playwright.sync_api import sync_playwright, expect
 
 def navigate(page,key):
-    groups={'showops':'touring','venues':'touring','tasks':'collaboration',
-            'setlists':'songs'}
     target=page.locator('[data-go="'+key+'"]:visible')
-    if target.count()==0 and key in groups:
-        page.locator('[data-go="'+groups[key]+'"]:visible').first.click()
+    if target.count()==0:
+        if key in {'showops','touring','venues','bookings','finance'}:
+            # Administrative routes are deliberately separate from the four
+            # musician tabs; mobile opens them through Account.
+            if page.viewport_size['width']<=660:
+                page.locator('.accountMenu summary').click()
+                page.locator('.accountMenu [data-go="manage"]').click()
+            else:
+                page.locator('.manageEntryButton').click()
+        elif key=='setlists':
+            page.locator('[data-go="songs"]:visible').first.click()
+        elif key=='tasks':
+            page.locator('[data-go="collaboration"]:visible').first.click()
     page.locator('[data-go="'+key+'"]:visible').first.click()
 
 @pytest.fixture

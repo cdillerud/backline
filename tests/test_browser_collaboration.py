@@ -47,15 +47,19 @@ def navigate(page,key):
         return
     target=page.locator('[data-go="'+key+'"]:visible')
     if target.count()==0:
-        # v0.5 groups related tools inside their primary workspace.
-        groups={
-            'media':'songs','notifications':'collaboration',
-            'tasks':'collaboration','members':'collaboration',
-            'calendars':'schedule','events':'schedule',
-            'venues':'touring','bookings':'touring','showops':'touring','operations':'touring',
-            'setlists':'songs','studio':'songs'}
-        if key in groups:
-            page.locator('[data-go="'+groups[key]+'"]:visible').first.click()
+        # v0.6 context-first paths: Music owns media; Band owns member updates;
+        # management tools are inside the authorized Manage hub.
+        if key in {'venues','bookings','showops','touring','finance'}:
+            page.locator('.accountMenu summary').click()
+            page.locator('.accountMenu [data-go="manage"]').click()
+        elif key=='operations':
+            page.locator('[data-go="collaboration"]:visible').first.click()
+        else:
+            groups={'media':'songs','notifications':'collaboration',
+                    'tasks':'collaboration','calendars':'schedule','events':'schedule',
+                    'setlists':'songs','studio':'songs'}
+            if key in groups:
+                page.locator('[data-go="'+groups[key]+'"]:visible').first.click()
     page.locator('[data-go="'+key+'"]:visible').first.click()
 
 @pytest.mark.parametrize('width',[1280,390])
