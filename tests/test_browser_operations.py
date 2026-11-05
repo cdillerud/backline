@@ -156,6 +156,7 @@ def test_delayed_private_operations_response_cannot_restore_data_after_logout(ac
             if held:break
             page.wait_for_timeout(50)
         assert held,'Private lodging request was not intercepted'
+        page.locator('.accountMenu summary').click()
         page.get_by_role('button',name='Sign out',exact=True).click()
         expect(page.get_by_role('button',name='Sign in',exact=True)).to_be_visible()
         held[0].fulfill(status=200,content_type='application/json',body='{"items":[{"hotel":"PRIVATE STALE HOTEL"}],"can_manage":true}')
