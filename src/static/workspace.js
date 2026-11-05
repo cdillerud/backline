@@ -114,8 +114,8 @@ function openCalendarEventDialog(id){
  modal.className='timelineDialog calendarEventDialog';
  modal.setAttribute('aria-label','Event details: '+item.title);
  const action=(name,label)=>'<button type="button" '+name+'="'+id+'">'+label+'</button>';
- const extras=kind==='Gig'?action('data-schedule-gig-day','My gig day')+action('data-schedule-packet','Show production'):
-  kind==='Rehearsal'?action('data-rehearsal-plan','Objectives & notes')+
+ const extras=kind==='Gig'?action('data-show-view','Open show overview')+action('data-schedule-gig-day','My gig day')+action('data-schedule-packet','Show production'):
+  kind==='Rehearsal'?action('data-show-view','Open rehearsal overview')+action('data-rehearsal-plan','Objectives & notes')+
    '<button type="button" data-go="songs">Songs to practice</button>'+
    '<button type="button" data-go="setlists">Rehearsal repertoire</button>'+
    '<button type="button" data-go="tasks">Preparation tasks</button>':
@@ -141,7 +141,7 @@ function openCalendarEventDialog(id){
  },{once:true});
  modal.addEventListener('click',event=>{
   if(event.target===modal||event.target.closest('[data-schedule-close]')){modal.close();return}
-  if(event.target.closest('[data-schedule-edit],[data-schedule-move],[data-assign-calendar],[data-schedule-packet],[data-schedule-gig-day],[data-rehearsal-plan],[data-go]')){
+  if(event.target.closest('[data-schedule-edit],[data-schedule-move],[data-assign-calendar],[data-schedule-packet],[data-schedule-gig-day],[data-show-view],[data-rehearsal-plan],[data-go]')){
    modal.close();
   }
  });
@@ -258,12 +258,14 @@ document.addEventListener('click',async event=>{
 });
 function calendarBoard(){
  const month=state.calendarMonth||today().slice(0,7),rows=(state.data.calendarEvents||[]).filter(event=>event.date.startsWith(month));
+ const canEdit=!sessionStorage.getItem('backline_session')||['owner','manager'].includes(state.accountRole);
  const [year,m]=month.split('-').map(Number),days=new Date(year,m,0).getDate(),offset=(new Date(year,m-1,1).getDay()+6)%7;
  let cells=Array.from({length:offset},()=>'<div></div>');
- for(let day=1;day<=days;day++){const date=month+'-'+String(day).padStart(2,'0'),events=rows.filter(event=>event.date===date);cells.push('<div class="calendarDay" data-calendar-day="'+date+'" tabindex="0" role="button" aria-label="Create event on '+date+'" title="Double-click or use Add to create an event"><strong>'+day+'</strong><button type="button" class="calendarDayAdd" data-calendar-add="'+date+'" aria-label="Add event on '+date+'">+</button>'+events.map(event=>{const kind=get('events').find(e=>e.id===event.id)?.kind||event.kind||'';const type=/^(gig|show)$/i.test(kind)?'show':/^rehearsal$/i.test(kind)?'rehearsal':/^(session|meeting)$/i.test(kind)?'meeting':'other';return '<div class="calendarEvent calendarEvent--'+type+'"'+(type==='other'?' style="border-color:'+esc(event.calendar_color||'#567')+'"':'')+'>'+(event.band_id===state.band?'<button class="scheduleEventLink" data-calendar-event="'+event.id+'" draggable="true" title="Click for details or drag to reschedule" data-calendar-kind="'+esc(get('events').find(e=>e.id===event.id)?.kind||event.kind||'')+'"><strong>'+esc(event.title)+'</strong></button>':'<strong>'+esc(event.title)+'</strong>')+'<small>'+esc(event.calendar_name)+' · '+esc(event.advance.show_time||event.time||'Time TBC')+'</small>'+(state.calendarAll?'<small>'+esc(event.band_name)+'</small>':'')+'</div>'}).join('')+'</div>')}
- return panel('Band calendars','<div class="actions"><button type="button" data-calendar-month-step="-1" aria-label="Previous month">‹</button><button type="button" data-calendar-today>Today</button><button type="button" data-calendar-month-step="1" aria-label="Next month">›</button><label>Month<input id="calendarMonth" type="month" value="'+esc(month)+'"></label><button data-calendar-all>'+(state.calendarAll?'This band only':'My bands combined')+'</button><button data-new-calendar>+ Calendar</button><button data-calendar-export>Download iCal</button><button data-calendar-subscriptions>Subscriptions</button></div><p class="sub">Double-click a day to add a dated event. Use Enter on a focused day, or + Add event on touch devices.</p><div class="calendarTypeLegend" aria-label="Event colors"><span class="show"><i></i>Shows</span><span class="rehearsal"><i></i>Rehearsals</span><span class="meeting"><i></i>Meetings</span></div><div class="calendarWrap"><div class="calendarGrid">'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day=>'<strong>'+day+'</strong>').join('')+cells.join('')+'</div></div>');
+ for(let day=1;day<=days;day++){const date=month+'-'+String(day).padStart(2,'0'),events=rows.filter(event=>event.date===date);cells.push('<div class="calendarDay" data-calendar-day="'+date+'" tabindex="0" role="button" aria-label="Create event on '+date+'" title="'+(canEdit?'Double-click or use Add to create an event':'Dates with scheduled events')+'"><strong>'+day+'</strong>'+(canEdit?'<button type="button" class="calendarDayAdd" data-calendar-add="'+date+'" aria-label="Add event on '+date+'">+</button>':'')+events.map(event=>{const kind=get('events').find(e=>e.id===event.id)?.kind||event.kind||'';const type=/^(gig|show)$/i.test(kind)?'show':/^rehearsal$/i.test(kind)?'rehearsal':/^(session|meeting)$/i.test(kind)?'meeting':'other';return '<div class="calendarEvent calendarEvent--'+type+'"'+(type==='other'?' style="border-color:'+esc(event.calendar_color||'#567')+'"':'')+'>'+(event.band_id===state.band?'<button class="scheduleEventLink" data-calendar-event="'+event.id+'" draggable="'+(canEdit?'true':'false')+'" title="Click for details or drag to reschedule" data-calendar-kind="'+esc(get('events').find(e=>e.id===event.id)?.kind||event.kind||'')+'"><strong>'+esc(event.title)+'</strong></button>':'<strong>'+esc(event.title)+'</strong>')+'<small>'+esc(event.calendar_name)+' · '+esc(event.advance.show_time||event.time||'Time TBC')+'</small>'+(state.calendarAll?'<small>'+esc(event.band_name)+'</small>':'')+'</div>'}).join('')+'</div>')}
+ return panel('Band calendars','<div class="actions"><button type="button" data-calendar-month-step="-1" aria-label="Previous month">‹</button><button type="button" data-calendar-today>Today</button><button type="button" data-calendar-month-step="1" aria-label="Next month">›</button><label>Month<input id="calendarMonth" type="month" value="'+esc(month)+'"></label><button data-calendar-all>'+(state.calendarAll?'This band only':'My bands combined')+'</button>'+(canEdit?'<button data-new-calendar>+ Calendar</button>':'')+'<button data-calendar-export>Download iCal</button><button data-calendar-subscriptions>Subscriptions</button></div><p class="sub">Choose a date to open a scheduled event. Band managers can add dates using the calendar.</p><div class="calendarTypeLegend" aria-label="Event colors"><span class="show"><i></i>Shows</span><span class="rehearsal"><i></i>Rehearsals</span><span class="meeting"><i></i>Meetings</span></div><div class="calendarWrap"><div class="calendarGrid">'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day=>'<strong>'+day+'</strong>').join('')+cells.join('')+'</div></div>');
 }
 function createEventOnCalendarDate(day){
+ if(sessionStorage.getItem('backline_session')&&!['owner','manager'].includes(state.accountRole))return;
  if(!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(day))return;
  state.eventDraftDate=day;state.modal='event';render();
 }
@@ -297,6 +299,7 @@ document.addEventListener('drop',async event=>{
  draggedCalendarEvent=null;
  if(!day||!id)return;
  event.preventDefault();
+ if(sessionStorage.getItem('backline_session')&&!['owner','manager'].includes(state.accountRole))return;
  const item=get('events').find(e=>e.id===id),target=day.dataset.calendarDay;
  if(!item||item.date===target)return;
  if(!confirm('Move '+item.title+' from '+datePretty(item.date)+' to '+datePretty(target)+'?'))return;
