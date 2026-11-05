@@ -12,7 +12,7 @@ const WORKSPACES=[
 const managementRole=()=>!state.accountRole||['owner','manager','treasurer'].includes(state.accountRole);
 const visibleDestination=id=>(id!=='finance'||managementRole())&&
  (id!=='manage'||managementRole());
-function workspaceFor(section){return WORKSPACES.find(w=>w[3].includes(section))||WORKSPACES[0]}
+function workspaceFor(section){if(section==='operations'&&!managementRole())return WORKSPACES[3];return WORKSPACES.find(w=>w[3].includes(section))||WORKSPACES[0]}
 const ADMIN_TOOLS=[
  ['touring','Shows & tours'],['showops','Production'],['bookings','Bookings'],
  ['venues','Venues'],['operations','Crew & logistics'],['finance','Finances']
@@ -33,6 +33,8 @@ function workspaceNavigation(mobile=false){
   (current[0]==='songs'?'<nav class="nav workspaceSubnav" aria-label="Music tools">'+
    [['setlists','Setlists'],['studio','Gig promotion'],['media','Photos & media']].map(([id,label])=>
     '<button data-go="'+id+'" aria-label="'+esc(label)+'" class="'+(state.section===id?'active':'')+'">'+esc(label)+'</button>').join('')+'</nav>':'')+
+  (current[0]==='collaboration'&&!managementRole()?'<nav class="nav workspaceSubnav" aria-label="Band tools">'+
+   '<button data-go="operations">Show requests</button></nav>':'')+
   (current[0]==='manage'?'<nav class="nav workspaceSubnav" aria-label="Management tools">'+
    ADMIN_TOOLS.filter(([id])=>visibleDestination(id)&&(state.accountRole!=='treasurer'||id==='finance')).map(([id,label])=>
     '<button data-go="'+id+'" class="'+(state.section===id?'active':'')+
@@ -43,9 +45,10 @@ function mobileContextNavigation(){
  if(state.section==='gigday')return '';
  const root=workspaceFor(state.section)[0];
  const routes=root==='songs'?[['songs','Library'],['setlists','Setlists'],['studio','Gig promotion'],['media','Media']]:
-  root==='schedule'?[['schedule','Dates'],['calendars','Calendars']]:[];
+  root==='schedule'?[['schedule','Dates'],['calendars','Calendars']]:
+  root==='collaboration'&&!managementRole()?[['collaboration','Chat'],['operations','Show requests']]:[];
  if(!routes.length)return '';
- return '<nav class="mobileContextNav" aria-label="'+(root==='songs'?'Music':'Calendar')+' tools">'+
+ return '<nav class="mobileContextNav" aria-label="'+(root==='songs'?'Music':root==='collaboration'?'Band':'Calendar')+' tools">'+
   routes.map(([id,label])=>'<button type="button" data-go="'+id+'" class="'+(state.section===id?'active':'')+
   '" aria-current="'+(state.section===id?'page':'false')+'">'+esc(label)+'</button>').join('')+'</nav>';
 }
