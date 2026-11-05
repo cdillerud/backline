@@ -26,6 +26,13 @@ def test_primary_workspaces_are_navigable_without_document_overflow(
         failures = []
         page.on("pageerror", lambda error: failures.append(str(error)))
         sign_in(page, account_server, "owner")
+        if width == 320:
+            # All global actions sit on the same narrow header tools row.
+            assert page.evaluate("""() => {
+                const picker=document.querySelector('#mobileBandPicker').getBoundingClientRect();
+                const menu=document.querySelector('.accountMenu summary').getBoundingClientRect();
+                return Math.abs(picker.top-menu.top)<16 && menu.right <= innerWidth + 1;
+            }""")
         output = Path("artifacts/gigday")
         output.mkdir(parents=True, exist_ok=True)
         for route, heading in labels:
