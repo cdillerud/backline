@@ -147,7 +147,7 @@ function openCalendarEventDialog(id){
    '<div class="calendarShowFacts"><div><span>Soundcheck</span><strong>'+esc(calendar?.advance?.soundcheck||'Not recorded')+'</strong></div>'+
    '<div><span>Showtime</span><strong>'+esc(calendar?.advance?.show_time||item.time||'Not recorded')+'</strong></div>'+
    '<div><span>Venue</span><strong>'+esc(item.venue||'To confirm')+'</strong></div></div>'+
-   '<p class="sub">Times and venue details are taken from the band's saved event and advance; verify changes with the venue.</p></section>':'')+
+   '<p class="sub">Times and venue details are taken from the saved event and venue advance; verify changes with the venue.</p></section>':'')+
   (item.notes?'<section class="calendarEventNotes"><h3>Notes</h3><p>'+esc(item.notes)+'</p></section>':'')+
   '<section id="calendarAttendance" class="calendarAttendance" hidden aria-label="Event attendance"></section>'+
   '<div class="actions calendarDialogActions">'+(canEditBandEvents()?action('data-schedule-edit','Edit event')+
