@@ -107,7 +107,11 @@ function panel(title,content,action=''){return `<div class="panel"><div class="p
 function fullDashboard(){
  const d=get('dashboard'), events=(d.upcoming||[]).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.time||'').localeCompare(b.time||''));
  const songs=get('songs'), recordings=get('recordings'), allEvents=get('events');
- const tasks=get('tasks').filter(t=>!t.completed).slice().sort((a,b)=>(a.due_date||'9999').localeCompare(b.due_date||'9999'));
+ const ownUserId=state.data.collaboration?.user_id;
+ const ownMemberId=state.data.collaboration?.members?.find(m=>Number(m.id)===Number(ownUserId))?.member_id;
+ const isMine=t=>ownMemberId!=null&&Number(t.assignee_id)===Number(ownMemberId);
+ const tasks=get('tasks').filter(t=>!t.completed).slice().sort((a,b)=>
+  Number(isMine(b))-Number(isMine(a))||(a.due_date||'9999').localeCompare(b.due_date||'9999'));
  const followups=get('booking-followups'), due=Array.isArray(followups.items)?followups.items:[];
  const canManage=['owner','manager'].includes(state.accountRole);
  const rehearsalCount=allEvents.filter(e=>e.kind==='Rehearsal'&&e.date>=today()).length;
@@ -140,7 +144,7 @@ function fullDashboard(){
   '<p class="sub">No other upcoming dates recorded.</p>'+(canManage?'<button data-action="event">Add an event</button>':''),
   '<button class="small" data-go="schedule">Open calendar</button>');
  const focus=[
-  ...tasks.slice(0,4).map(t=>({title:t.title,detail:t.due_date?'Due '+datePretty(t.due_date):'No due date',route:'tasks',kind:'Task'})),
+  ...tasks.slice(0,4).map(t=>({title:t.title,detail:t.due_date?'Due '+datePretty(t.due_date):'No due date',route:'tasks',kind:isMine(t)?'Assigned to you':'Band task'})),
   ...(canManage?due.slice(0,2).map(t=>({title:t.venue||'Booking follow-up',detail:t.next_followup?'Follow up '+datePretty(t.next_followup):'Date to confirm',route:'bookings',kind:'Booking'})):[])
  ];
  const attention=panel('What needs attention',focus.length?'<div class="list">'+focus.map(x=>
