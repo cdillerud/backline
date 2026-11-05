@@ -223,7 +223,7 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             focused.get_by_role("region",name="Show-day call times").wait_for(state="visible",timeout=15000)
             assert focused.get_by_role("region",name="Show-day call times").get_by_text("Load-in",exact=True).is_visible()
             assert focused.get_by_text("Soundcheck",exact=True).is_visible()
-            assert focused.get_by_text("Showtime",exact=True).is_visible()
+            assert focused.get_by_role("region",name="Show-day call times").get_by_text("Showtime",exact=True).is_visible()
             assert focused.get_by_text("My assignments",exact=True).is_visible()
             assert focused.get_by_text("Confirm showcase stage plot (demo)").is_visible()
             assert focused.get_by_text("My lodging",exact=True).is_visible()
