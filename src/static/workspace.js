@@ -130,7 +130,7 @@ function openCalendarEventDialog(id){
  modal.className='timelineDialog calendarEventDialog';
  modal.setAttribute('aria-label','Event details: '+item.title);
  const action=(name,label)=>'<button type="button" '+name+'="'+id+'">'+label+'</button>';
- const extras=kind==='Gig'?action('data-schedule-gig-day','Open Gig Day')+
+ const extras=kind==='Gig'?action('data-schedule-gig-day','My gig day')+
   (['owner','manager'].includes(state.accountRole)?action('data-schedule-packet','Production details'):''):
   kind==='Rehearsal'?action('data-rehearsal-plan','Objectives & notes')+
    '<button type="button" data-go="songs">Songs to practice</button>'+
