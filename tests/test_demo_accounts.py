@@ -1,5 +1,6 @@
 """Isolated synthetic account bootstrap: never claim existing non-demo bands."""
 import importlib
+from datetime import timedelta
 import pytest
 from fastapi.testclient import TestClient
 
@@ -22,6 +23,16 @@ def test_authenticated_demo_requires_secret_and_fresh_database(tmp_path,monkeypa
         assert con.execute("SELECT count(*) FROM setlists").fetchone()[0]==1
         assert con.execute("SELECT count(*) FROM setlist_songs").fetchone()[0]==3
         assert con.execute("SELECT count(*) FROM workspace_tasks").fetchone()[0]==2
+        from src.demo_seed import demo_today
+        base=demo_today()
+        dates={row["title"]:row["date"] for row in con.execute("SELECT title,date FROM events")}
+        assert dates["Regional showcase (demo)"]==(base+timedelta(days=21)).isoformat()
+        assert dates["Weekend club date (demo)"]==(base+timedelta(days=22)).isoformat()
+        assert dates["Full-band rehearsal (demo)"]==(base+timedelta(days=7)).isoformat()
+        import json
+        deadlines={json.loads(row["body_json"])["title"]:json.loads(row["body_json"])["due_date"]
+                   for row in con.execute("SELECT body_json FROM workspace_tasks")}
+        assert deadlines["Confirm showcase stage plot (demo)"]==(base+timedelta(days=5)).isoformat()
     client=TestClient(app.app)
     assert client.get("/api/bands").status_code==401
     login=client.post("/api/auth/login",json={"email":"demo-owner@example.test","password":"synthetic-password-not-for-production"})
