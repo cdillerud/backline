@@ -175,11 +175,16 @@ function fullDashboard(){
   '<div class="entry"><div class="entryMain"><strong>'+esc(t.title)+'</strong><small>'+esc(t.scope||'Band discussion')+'</small></div><button class="small" data-home-thread="'+t.id+'">Open</button></div>').join('')+'</div>':
   '<p class="sub">'+(signals?.discussions===null?'Conversation previews unavailable.':'No conversations recorded yet.')+'</p>',
   '<button data-go="collaboration" class="small">All conversations</button>');
- const statuses={};
- songs.forEach(s=>{const label=s.status||'Unspecified';statuses[label]=(statuses[label]||0)+1});
- const music=panel('Music & preparation',songs.length?'<div class="list">'+Object.entries(statuses).map(([name,n])=>
-  '<div class="entry"><strong>'+esc(name)+'</strong><span class="tag">'+n+' song'+(n===1?'':'s')+'</span></div>').join('')+'</div>':
-  '<p class="sub">No songs in this band library yet.</p>','<button data-go="songs" class="small">Open music library</button>');
+ // A musician needs concrete repertoire to revisit, not only a count of readiness labels.
+ // Only song statuses saved by the band are used: this is not an AI assessment.
+ const readyStatuses=new Set(['ready','gig ready','performance ready','finished']);
+ const songsToRevisit=songs.filter(s=>!readyStatuses.has(String(s.status||'').trim().toLowerCase()));
+ const music=panel('Music to revisit',songsToRevisit.length?
+  '<p class="sub homeMusicContext">Based on recorded song readiness, not an automatic assessment.</p><div class="list">'+songsToRevisit.slice(0,3).map(song=>
+    '<div class="entry"><div class="entryMain"><strong>'+esc(song.title)+'</strong><small>'+esc(song.status||'Readiness not recorded')+(song.song_key?' · Key '+esc(song.song_key):'')+'</small></div><button type="button" class="small" data-go="songs">Open music</button></div>').join('')+'</div>'+
+  (songsToRevisit.length>3?'<p class="sub homeMusicOverflow">+'+(songsToRevisit.length-3)+' more song'+(songsToRevisit.length===4?'':'s')+' in the library</p>':''):
+  '<p class="sub">'+(songs.length?'No songs currently marked as needing preparation.':'No songs in this band library yet.')+'</p>',
+  '<button type="button" data-go="songs" class="small">Music library</button>');
  const updates=signals?.activity||[];
  const activity=panel('Recent band activity',updates.length?'<div class="list">'+updates.slice(0,4).map(post=>
   '<div class="entry"><div class="entryMain"><strong>'+esc(post.display_name||'Band member')+' · '+esc(post.thread_title)+'</strong><small>'+esc((post.body||'').slice(0,160))+'</small></div><button class="small" data-home-thread="'+post.thread_id+'">Discuss</button></div>').join('')+'</div>':
