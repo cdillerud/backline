@@ -52,9 +52,11 @@ def navigate(page,key):
             'media':'songs','notifications':'collaboration',
             'tasks':'collaboration','members':'collaboration',
             'calendars':'schedule','events':'schedule',
-            'venues':'touring','bookings':'touring','showops':'touring','operations':'touring',
+            'venues':'manage','bookings':'manage','showops':'manage','operations':'manage',
             'setlists':'songs','studio':'songs'}
         if key in groups:
+            if groups[key]=='manage' and page.locator('[data-go="manage"]:visible').count()==0:
+                page.locator('.accountMenu summary').click()
             page.locator('[data-go="'+groups[key]+'"]:visible').first.click()
     page.locator('[data-go="'+key+'"]:visible').first.click()
 
