@@ -157,8 +157,8 @@ def test_demo_account_browser_login_and_hub(tmp_path):
                 const spot=document.querySelector('.homeGigSpotlight');
                 const stat=document.querySelector('.bandHomeStats');
                 const card=document.querySelector('.bandHomeGrid');
-                return spot.compareDocumentPosition(stat)&Node.DOCUMENT_POSITION_FOLLOWING
-                    && stat.compareDocumentPosition(card)&Node.DOCUMENT_POSITION_FOLLOWING;
+                return Boolean(spot.compareDocumentPosition(card)&Node.DOCUMENT_POSITION_FOLLOWING)
+                    && Boolean(card.compareDocumentPosition(stat)&Node.DOCUMENT_POSITION_FOLLOWING);
             }""")
             for width in (320,390,768,1280):
                 page.set_viewport_size({"width":width,"height":850})
@@ -167,7 +167,7 @@ def test_demo_account_browser_login_and_hub(tmp_path):
                 assert page.locator(".bandHomeStat").count()==5
                 if width==768:
                     # Tablet rail hides visible labels; explicit accessible names remain.
-                    assert page.get_by_role("navigation",name="Primary workspaces").get_by_role("button",name="Shows & Tours").count()==1
+                    assert page.get_by_role("navigation",name="Primary workspaces").get_by_role("button",name="Shows").count()==1
                 if width==320:
                     assert page.locator(".mobileNav [data-go='dashboard']").count()==1
             page.set_viewport_size({"width":1280,"height":850})
@@ -221,9 +221,9 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             focused.wait_for(state="visible",timeout=15000)
             assert page.get_by_role("heading",name="My Gig Day",exact=True).is_visible()
             focused.get_by_role("region",name="Show-day call times").wait_for(state="visible",timeout=15000)
-            assert focused.get_by_text("Load-in",exact=True).is_visible()
+            assert focused.get_by_role("region",name="Show-day call times").get_by_text("Load-in",exact=True).is_visible()
             assert focused.get_by_text("Soundcheck",exact=True).is_visible()
-            assert focused.get_by_text("Showtime",exact=True).is_visible()
+            assert focused.get_by_role("region",name="Show-day call times").get_by_text("Showtime",exact=True).is_visible()
             assert focused.get_by_text("My assignments",exact=True).is_visible()
             assert focused.get_by_text("Confirm showcase stage plot (demo)").is_visible()
             assert focused.get_by_text("My lodging",exact=True).is_visible()

@@ -42,6 +42,8 @@ jobs:
         run: BACKLINE_LOCAL_DEV=1 python -m pytest -vv -x --ignore=tests/test_demo_accounts.py --ignore=tests/test_demo_browser.py --ignore=tests/test_browser_gigday_mobile.py --ignore=tests/test_browser_performance_mobile.py --ignore=tests/test_browser_workspace_navigation.py
       - name: Stale workspace request isolation regression
         run: node tests/test_workspace_async_guards.cjs
+      - name: Calendar async isolation regression
+        run: node tests/test_calendar_async_guards.cjs
       - run: node --check src/static/app.js
       - run: node --check src/static/workspace.js
       - run: node --check src/static/gigday.js
