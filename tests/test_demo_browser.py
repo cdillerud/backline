@@ -46,6 +46,23 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert spotlight.get_by_role("button",name="My Gig Day").is_visible()
             assert spotlight.get_by_role("button",name="RSVP & details").is_visible()
             assert page.locator(".bandHomeStat").count()==5
+            music_focus=page.locator(".bandHomeGrid .panel").filter(
+                has=page.get_by_role("heading",name="Music to revisit"))
+            assert music_focus.count()==1
+            assert music_focus.get_by_text("Example Opener").is_visible()
+            assert music_focus.get_by_text("Example Ballad").is_visible()
+            assert music_focus.locator("[data-go='songs']").count()>=1
+            # Already-ready songs are not misclassified as needing preparation.
+            page.evaluate("""() => {
+                state.data.songs.find(s=>s.title==='Example Opener').status='Ready';
+                render();
+            }""")
+            assert music_focus.get_by_text("Example Opener").count()==0
+            page.evaluate("""() => {
+                state.data.songs.find(s=>s.title==='Example Opener').status='Learning';
+                render();
+            }""")
+            assert music_focus.get_by_text("Example Opener").is_visible()
             # Demo owner is linked to the guitar member; own stage-plot work comes first.
             attention=page.locator(".bandHomeGrid .panel").first
             assert attention.locator(".entry").first.get_by_text("Confirm showcase stage plot (demo)").is_visible()
