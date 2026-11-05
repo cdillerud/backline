@@ -53,6 +53,10 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert page.locator(".homeActionMenu button[data-go='collaboration']").is_visible()
             page.locator(".homeActionMenu summary").click()
             assert page.locator(".homeActionMenu button[data-action='song']").is_hidden()
+            page.locator(".homeActionMenu summary").click()
+            page.keyboard.press("Escape")
+            assert page.locator(".homeActionMenu").get_attribute("open") is None
+            assert page.locator(".homeActionMenu summary").evaluate("(node)=>document.activeElement===node")
             # The featured gig is not repeated as an upcoming row or another RSVP.
             assert page.locator(".homeGigSpotlight").get_by_text("Regional showcase (demo)").count()==1
             assert page.locator(".bandHomeGrid").get_by_text("Regional showcase (demo)").count()==0
@@ -95,6 +99,10 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             page.locator(".accountMenu summary").click()
             assert page.get_by_role("button",name="Band Settings").is_visible()
             assert page.get_by_role("button",name="Join band").is_visible()
+            page.locator(".accountMenu summary").click()
+            assert page.get_by_role("button",name="Band Settings").is_hidden()
+            page.locator(".accountMenu summary").click()
+            assert page.get_by_role("button",name="Band Settings").is_visible()
             assert page.locator(".hubQuickLinks, .hubSecondary").count()==0
             assert page.get_by_text("Demo: confirm stage plot and arrival time",exact=False).count()>0
             assert page.locator(".hubDisclosure[open]").count()==0
