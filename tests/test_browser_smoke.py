@@ -214,7 +214,7 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             mobile.get_by_role("heading",name="Song Library",exact=True).wait_for(state="visible",timeout=15000)
             mobile.locator(".accountMenu summary").click()
             mobile.locator(".accountMenu [data-go='manage']").click()
-            mobile.locator(".manageTool [data-go='touring']").click()
+            mobile.locator(".manageTool[data-go='touring']").click()
             mobile.get_by_role("heading",name="Shows & Tours",exact=True).wait_for(state="visible",timeout=15000)
             assert not mobile_errors,mobile_errors
             mobile.close()
