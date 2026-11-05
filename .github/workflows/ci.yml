@@ -51,6 +51,9 @@ jobs:
           node --check src/static/pwa.js
           node --check src/static/operations.js
           node --check src/static/service-worker.js
+      - name: Validate release PowerShell syntax
+        run: |
+          pwsh -NoProfile -Command '$tokens=$null; $parseErrors=$null; [void][System.Management.Automation.Language.Parser]::ParseFile("scripts/deploy-auth-demo.ps1",[ref]$tokens,[ref]$parseErrors); if($parseErrors){$parseErrors | ForEach-Object { Write-Error $_ }; exit 1}'
       - name: Audit production dependencies
         run: python -m pip_audit -r requirements.txt
       - name: Compile application modules
