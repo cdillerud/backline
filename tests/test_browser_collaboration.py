@@ -188,6 +188,7 @@ def test_gallery_profile_publication_and_revocation(account_server,accounts,widt
         # The PWA has a network-only worker and stores no private data in Cache Storage.
         assert owner.evaluate("async()=>{await navigator.serviceWorker.ready;return (await caches.keys()).length}")==0
         assert owner.request.get(account_server+'/static/manifest.webmanifest').status==200
+        owner.locator('.accountMenu summary').click()
         owner.get_by_role('button',name='Sign out',exact=True).click()
         expect(owner.get_by_role('button',name='Sign in',exact=True)).to_be_visible()
         assert owner.evaluate('sessionStorage.getItem("backline_session")') is None
