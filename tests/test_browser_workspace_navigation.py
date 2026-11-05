@@ -52,6 +52,8 @@ def test_primary_workspaces_are_navigable_without_document_overflow(
             )
             if route in ("dashboard", "songs", "schedule", "collaboration"):
                 page.screenshot(path=str(output / f"workspace-{route}-{width}.png"), full_page=True)
+        if width <= 700:
+            page.locator('.accountMenu summary').click()
         manage = page.locator('[data-go="manage"]:visible').first
         expect(manage).to_be_visible()
         manage.click()
