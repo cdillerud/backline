@@ -122,6 +122,13 @@ function gigday(){
    '<p class="sub">No outstanding pre-show items identified from the records currently loaded. Confirm any last-minute changes with your bandmates.</p>')+
   '<p class="sub">This checklist is informational, not a venue confirmation or safety certification.</p></section>';
  const manager=['owner','manager'].includes(role);
+ // These are recorded show facts, never inferred call times or venue confirmations.
+ const quickFacts='<section class="gigdayQuickFacts" aria-label="Your gig essentials">'+
+  '<div><span>Load-in</span><strong>'+esc(advance.load_in||'Not recorded')+'</strong><small>'+esc(validZone)+'</small></div>'+
+  '<div><span>Showtime</span><strong>'+esc(advance.show_time||chosen.time||'Not recorded')+'</strong><small>'+(advance.show_time?'From the venue advance':'From the event listing; verify with venue')+'</small></div>'+
+  '<div><span>Where</span><strong>'+esc(chosen.venue||'Venue not recorded')+'</strong><small>'+esc(advance.venue_address||'Address not recorded')+'</small></div>'+
+  '<div><span>My RSVP</span><strong>'+esc(rsvp?statusLabel[currentResponse]||'Not answered':'Unavailable')+'</strong><button type="button" data-gigday-rsvp>Update response</button></div>'+
+  '</section>';
  return '<section class="gigdayScreen" aria-label="Musician gig-day workspace"><div class="gigdayHero"><div><span class="eyebrow">SHOW DAY · MY BACKLINE</span><h2>'+esc(chosen.title)+'</h2>'+
   '<p>'+datePretty(chosen.date)+' · '+esc(chosen.venue||'Venue TBD')+'</p>'+
   '<span class="tag muted">'+(advance.status==='confirmed'?'Venue advance confirmed':'Advance not confirmed')+'</span></div>'+
@@ -130,6 +137,7 @@ function gigday(){
   '<div class="gigdayActionBar" aria-label="Gig-day quick actions"><button class="primary" data-gigday-rsvp>My RSVP</button>'+
   '<button data-gigday-jump="music">Setlist</button><button data-gigday-jump="tasks">My tasks</button>'+
   '<button data-gigday-jump="alerts">Urgent changes</button><button data-gigday-refresh aria-label="Refresh gig-day details">Refresh</button></div>'+
+  quickFacts+
   '<section class="gigdayPanel gigdayCallsPanel" aria-label="Show-day call times"><div class="gigdayPanelTitle"><h3>Where to be, and when</h3><span class="sub">'+esc(validZone)+'</span></div>'+
   '<div class="gigdayCallGrid">'+callCards+'</div><p class="sub">Times are venue-local. “Day +1/+2” means after the show date. TBD is not a confirmed call.</p></section>'+
   '<div class="gigdayColumns"><section class="gigdayPanel" aria-label="Venue and contact"><h3>Venue & contact</h3><p><strong>'+esc(venue)+'</strong></p><p>'+esc(contact)+'</p>'+
