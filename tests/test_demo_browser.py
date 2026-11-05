@@ -44,8 +44,18 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert spotlight.count()==1
             assert spotlight.get_by_text("Regional showcase (demo)").is_visible()
             assert spotlight.get_by_role("button",name="My Gig Day").is_visible()
-            assert spotlight.get_by_role("button",name="Details & RSVP").is_visible()
+            assert spotlight.get_by_role("button",name="RSVP & details").is_visible()
             assert page.locator(".bandHomeStat").count()==5
+            assert spotlight.get_by_text("My RSVP:").count()==1
+            assert page.locator(".bandHomeQuickActions button[data-action='song']").is_hidden()
+            page.locator(".homeActionMenu summary").click()
+            assert page.locator(".homeActionMenu button[data-action='song']").is_visible()
+            assert page.locator(".homeActionMenu button[data-go='collaboration']").is_visible()
+            page.locator(".homeActionMenu summary").click()
+            assert page.locator(".homeActionMenu button[data-action='song']").is_hidden()
+            # The featured gig is not repeated as an upcoming row or another RSVP.
+            assert page.locator(".homeGigSpotlight").get_by_text("Regional showcase (demo)").count()==1
+            assert page.locator(".bandHomeGrid").get_by_text("Regional showcase (demo)").count()==0
             readiness=page.locator(".homeReadinessDisclosure")
             assert readiness.count()==1
             assert readiness.get_attribute("open") is None
@@ -80,7 +90,11 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert page.get_by_role("navigation",name="Global tools").is_visible()
             assert page.get_by_role("button",name="Notifications").is_visible()
             assert page.get_by_role("button",name="My Tasks").is_visible()
+            assert page.locator(".accountMenu summary").is_visible()
+            assert page.get_by_role("button",name="Band Settings").is_hidden()
+            page.locator(".accountMenu summary").click()
             assert page.get_by_role("button",name="Band Settings").is_visible()
+            assert page.get_by_role("button",name="Join band").is_visible()
             assert page.locator(".hubQuickLinks, .hubSecondary").count()==0
             assert page.get_by_text("Demo: confirm stage plot and arrival time",exact=False).count()>0
             assert page.locator(".hubDisclosure[open]").count()==0
@@ -218,6 +232,8 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             performance.get_by_role("heading",name="Second number").wait_for(state="visible")
             performance.get_by_role("button",name="Close performance view").click()
             assert not errors,errors
+            page.locator(".accountMenu summary").click()
+            assert page.locator("#logoutButton").is_visible()
             page.locator("#logoutButton").click()
             page.locator("#loginForm").wait_for(state="visible",timeout=15000)
             page.reload(wait_until="networkidle")
