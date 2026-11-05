@@ -98,11 +98,27 @@ async function refreshCalendar(all=false){
   render();
  }catch(error){if(current())toast(error.message,true)}
 }
+function calendarAgenda(){
+ const events=get('events').filter(e=>isFutureCommitment(e)).slice().sort((a,b)=>
+  String(a.date||'').localeCompare(String(b.date||''))||String(a.time||'').localeCompare(String(b.time||''))).slice(0,5);
+ if(!events.length)return '<section class="calendarAgenda" aria-label="Next dates"><h2>Next dates</h2><p class="sub">Nothing coming up yet. Your calendar is ready when the band adds a date.</p></section>';
+ return '<section class="calendarAgenda" aria-label="Next dates"><h2>Next dates</h2><div class="calendarAgendaList">'+
+  events.map(event=>'<button type="button" class="calendarAgendaItem" data-agenda-event="'+Number(event.id)+'" aria-label="Open '+esc(event.title)+'">'+
+   '<span class="calendarAgendaDate"><strong>'+esc(datePretty(event.date).split(' ')[0])+'</strong><span>'+esc(datePretty(event.date).split(' ')[1]?.replace(',','')||'')+'</span></span>'+
+   '<span class="calendarAgendaContent"><small>'+esc(event.kind||'Event')+'</small><strong>'+esc(event.title)+'</strong>'+
+   '<span>'+esc(event.time||'Time TBD')+' · '+esc(event.venue||'Location TBD')+'</span></span>'+
+   '<span aria-hidden="true" class="calendarAgendaArrow">→</span></button>').join('')+'</div></section>';
+}
 function scheduleBoard(){
  const canManage=canEditBandEvents();
- const head='<div class="toolbar"><p>All your shows and rehearsals in one place. Select a date for details and availability.</p>'+(canManage?'<button class="primary" data-action="event">+ Add event</button>':'')+'</div>';
- return head+calendarBoard();
+ const head='<div class="toolbar"><p>All your shows and rehearsals in one place. Open a date for details and availability.</p>'+(canManage?'<button class="primary" data-action="event">+ Add event</button>':'')+'</div>';
+ return head+calendarAgenda()+calendarBoard();
 }
+document.addEventListener('click',event=>{
+ const target=event.target.closest('[data-agenda-event]');
+ if(!target)return;
+ openCalendarEventDialog(Number(target.dataset.agendaEvent));
+});
 function openCalendarEventDialog(id){
  const item=get('events').find(e=>e.id===id);
  if(!item)return;
