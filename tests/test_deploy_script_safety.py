@@ -8,7 +8,11 @@ from pathlib import Path
 def test_auth_demo_deploy_remains_isolated_and_pinned():
     script = Path("scripts/deploy-auth-demo.ps1").read_text(encoding="utf-8")
     assert "$app = 'backline-auth-demo'" in script
-    assert "$branch = 'integration/backline-v0-4-rc'" in script
+    # The same script is pinned to integration during development and to the
+    # frozen RC branch during release, so never hard-code one source branch here.
+    assert "$branch = '" in script
+    assert "Wrong branch:" in script
+    assert "Local HEAD differs from remote branch" in script
     assert "fly.auth-demo.toml" in script
     assert "--ha=false" in script
     assert '--build-arg "BACKLINE_BUILD_SHA=$head"' in script
