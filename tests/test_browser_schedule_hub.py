@@ -17,8 +17,12 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
         expect(page.get_by_text("Your band home")).to_be_visible()
         expect(page.locator(".bandHomeStats .bandHomeStat")).to_have_count(5)
         expect(page.get_by_role("heading",name="Recent conversations")).to_be_visible()
-        expect(page.get_by_role("heading",name="Other RSVPs")).to_be_visible()
-        expect(page.get_by_role("heading",name="Music & preparation")).to_be_visible()
+        # RSVP for the next gig is promoted to the single featured card;
+        # other upcoming events show their own personal status inline.
+        expect(page.locator(".homeGigSpotlight")).to_be_visible()
+        assert page.locator(".homeGigSpotlight").get_by_text("My RSVP:").count()==1
+        assert page.get_by_role("heading",name="Other RSVPs").count()==0
+        expect(page.get_by_role("heading",name="Music to revisit")).to_be_visible()
         expect(page.get_by_role("heading",name="Next show preparation")).to_be_visible()
         if page.locator("[data-home-gig-day]").count():
             page.locator("[data-home-gig-day]").first.click()
