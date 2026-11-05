@@ -50,6 +50,16 @@ def test_primary_workspaces_are_navigable_without_document_overflow(
             )
             if route in ("dashboard", "songs", "schedule", "collaboration"):
                 page.screenshot(path=str(output / f"workspace-{route}-{width}.png"), full_page=True)
+        # Management is a separate, authorized surface, never a fifth primary tab.
+        assert page.locator('nav[aria-label="Primary workspaces"] > button').count()==4
+        page.locator('.accountMenu summary').click()
+        page.locator('.accountMenu [data-go="manage"]').click()
+        expect(page.locator('.top h1')).to_have_text('Manage')
+        assert page.locator('.manageTool[data-go="touring"]').count()==1
+        assert page.locator('.manageTool[data-go="finance"]').count()==1
+        assert page.evaluate(
+            "() => document.documentElement.scrollWidth <= window.innerWidth + 1"
+        ), f"Management overflows at {width}px"
         assert not failures, f"Client JavaScript errors at {width}px: {failures}"
         browser.close()
 
