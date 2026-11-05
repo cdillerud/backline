@@ -28,7 +28,7 @@ def test_gig_day_mobile_view_and_show_switch(account_server,accounts,width):
         expect(gigday.get_by_role('region',name='Show-day call times')).to_be_visible()
         essentials=gigday.get_by_role('region',name='Your gig essentials')
         expect(essentials).to_be_visible()
-        assert essentials.locator('> div').count()==4
+        assert essentials.locator(':scope > div').count()==4
         if width<=650:
             assert page.locator('.mobileContextNav').count()==0
         expect(gigday.get_by_role('region',name='Day-of-show timeline')).to_be_visible()
