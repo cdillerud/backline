@@ -10,7 +10,7 @@ param([switch]$Deploy, [switch]$CreateApp)
 $ErrorActionPreference = 'Stop'
 $repo = 'cdillerud/backline'
 $app = 'backline-auth-demo'
-$branch = 'integration/backline-v0-4-rc'
+$branch = 'release/backline-v0.5-musician-ux-rc5'
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $config = Join-Path $RepoRoot 'fly.auth-demo.toml'
 if (!(Test-Path $config)) { throw 'Missing fly.auth-demo.toml' }
