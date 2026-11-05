@@ -39,8 +39,15 @@ function workspaceNavigation(mobile=false){
     '" aria-label="'+esc(label)+'">'+esc(label)+'</button>').join('')+'</nav>':'');
 }
 function mobileContextNavigation(){
- // Keep the four-item bottom bar stable. Manager tools are opened from Account → Manage.
- return '';
+ // Four fixed tabs, with only genuinely related tools exposed inside their destination.
+ if(state.section==='gigday')return '';
+ const root=workspaceFor(state.section)[0];
+ const routes=root==='songs'?[['songs','Library'],['setlists','Setlists'],['studio','Gig promotion'],['media','Media']]:
+  root==='schedule'?[['schedule','Dates'],['calendars','Calendars']]:[];
+ if(!routes.length)return '';
+ return '<nav class="mobileContextNav" aria-label="'+(root==='songs'?'Music':'Calendar')+' tools">'+
+  routes.map(([id,label])=>'<button type="button" data-go="'+id+'" class="'+(state.section===id?'active':'')+
+  '" aria-current="'+(state.section===id?'page':'false')+'">'+esc(label)+'</button>').join('')+'</nav>';
 }
 
 const $=s=>document.querySelector(s);const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
