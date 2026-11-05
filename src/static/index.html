@@ -411,4 +411,13 @@ button:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--bl-ac
 .accountMenuItems [data-go="manage"]{font-weight:800;color:#d0f4b3}
 @media(max-width:690px){.managerToolGrid{grid-template-columns:1fr}.managerTool{min-height:86px}.managerHubIntro{padding-bottom:14px}}
 @media(max-width:420px){.mobileNav{grid-template-columns:repeat(4,minmax(0,1fr))}.mobileNav button span{font-size:11px}}
+
+.calendarShowFocus{margin:12px 0;padding:16px;border-radius:13px;background:#1b2b37;border:1px solid #3e5966}
+.calendarShowFocus h3{font:700 19px 'Space Grotesk',sans-serif;margin:0 0 12px}
+.calendarShowFacts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.calendarShowFacts>div{padding:12px;border-radius:10px;background:#223646;min-width:0;display:flex;flex-direction:column;gap:6px}
+.calendarShowFacts span{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#b6cbda;font-weight:800}
+.calendarShowFacts strong{font:700 clamp(15px,2vw,20px) 'Space Grotesk',sans-serif;overflow-wrap:anywhere}
+.calendarShowFocus .sub{font-size:12px;line-height:1.5;margin:12px 0 0}
+@media(max-width:440px){.calendarShowFacts{grid-template-columns:1fr}.calendarShowFacts>div{flex-direction:row;justify-content:space-between;gap:12px}.calendarShowFacts strong{text-align:right}}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/gigday.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
