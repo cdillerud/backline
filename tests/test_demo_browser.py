@@ -116,6 +116,9 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert page.locator(".attendanceRoster .attendancePerson").count()==1
             page.get_by_role("button",name="Close event details").click()
             page.get_by_role("button",name="Close event details").count()
+            # The dialog interaction closes the transient account menu by design.
+            assert page.locator(".accountMenu").get_attribute("open") is None
+            page.locator(".accountMenu summary").click()
             page.get_by_role("button",name="Band Settings").click()
             page.locator(".hubDisclosure summary").filter(has_text="Band administration").click()
             assert page.locator("[data-link-roster]").count()==4
