@@ -133,8 +133,14 @@ function fullDashboard(){
  const ownId=state.data.collaboration?.user_id;
  const attendance=Array.isArray(signals?.attendance)?signals.attendance:[];
  const nextAttendance=nextGig?attendance.find(a=>Number(a.id)===Number(nextGig.id)):null;
- const ownResponse=Array.isArray(nextAttendance?.rows)?nextAttendance.rows.find(r=>Number(r.user_id)===Number(ownId)):null;
- const rsvpText=!nextAttendance||!Array.isArray(nextAttendance.rows)?'RSVP not loaded':!ownResponse?'RSVP not recorded':ownResponse.response==='yes'?'Going':ownResponse.response==='no'?"Can't go":ownResponse.response==='maybe'?'Maybe':'Awaiting your response';
+ const myRsvpFor=event=>{
+  const eventInfo=attendance.find(a=>Number(a.id)===Number(event.id));
+  if(!Array.isArray(eventInfo?.rows))return null;
+  const own=eventInfo.rows.find(r=>Number(r.user_id)===Number(ownId));
+  if(!own)return null;
+  return own.response==='yes'?'Going':own.response==='no'?"Can't go":own.response==='maybe'?'Maybe':'Response needed';
+ };
+ const rsvpText=nextAttendance&&!Array.isArray(nextAttendance.rows)?'RSVP unavailable':nextAttendance?myRsvpFor(nextGig)||'Not linked':'RSVP not loaded';
  const gigSpotlight=nextGig?'<section class="homeGigSpotlight" aria-label="Next gig"><div class="homeGigSpotlightInfo"><span class="eyebrow">Next gig</span><h3>'+esc(nextGig.title)+'</h3><p>'+datePretty(nextGig.date)+' · '+esc(nextGig.time||'Time TBD')+' · '+esc(nextGig.venue||'Venue TBD')+'</p><p class="homeGigRsvp">My RSVP: <strong>'+esc(rsvpText)+'</strong></p></div><div class="homeGigSpotlightActions"><button type="button" class="primary" data-home-gig-day="'+nextGig.id+'">My Gig Day</button><button type="button" class="small" data-home-event="'+nextGig.id+'">RSVP & details</button></div></section>':'';
  const stats='<div class="cards bandHomeStats" aria-label="Band at a glance">'+
   stat('Songs',songs.length,'songs','in the library')+
@@ -143,27 +149,24 @@ function fullDashboard(){
   stat('Open tasks',tasks.length,'tasks','not completed')+
   stat('Recordings',Array.isArray(recordings)?recordings.length:0,'songs','in the library')+'</div>';
  const otherEvents=events.filter(e=>!nextGig||Number(e.id)!==Number(nextGig.id));
- const next=panel('Coming up',otherEvents.length?'<div class="list">'+otherEvents.slice(0,3).map(e=>
-  '<div class="entry"><div class="entryMain"><span class="tag muted">'+esc(e.kind||'Event')+'</span><strong>'+esc(e.title)+'</strong><small>'+datePretty(e.date)+' · '+esc(e.time||'Time TBD')+' · '+esc(e.venue||'Location TBD')+'</small></div>'+
-  (e.id?'<button class="small" data-home-event="'+e.id+'">Event details & RSVP</button>':'<button class="small" data-go="schedule">Schedule</button>')+'</div>').join('')+'</div>':
+ const next=panel('Coming up',otherEvents.length?'<div class="list">'+otherEvents.slice(0,3).map(e=>{
+  const response=myRsvpFor(e);
+  return '<div class="entry"><div class="entryMain"><span class="tag muted">'+esc(e.kind||'Event')+'</span><strong>'+esc(e.title)+'</strong><small>'+datePretty(e.date)+' · '+esc(e.time||'Time TBD')+' · '+esc(e.venue||'Location TBD')+'</small>'+(response?'<small class="homeEventRsvp'+(response==='Response needed'?' homeNeedsResponse':'')+'">My RSVP: '+esc(response)+'</small>':'')+'</div>'+
+  (e.id?'<button class="small" data-home-event="'+e.id+'">'+(response==='Response needed'?'Respond':'Details & RSVP')+'</button>':'<button class="small" data-go="schedule">Schedule</button>')+'</div>';
+ }).join('')+'</div>':
   '<p class="sub">No other upcoming dates recorded.</p>'+(canManage?'<button data-action="event">Add an event</button>':''),
   '<button class="small" data-go="schedule">Open calendar</button>');
+ const dueState=iso=>iso&&iso<today()?'Overdue':iso===today()?'Due today':null;
  const focus=[
-  ...tasks.slice(0,4).map(t=>({title:t.title,detail:t.due_date?'Due '+datePretty(t.due_date):'No due date',route:'tasks',kind:isMine(t)?'Assigned to you':'Band task'})),
-  ...(canManage?due.slice(0,2).map(t=>({title:t.venue||'Booking follow-up',detail:t.next_followup?'Follow up '+datePretty(t.next_followup):'Date to confirm',route:'bookings',kind:'Booking'})):[])
+  ...tasks.slice(0,4).map(t=>({title:t.title,detail:t.due_date?'Due '+datePretty(t.due_date):'No due date',route:'tasks',kind:isMine(t)?'Assigned to you':'Band task',urgency:dueState(t.due_date)})),
+  ...(canManage?due.slice(0,2).map(t=>({title:t.venue||'Booking follow-up',detail:t.next_followup?'Follow up '+datePretty(t.next_followup):'Date to confirm',route:'bookings',kind:'Booking',urgency:dueState(t.next_followup)})):[])
  ];
  const attention=panel('What needs attention',focus.length?'<div class="list">'+focus.map(x=>
-  '<div class="entry"><div class="entryMain"><span class="tag muted">'+esc(x.kind)+'</span><strong>'+esc(x.title)+'</strong><small>'+esc(x.detail)+'</small></div><button class="small" data-go="'+x.route+'">Open</button></div>').join('')+'</div>':
+  '<div class="entry homePriorityEntry"><div class="entryMain"><span class="tag muted">'+esc(x.kind)+'</span>'+(x.urgency?'<span class="tag homeUrgencyTag">'+esc(x.urgency)+'</span>':'')+'<strong>'+esc(x.title)+'</strong><small>'+esc(x.detail)+'</small></div><button class="small" data-go="'+x.route+'">Open</button></div>').join('')+'</div>':
   '<p class="sub">No open tasks or follow-ups in the loaded records.</p>',
   '<button class="small" data-go="tasks">View tasks</button>');
- const otherAttendance=attendance.filter(entry=>!nextGig||Number(entry.id)!==Number(nextGig.id));
- const availability=panel('Other RSVPs',otherAttendance.length?'<div class="list">'+otherAttendance.map(entry=>{
-  const mine=Array.isArray(entry.rows)?entry.rows.find(r=>Number(r.user_id)===Number(ownId)):null;
-  const answer=!Array.isArray(entry.rows)?'Attendance unavailable':!mine?'Not linked to this event':mine.response==='yes'?'Going':mine.response==='no'?"Can't go":mine.response==='maybe'?'Maybe':'Awaiting your response';
-  const pending=Array.isArray(entry.rows)?entry.rows.filter(r=>!r.response||r.response==='unknown').length:null;
-  return '<div class="entry"><div class="entryMain"><strong>'+esc(entry.title)+'</strong><small>'+datePretty(entry.date)+' · '+esc(answer)+(pending===null?'':' · '+pending+' awaiting response')+'</small></div><button class="small" data-home-event="'+entry.id+'">View RSVP</button></div>';
- }).join('')+'</div>':'<p class="sub">No other RSVP records loaded. Your next gig response appears above.</p>',
- '<button data-go="schedule" class="small">Open calendar</button>');
+ // The upcoming-event rows now show each signed-in member's RSVP directly.
+ // Do not duplicate those same events in a second Home panel.
  const threads=Array.isArray(signals?.discussions)?signals.discussions:[];
  const conversation=panel('Recent conversations',threads.length?'<div class="list">'+threads.slice(0,4).map(t=>
   '<div class="entry"><div class="entryMain"><strong>'+esc(t.title)+'</strong><small>'+esc(t.scope||'Band discussion')+'</small></div><button class="small" data-home-thread="'+t.id+'">Open</button></div>').join('')+'</div>':
@@ -200,7 +203,7 @@ function fullDashboard(){
   (readinessData?'<button data-home-crew="'+nextGig.id+'">Crew & guests</button>':'')+'</div>':
   '<p class="sub">No upcoming shows recorded.</p>','<button data-go="touring" class="small">Shows & Tours</button>');
  return '<section class="dashboardIntro bandHomeHeader"><div><span class="eyebrow">Your band home</span><h2>'+esc(band.name)+'</h2><p class="sub">The next gig, the music and the people — together.</p></div>'+quick+'</section>'+
- gigSpotlight+stats+'<div class="bandHomeGrid">'+attention+next+availability+readiness+conversation+music+activity+'</div>';
+ gigSpotlight+stats+'<div class="bandHomeGrid">'+attention+next+readiness+conversation+music+activity+'</div>';
 }
 function events(){let a=get('events');return `<div class="toolbar"><p>Book performances, track rehearsals and keep dates aligned.</p>${button('+ New event','event')}</div>${panel('Event calendar',a.length?`<div class="tableWrap"><table class="table"><thead><tr><th>Date</th><th>Type</th><th>Event</th><th>Venue / Location</th><th>Fee</th><th>Status</th></tr></thead><tbody>${a.map(e=>`<tr><td>${datePretty(e.date)}<br><span class="dim">${esc(e.time)}</span></td><td><span class="tag muted">${e.kind}</span></td><td><strong>${esc(e.title)}</strong></td><td>${esc(e.venue)}</td><td>${e.kind==='Gig'?dollars(e.fee_cents):'—'}</td><td>${esc(e.status)}</td></tr>`).join('')}</tbody></table></div>`:empty('Your gig and rehearsal calendar is empty.'))}`}
 function dashboard(){return fullDashboard()}
