@@ -325,4 +325,28 @@ button:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--bl-ac
 @media(max-width:1000px){.bandHomeStats{grid-template-columns:repeat(3,minmax(0,1fr))}.bandHomeGrid .panel:nth-child(3){grid-column:auto}}
 @media(max-width:700px){.top{padding:14px 16px;min-height:62px}.content{padding:16px 14px 24px}.bandHomeStats{grid-template-columns:repeat(2,minmax(0,1fr))}.bandHomeGrid{grid-template-columns:1fr}.bandHomeQuickActions{width:100%;gap:6px}.bandHomeQuickActions button{flex:1 1 auto}.homeGigSpotlight{align-items:flex-start;flex-direction:column;gap:12px;padding:15px}.homeGigSpotlightActions{width:100%}.homeGigSpotlightActions button{flex:1}.bandHomeStat{min-height:87px}.panel{padding:15px}.entry{align-items:flex-start}.entry button{flex-shrink:0}}
 @media(max-width:380px){.bandHomeStats{grid-template-columns:repeat(2,minmax(0,1fr))}.bandHomeStat{padding:11px;min-height:81px}.bandHomeStat strong{font-size:23px}.bandHomeStat small{font-size:10px}.homeGigSpotlightActions{flex-wrap:wrap}}
+
+/* RC3: calmer workspace chrome with keyboard-accessible progressive disclosure. */
+.top>div:last-child{min-width:0;flex-wrap:wrap}
+.accountMenu,.homeActionMenu{position:relative}
+.accountMenu summary,.homeActionMenu summary{cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;list-style:none;border:1px solid #344256;border-radius:10px;background:#1a2230;color:#eaf0f7;font-size:12px;font-weight:700;padding:9px 12px;white-space:nowrap;min-height:36px}
+.accountMenu summary::-webkit-details-marker,.homeActionMenu summary::-webkit-details-marker{display:none}
+.accountMenu summary:hover,.homeActionMenu summary:hover{border-color:#8297b1}
+.accountMenu summary:focus-visible,.homeActionMenu summary:focus-visible{outline:3px solid var(--bl-accent);outline-offset:2px}
+.accountMenuItems,.homeActionMenuItems{display:grid;gap:4px;position:absolute;right:0;top:calc(100% + 6px);z-index:8;min-width:190px;max-width:min(280px,calc(100vw - 24px));border:1px solid #42576a;background:#192332;border-radius:12px;padding:7px;box-shadow:0 14px 35px #000b}
+.accountMenuItems button,.homeActionMenuItems button{padding:10px 12px;text-align:left;font-size:13px;background:transparent;border-color:transparent;white-space:normal}
+.accountMenuItems button:hover,.homeActionMenuItems button:hover{background:#283848;border-color:#516779}
+.accountMenuItems button[hidden],.homeActionMenuItems button[hidden]{display:none}
+.bandHomeQuickActions{display:flex;gap:7px;align-items:center;margin:0;flex-wrap:nowrap;width:auto}
+.bandHomeQuickActions>button{white-space:nowrap}
+.homeGigRsvp{margin-top:9px!important;color:#d1e8bc!important;font-size:12px!important}
+.homeGigRsvp strong{color:#d9ffb0}
+@media(max-width:700px){
+ .top>div:last-child{gap:6px!important}
+ .accountMenuItems{right:0}
+ .bandHomeQuickActions{width:auto;flex-wrap:wrap}
+ .bandHomeQuickActions>button,.homeActionMenu{flex:0 0 auto}
+ .homeActionMenuItems{right:0}
+}
+@media(max-width:380px){.accountMenu summary{padding:8px 9px}.homeActionMenu summary{padding:8px 9px}}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/gigday.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
