@@ -1,5 +1,12 @@
 """Synthetic sample content for a dedicated disposable Backline visual preview only."""
 import json
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+def demo_today():
+    """Use the fictional demo band's Minnesota local calendar, not the host's UTC date."""
+    return datetime.now(ZoneInfo("America/Chicago")).date()
+
 def ensure_demo_tasks(con, band):
     """Add missing synthetic checklist examples without resetting existing decisions."""
     from datetime import date, timedelta
@@ -16,7 +23,7 @@ def ensure_demo_tasks(con, band):
             (band,assignee)).fetchone()
         payload={"title":title,"notes":"Synthetic preparation checklist",
             "assignee_id":member[0] if member else None,
-            "due_date":(date.today()+timedelta(days=days)).isoformat(),
+            "due_date":(demo_today()+timedelta(days=days)).isoformat(),
             "event_id":event_id,"song_id":None,"setlist_id":None,"completed":False}
         con.execute("INSERT INTO workspace_tasks(band_id,body_json) VALUES(?,?)",
             (band,json.dumps(payload)))
@@ -32,15 +39,15 @@ def seed(con):
         con.execute("INSERT INTO songs(band_id,title,artist,song_key,bpm,duration_seconds) VALUES(?,?,?,?,?,?)",
                     (band,title,'Synthetic Demo',key,bpm,duration))
     from datetime import date,timedelta
-    first=(date.today()+timedelta(days=21)).isoformat()
-    second=(date.today()+timedelta(days=22)).isoformat()
+    first=(demo_today()+timedelta(days=21)).isoformat()
+    second=(demo_today()+timedelta(days=22)).isoformat()
     gig1=con.execute("""INSERT INTO events(band_id,kind,title,venue,date,time,status,fee_cents)
         VALUES(?,'Gig',?,?,?,'20:00','Confirmed',90000)""",
         (band,'Regional showcase (demo)','Sample Music Hall',first)).lastrowid
     gig2=con.execute("""INSERT INTO events(band_id,kind,title,venue,date,time,status,fee_cents)
         VALUES(?,'Gig',?,?,?,'21:00','Planned',60000)""",
         (band,'Weekend club date (demo)','Fictional Club',second)).lastrowid
-    rehearsal=(date.today()+timedelta(days=7)).isoformat()
+    rehearsal=(demo_today()+timedelta(days=7)).isoformat()
     con.execute("""INSERT INTO events(band_id,kind,title,venue,date,time,status,notes)
         VALUES(?,'Rehearsal',?,?,?,?,'Confirmed',?)""",
         (band,'Full-band rehearsal (demo)','Example Practice Room',rehearsal,'19:00',
