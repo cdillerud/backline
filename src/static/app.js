@@ -30,6 +30,9 @@ function workspaceNavigation(mobile=false){
  return '<nav class="nav" aria-label="Primary workspaces">'+primary.map(draw).join('')+'</nav>'+
   (managementRole()?'<div class="overline">For band managers</div><nav class="nav" aria-label="Management area">'+
    draw(WORKSPACES[4])+'</nav>':'')+
+  (current[0]==='songs'?'<nav class="nav workspaceSubnav" aria-label="Music tools">'+
+   [['setlists','Setlists'],['studio','Gig promotion'],['media','Photos & media']].map(([id,label])=>
+    '<button data-go="'+id+'" aria-label="'+esc(label)+'" class="'+(state.section===id?'active':'')+'">'+esc(label)+'</button>').join('')+'</nav>':'')+
   (current[0]==='manage'?'<nav class="nav workspaceSubnav" aria-label="Management tools">'+
    ADMIN_TOOLS.filter(([id])=>visibleDestination(id)).map(([id,label])=>
     '<button data-go="'+id+'" class="'+(state.section===id?'active':'')+
