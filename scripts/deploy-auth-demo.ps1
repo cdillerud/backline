@@ -10,7 +10,7 @@ param([switch]$Deploy, [switch]$CreateApp)
 $ErrorActionPreference = 'Stop'
 $repo = 'cdillerud/backline'
 $app = 'backline-auth-demo'
-$branch = 'integration/backline-v0-4-rc'
+$branch = 'release/backline-v0.5-ux-rc3'
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $config = Join-Path $RepoRoot 'fly.auth-demo.toml'
 if (!(Test-Path $config)) { throw 'Missing fly.auth-demo.toml' }
@@ -37,7 +37,7 @@ try {
   $configText = Get-Content $config -Raw
   if ($configText -notmatch "(?m)^app\s*=\s*'backline-auth-demo'\s*$") { throw 'Demo config targets unexpected app' }
   if ($configText -match "(?m)^\s*\[\[mounts\]\]") { throw 'Refusing a demo config with volume mounts' }
-  Write-Host "PASS: branch=$branch; commit=$head; CI=$($passing[0].databaseId)"
+  Write-Host "PASS: release_candidate=Backline v0.5 UX RC3; branch=$branch; commit=$head; CI=$($passing[0].databaseId)"
   if (!$Deploy) { Write-Host 'Preflight only. Set demo password through Fly secrets and run -Deploy after reviewing.'; return }
   $listJson = flyctl apps list --json
   if ($LASTEXITCODE -ne 0) { throw 'Cannot verify Fly apps' }
@@ -51,16 +51,20 @@ try {
   }
   # Newly created Fly apps have no machines. Dashboard-staged secrets can remain
   # invisible to the CLI until imported/synced; do not call 'secrets deploy' yet.
-  $secretsText = flyctl secrets list --app $app
-  if ($LASTEXITCODE -ne 0) { throw 'Unable to list demo application secrets' }
-  if ($secretsText -notmatch 'BACKLINE_DEMO_PASSWORD') {
-    Write-Host 'Password not visible in Fly CLI; syncing dashboard-staged secrets.'
+  # A native CLI may return several output lines. PowerShell -notmatch on an
+  # array tests each line and can incorrectly prompt even when the secret exists.
+  $secretsLines = @(flyctl secrets list --app $app)
+  if ($LASTEXITCODE -ne 0) { throw 'Unable to list demo application secrets; check Fly network access and retry.' }
+  $secretListed = (($secretsLines -join "`n") -match 'BACKLINE_DEMO_PASSWORD')
+  if (!$secretListed) {
+    Write-Host 'Demo password not listed; checking staged secrets.'
     flyctl secrets sync --stage --app $app
-    if ($LASTEXITCODE -ne 0) { Write-Host 'Staged secret sync unavailable before first machine; secure import will be offered.' }
-    $secretsText = flyctl secrets list --app $app
-    if ($LASTEXITCODE -ne 0) { $secretsText = '' }
+    if ($LASTEXITCODE -ne 0) { Write-Host 'Staged secret sync unavailable; checking app secret listing again.' }
+    $secretsLines = @(flyctl secrets list --app $app)
+    if ($LASTEXITCODE -ne 0) { throw 'Cannot confirm demo secrets after sync; refusing to prompt or deploy until Fly is reachable.' }
+    $secretListed = (($secretsLines -join "`n") -match 'BACKLINE_DEMO_PASSWORD')
   }
-  if ($secretsText -notmatch 'BACKLINE_DEMO_PASSWORD') {
+  if (!$secretListed) {
     Write-Host 'Enter the existing demo password securely. Input is hidden and is not passed as a command-line argument.'
     $secure = Read-Host 'BACKLINE_DEMO_PASSWORD' -AsSecureString
     $plain = ConvertFrom-SecureString -SecureString $secure -AsPlainText
@@ -77,11 +81,13 @@ try {
     Write-Host 'Demo password staged successfully. First deployment will activate it.'
   }
   # Prevent automatic redundant machines with independent, unreplicated SQLite files.
-  flyctl deploy . --app $app --config $config --ha=false
+  flyctl deploy . --app $app --config $config --ha=false --build-arg "BACKLINE_BUILD_SHA=$head"
   if ($LASTEXITCODE -ne 0) { throw 'Fly deployment failed' }
   flyctl status --app $app
   $health = Invoke-WebRequest "https://$app.fly.dev/api/health" -SkipHttpErrorCheck -TimeoutSec 20
   if ($health.StatusCode -ne 200) { throw "Health check failed: $($health.StatusCode)" }
+  $healthBody = $health.Content | ConvertFrom-Json
+  if ($healthBody.build_sha -ne $head) { throw "Build mismatch: expected $head; got $($healthBody.build_sha). Check deployed image and rollback." }
   $private = Invoke-WebRequest "https://$app.fly.dev/api/bands" -SkipHttpErrorCheck -TimeoutSec 20
   if ($private.StatusCode -ne 401) { throw "Private API should return 401 unsigned; got $($private.StatusCode)" }
   Write-Host 'PASS: isolated demo healthy; signed-out private API denied. Perform signed-in visual acceptance next.'
