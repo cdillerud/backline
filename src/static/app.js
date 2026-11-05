@@ -755,6 +755,7 @@ document.addEventListener('click',async event=>{
  event.stopPropagation();
  const id=Number(control.dataset.showView||control.dataset.showRsvp||control.dataset.showMusic||control.dataset.showTasks);
  if(!Number.isSafeInteger(id)||!get('events').some(item=>Number(item.id)===id))return;
+ document.querySelector('#calendarEventDialog')?.close();
  if(control.hasAttribute('data-show-view')){state.activeShow=id;state.section='show';render();return}
  if(control.hasAttribute('data-show-music')){state.musicGig=id;state.section='setlists';render();return}
  if(control.hasAttribute('data-show-tasks')){state.prepGig=id;state.section='tasks';render();return}
