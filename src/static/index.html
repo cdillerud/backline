@@ -365,4 +365,22 @@ button:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--bl-ac
  .homeActionMenuItems{right:0}
 }
 @media(max-width:380px){.accountMenu summary{padding:8px 9px}.homeActionMenu summary{padding:8px 9px}}
+
+/* RC4 screenshot review: balanced two-column Home and a deliberate phone header. */
+@media(min-width:1001px){
+ .bandHomeGrid .panel:nth-child(3){grid-column:auto}
+}
+@media(min-width:701px) and (max-width:1000px){
+ .bandHomeGrid .panel:nth-child(3){grid-column:auto}
+}
+@media(max-width:380px){
+ .top{display:grid;grid-template-columns:minmax(0,1fr);row-gap:8px}
+ .top>div:last-child{display:flex!important;flex-wrap:nowrap!important;justify-content:space-between!important;gap:5px!important;min-width:0}
+ .mobileBandPicker{flex:1 1 auto;min-width:0;max-width:125px;font-size:12px;padding:8px 5px}
+ .globalTools{flex:0 0 auto;gap:4px;flex-wrap:nowrap}
+ .globalTools button{min-width:34px;min-height:36px;padding:5px 7px}
+ .accountMenu{flex:0 0 auto}
+ .accountMenu summary{min-height:36px;padding:7px 8px;font-size:11px}
+ .top .eyebrow{font-size:10px}
+}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/gigday.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
