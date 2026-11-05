@@ -46,6 +46,10 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             assert spotlight.get_by_role("button",name="My Gig Day").is_visible()
             assert spotlight.get_by_role("button",name="RSVP & details").is_visible()
             assert page.locator(".bandHomeStat").count()==5
+            # Demo owner is linked to the guitar member; own stage-plot work comes first.
+            attention=page.locator(".bandHomeGrid .panel").first
+            assert attention.locator(".entry").first.get_by_text("Confirm showcase stage plot (demo)").is_visible()
+            assert attention.locator(".entry").first.get_by_text("Assigned to you").is_visible()
             assert spotlight.get_by_text("My RSVP:").count()==1
             assert page.locator(".bandHomeQuickActions button[data-action='song']").is_hidden()
             page.locator(".homeActionMenu summary").click()
