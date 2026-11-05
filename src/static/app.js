@@ -34,7 +34,7 @@ function workspaceNavigation(mobile=false){
    [['setlists','Setlists'],['studio','Gig promotion'],['media','Photos & media']].map(([id,label])=>
     '<button data-go="'+id+'" aria-label="'+esc(label)+'" class="'+(state.section===id?'active':'')+'">'+esc(label)+'</button>').join('')+'</nav>':'')+
   (current[0]==='manage'?'<nav class="nav workspaceSubnav" aria-label="Management tools">'+
-   ADMIN_TOOLS.filter(([id])=>visibleDestination(id)).map(([id,label])=>
+   ADMIN_TOOLS.filter(([id])=>visibleDestination(id)&&(state.accountRole!=='treasurer'||id==='finance')).map(([id,label])=>
     '<button data-go="'+id+'" class="'+(state.section===id?'active':'')+
     '" aria-label="'+esc(label)+'">'+esc(label)+'</button>').join('')+'</nav>':'');
 }
