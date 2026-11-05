@@ -40,6 +40,11 @@ def sign_in(page,url,role):
     expect(page.get_by_role('heading',name='Home',exact=True)).to_be_visible()
 
 def navigate(page,key):
+    if key=='members':
+        # Settings moved to the compact account disclosure, independent of current workspace.
+        page.locator('.accountMenu summary').click()
+        page.locator('.accountMenu [data-go="members"]').click()
+        return
     target=page.locator('[data-go="'+key+'"]:visible')
     if target.count()==0:
         # v0.5 groups related tools inside their primary workspace.
