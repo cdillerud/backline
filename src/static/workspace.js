@@ -79,12 +79,28 @@ function venueLinkPanel(){
 }
 // Schedule exposes the same named calendars without duplicate navigation.
 async function refreshCalendar(all=false){
- const bands=all?state.bands:state.bands.filter(b=>b.id===state.band);
- const results=await Promise.all(bands.map(async band=>{const events=await api('/bands/'+band.id+'/calendar/events');return events.map(event=>({...event,band_name:band.name}))}));
- state.data.calendarEvents=results.flat().sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));state.data.bandCalendars=await api(workspaceBase()+'/calendars');state.calendarAll=all;render();
+ const band=state.band,session=sessionStorage.getItem('backline_session'),serial=(state.calendarRequestSerial||0)+1;
+ state.calendarRequestSerial=serial;
+ const current=()=>state.calendarRequestSerial===serial&&state.band===band&&sessionStorage.getItem('backline_session')===session;
+ const bands=all?state.bands.slice():state.bands.filter(b=>b.id===band);
+ try{
+  const [results,calendars]=await Promise.all([
+   Promise.all(bands.map(async entry=>{
+    const events=await api('/bands/'+entry.id+'/calendar/events');
+    return events.map(event=>({...event,band_name:entry.name}));
+   })),
+   api('/bands/'+band+'/calendars')
+  ]);
+  if(!current())return;
+  state.data.calendarEvents=results.flat().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||String(a.time||'').localeCompare(String(b.time||'')));
+  state.data.bandCalendars=calendars;
+  state.calendarAll=all;
+  render();
+ }catch(error){if(current())toast(error.message,true)}
 }
 function scheduleBoard(){
- const head='<div class="toolbar"><p>Shows, rehearsals, meetings, and sessions all live on this calendar. Select an entry for details.</p><button class="primary" data-action="event">+ Add event</button></div>';
+ const canManage=['owner','manager'].includes(state.accountRole)||!sessionStorage.getItem('backline_session');
+ const head='<div class="toolbar"><p>All your shows and rehearsals in one place. Select a date for details and availability.</p>'+(canManage?'<button class="primary" data-action="event">+ Add event</button>':'')+'</div>';
  return head+calendarBoard();
 }
 function openCalendarEventDialog(id){
