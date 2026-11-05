@@ -115,7 +115,10 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
                 )
         expect(page.get_by_role("navigation",name="Global tools")).to_be_visible()
         expect(page.get_by_role("button",name="My Tasks")).to_be_visible()
-        page.locator('[data-go="touring"]:visible').first.click()
+        if width <= 700:
+            page.locator('.accountMenu summary').click()
+        page.locator('[data-go="manage"]:visible').first.click()
+        page.locator('.managerToolGrid [data-go="touring"]').click()
         expect(page.get_by_role("tab",name="Itinerary",exact=True)).to_be_visible()
         page.get_by_role("tab",name="Day of show",exact=True).click()
         expect(page.get_by_role("heading",name="Tour day sheets")).to_be_visible()
