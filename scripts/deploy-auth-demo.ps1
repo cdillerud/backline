@@ -65,11 +65,15 @@ try {
     throw 'BACKLINE_DEMO_PASSWORD is not deployed yet. Activate the existing staged secret before deploying.'
   }
   # Prevent automatic redundant machines with independent, unreplicated SQLite files.
-  flyctl deploy . --app $app --config $config --ha=false
+  flyctl deploy . --app $app --config $config --ha=false --build-arg "BACKLINE_BUILD_SHA=$head"
   if ($LASTEXITCODE -ne 0) { throw 'Fly deployment failed' }
   flyctl status --app $app
   $health = Invoke-WebRequest "https://$app.fly.dev/api/health" -SkipHttpErrorCheck -TimeoutSec 20
   if ($health.StatusCode -ne 200) { throw "Health check failed: $($health.StatusCode)" }
+  try { $healthBody = $health.Content | ConvertFrom-Json -ErrorAction Stop }
+  catch { throw 'Health check returned invalid JSON; cannot certify release SHA.' }
+  if ($healthBody.status -ne 'ok') { throw "Unhealthy application status: $($healthBody.status)" }
+  if ($healthBody.build_sha -ne $head) { throw "Build SHA mismatch: expected $head; observed $($healthBody.build_sha)" }
   $private = Invoke-WebRequest "https://$app.fly.dev/api/bands" -SkipHttpErrorCheck -TimeoutSec 20
   if ($private.StatusCode -ne 401) { throw "Private API should return 401 unsigned; got $($private.StatusCode)" }
   Write-Host 'PASS: isolated demo healthy; signed-out private API denied. Perform signed-in visual acceptance next.'
