@@ -10,7 +10,7 @@ param([switch]$Deploy, [switch]$CreateApp)
 $ErrorActionPreference = 'Stop'
 $repo = 'cdillerud/backline'
 $app = 'backline-auth-demo'
-$branch = 'integration/backline-v0-4-rc'
+$branch = 'release/backline-v0.5-ux-rc3'
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $config = Join-Path $RepoRoot 'fly.auth-demo.toml'
 if (!(Test-Path $config)) { throw 'Missing fly.auth-demo.toml' }
@@ -37,7 +37,7 @@ try {
   $configText = Get-Content $config -Raw
   if ($configText -notmatch "(?m)^app\s*=\s*'backline-auth-demo'\s*$") { throw 'Demo config targets unexpected app' }
   if ($configText -match "(?m)^\s*\[\[mounts\]\]") { throw 'Refusing a demo config with volume mounts' }
-  Write-Host "PASS: branch=$branch; commit=$head; CI=$($passing[0].databaseId)"
+  Write-Host "PASS: release_candidate=Backline v0.5 UX RC3; branch=$branch; commit=$head; CI=$($passing[0].databaseId)"
   if (!$Deploy) { Write-Host 'Preflight only. Set demo password through Fly secrets and run -Deploy after reviewing.'; return }
   $listJson = flyctl apps list --json
   if ($LASTEXITCODE -ne 0) { throw 'Cannot verify Fly apps' }
@@ -77,11 +77,13 @@ try {
     Write-Host 'Demo password staged successfully. First deployment will activate it.'
   }
   # Prevent automatic redundant machines with independent, unreplicated SQLite files.
-  flyctl deploy . --app $app --config $config --ha=false
+  flyctl deploy . --app $app --config $config --ha=false --build-arg "BACKLINE_BUILD_SHA=$head"
   if ($LASTEXITCODE -ne 0) { throw 'Fly deployment failed' }
   flyctl status --app $app
   $health = Invoke-WebRequest "https://$app.fly.dev/api/health" -SkipHttpErrorCheck -TimeoutSec 20
   if ($health.StatusCode -ne 200) { throw "Health check failed: $($health.StatusCode)" }
+  $healthBody = $health.Content | ConvertFrom-Json
+  if ($healthBody.build_sha -ne $head) { throw "Build mismatch: expected $head; got $($healthBody.build_sha). Check deployed image and rollback." }
   $private = Invoke-WebRequest "https://$app.fly.dev/api/bands" -SkipHttpErrorCheck -TimeoutSec 20
   if ($private.StatusCode -ne 401) { throw "Private API should return 401 unsigned; got $($private.StatusCode)" }
   Write-Host 'PASS: isolated demo healthy; signed-out private API denied. Perform signed-in visual acceptance next.'
