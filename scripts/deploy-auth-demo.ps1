@@ -49,32 +49,20 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Fly app creation failed' }
     throw "Created $app. Configure BACKLINE_DEMO_PASSWORD securely in Fly dashboard, then rerun with -Deploy."
   }
-  # Newly created Fly apps have no machines. Dashboard-staged secrets can remain
-  # invisible to the CLI until imported/synced; do not call 'secrets deploy' yet.
-  $secretsText = flyctl secrets list --app $app
-  if ($LASTEXITCODE -ne 0) { throw 'Unable to list demo application secrets' }
-  if ($secretsText -notmatch 'BACKLINE_DEMO_PASSWORD') {
-    Write-Host 'Password not visible in Fly CLI; syncing dashboard-staged secrets.'
-    flyctl secrets sync --stage --app $app
-    if ($LASTEXITCODE -ne 0) { Write-Host 'Staged secret sync unavailable before first machine; secure import will be offered.' }
-    $secretsText = flyctl secrets list --app $app
-    if ($LASTEXITCODE -ne 0) { $secretsText = '' }
+  # Fail closed when the Fly API is unreachable. A missing/failed secret list
+  # must NEVER trigger an unsolicited password replacement on an existing demo.
+  # Configure BACKLINE_DEMO_PASSWORD separately and securely, before deployment.
+  $secretResult = @(flyctl secrets list --app $app 2>&1)
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Cannot verify existing Fly secrets. Check DNS/Fly API connectivity and retry; no secret was changed.'
   }
-  if ($secretsText -notmatch 'BACKLINE_DEMO_PASSWORD') {
-    Write-Host 'Enter the existing demo password securely. Input is hidden and is not passed as a command-line argument.'
-    $secure = Read-Host 'BACKLINE_DEMO_PASSWORD' -AsSecureString
-    $plain = ConvertFrom-SecureString -SecureString $secure -AsPlainText
-    if ($plain.Length -lt 12) { throw 'Demo password must be at least 12 characters' }
-    try {
-      "BACKLINE_DEMO_PASSWORD=$plain" | flyctl secrets import --stage --app $app
-      if ($LASTEXITCODE -ne 0) { throw 'Fly staged secret import failed' }
-    } finally {
-      Remove-Variable plain,secure -ErrorAction SilentlyContinue
-    }
-    # A staged secret is deliberately NOT listed as active before a first machine
-    # exists. Successful import is the confirmation; the server also fails closed
-    # at startup if BACKLINE_DEMO_PASSWORD is missing.
-    Write-Host 'Demo password staged successfully. First deployment will activate it.'
+  $secretLines = @($secretResult | ForEach-Object { [string]$_ })
+  $demoSecret = @($secretLines | Where-Object { $_ -match 'BACKLINE_DEMO_PASSWORD' })
+  if ($demoSecret.Count -ne 1) {
+    throw 'Deployed BACKLINE_DEMO_PASSWORD was not found. Set it securely in Fly first; refusing to prompt or overwrite.'
+  }
+  if ($demoSecret[0] -notmatch 'Deployed') {
+    throw 'BACKLINE_DEMO_PASSWORD is not deployed yet. Activate the existing staged secret before deploying.'
   }
   # Prevent automatic redundant machines with independent, unreplicated SQLite files.
   flyctl deploy . --app $app --config $config --ha=false
