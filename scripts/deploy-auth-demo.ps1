@@ -51,16 +51,20 @@ try {
   }
   # Newly created Fly apps have no machines. Dashboard-staged secrets can remain
   # invisible to the CLI until imported/synced; do not call 'secrets deploy' yet.
-  $secretsText = flyctl secrets list --app $app
-  if ($LASTEXITCODE -ne 0) { throw 'Unable to list demo application secrets' }
-  if ($secretsText -notmatch 'BACKLINE_DEMO_PASSWORD') {
-    Write-Host 'Password not visible in Fly CLI; syncing dashboard-staged secrets.'
+  # A native CLI may return several output lines. PowerShell -notmatch on an
+  # array tests each line and can incorrectly prompt even when the secret exists.
+  $secretsLines = @(flyctl secrets list --app $app)
+  if ($LASTEXITCODE -ne 0) { throw 'Unable to list demo application secrets; check Fly network access and retry.' }
+  $secretListed = (($secretsLines -join "`n") -match 'BACKLINE_DEMO_PASSWORD')
+  if (!$secretListed) {
+    Write-Host 'Demo password not listed; checking staged secrets.'
     flyctl secrets sync --stage --app $app
-    if ($LASTEXITCODE -ne 0) { Write-Host 'Staged secret sync unavailable before first machine; secure import will be offered.' }
-    $secretsText = flyctl secrets list --app $app
-    if ($LASTEXITCODE -ne 0) { $secretsText = '' }
+    if ($LASTEXITCODE -ne 0) { Write-Host 'Staged secret sync unavailable; checking app secret listing again.' }
+    $secretsLines = @(flyctl secrets list --app $app)
+    if ($LASTEXITCODE -ne 0) { throw 'Cannot confirm demo secrets after sync; refusing to prompt or deploy until Fly is reachable.' }
+    $secretListed = (($secretsLines -join "`n") -match 'BACKLINE_DEMO_PASSWORD')
   }
-  if ($secretsText -notmatch 'BACKLINE_DEMO_PASSWORD') {
+  if (!$secretListed) {
     Write-Host 'Enter the existing demo password securely. Input is hidden and is not passed as a command-line argument.'
     $secure = Read-Host 'BACKLINE_DEMO_PASSWORD' -AsSecureString
     $plain = ConvertFrom-SecureString -SecureString $secure -AsPlainText
