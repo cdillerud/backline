@@ -157,8 +157,8 @@ def test_demo_account_browser_login_and_hub(tmp_path):
                 const spot=document.querySelector('.homeGigSpotlight');
                 const stat=document.querySelector('.bandHomeStats');
                 const card=document.querySelector('.bandHomeGrid');
-                return spot.compareDocumentPosition(stat)&Node.DOCUMENT_POSITION_FOLLOWING
-                    && stat.compareDocumentPosition(card)&Node.DOCUMENT_POSITION_FOLLOWING;
+                return Boolean(spot.compareDocumentPosition(card)&Node.DOCUMENT_POSITION_FOLLOWING)
+                    && Boolean(card.compareDocumentPosition(stat)&Node.DOCUMENT_POSITION_FOLLOWING);
             }""")
             for width in (320,390,768,1280):
                 page.set_viewport_size({"width":width,"height":850})
