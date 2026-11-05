@@ -213,11 +213,24 @@ function fullDashboard(){
  return '<section class="dashboardIntro bandHomeHeader"><div><span class="eyebrow">Your band home</span><h2>'+esc(band.name)+'</h2><p class="sub">The next gig, the music and the people — together.</p></div>'+quick+'</section>'+
  gigSpotlight+stats+'<div class="bandHomeGrid">'+attention+next+readiness+conversation+music+activity+'</div>';
 }
-function events(){let a=get('events');return `<div class="toolbar"><p>Book performances, track rehearsals and keep dates aligned.</p>${button('+ New event','event')}</div>${panel('Event calendar',a.length?`<div class="tableWrap"><table class="table"><thead><tr><th>Date</th><th>Type</th><th>Event</th><th>Venue / Location</th><th>Fee</th><th>Status</th></tr></thead><tbody>${a.map(e=>`<tr><td>${datePretty(e.date)}<br><span class="dim">${esc(e.time)}</span></td><td><span class="tag muted">${e.kind}</span></td><td><strong>${esc(e.title)}</strong></td><td>${esc(e.venue)}</td><td>${e.kind==='Gig'?dollars(e.fee_cents):'—'}</td><td>${esc(e.status)}</td></tr>`).join('')}</tbody></table></div>`:empty('Your gig and rehearsal calendar is empty.'))}`}
+function events(){let a=get('events');return `<div class="toolbar"><p>Book performances, track rehearsals and keep dates aligned.</p>${button('+ New event','event')}</div>${panel('Event calendar',a.length?`<div class="tableWrap"><table class="table"><thead><tr><th>Date</th><th>Type</th><th>Event</th><th>Venue / Location</th><th>Fee</th><th>Status</th></tr></thead><tbody>${a.map(e=>`<tr><td>${datePretty(e.date)}<br><span class="dim">${esc(e.time)}</span></td><td><span class="tag muted">${esc(e.kind)}</span></td><td><strong>${esc(e.title)}</strong></td><td>${esc(e.venue)}</td><td>${e.kind==='Gig'?dollars(e.fee_cents):'—'}</td><td>${esc(e.status)}</td></tr>`).join('')}</tbody></table></div>`:empty('Your gig and rehearsal calendar is empty.'))}`}
 function dashboard(){return fullDashboard()}
 function bookings(){let leads=get('bookings');let due=get('booking-followups');let count=due.count||0;return `<div class="panel"><div class="panelHeading"><h2>Follow-ups requiring attention</h2><span class="tag">${count} due</span></div>${count?due.items.map(x=>item(x.venue,'Follow up: '+datePretty(x.next_followup)+' · '+(x.contact_name||'Contact not set'),x.stage)).join(''):empty('You are caught up on scheduled follow-ups.')}</div>`+`<div class="toolbar"><p>Keep a complete record of conversations, follow-ups and booking outcomes.</p>${button('+ Add prospect','booking')}</div>${panel('Venue pipeline',leads.length?`<div class="tableWrap"><table class="table"><thead><tr><th>Venue / Booker</th><th>Stage</th><th>Next follow-up</th><th>Last contact</th><th>Actions</th></tr></thead><tbody>${leads.map(x=>`<tr><td><strong>${esc(x.venue)}</strong><div class="dim">${esc(x.contact_name)} ${esc(x.city)}</div></td><td><span class="tag muted">${esc(x.stage)}</span></td><td>${datePretty(x.next_followup)||'—'}</td><td>${esc(x.last_contact?.slice(0,10)||'—')}</td><td><button class="small" data-booking="${x.id}">View history</button>${x.stage==="Confirmed"?` <button class="small" data-booking-show="${x.id}">Create show</button>`:""}</td></tr>`).join('')}</tbody></table></div>`:empty('No venue contacts yet. Add a booker or venue to start tracking outreach.'))}`}
 async function openStudioGig(id){state.studioGig=Number(id);await refreshStudio();}
-async function refreshStudio(){if(!state.studioGig)return;try{const base=`/bands/${state.band}/gigs/${state.studioGig}`;const [market,drafts]=await Promise.all([api(base+'/market'),api(base+'/campaign')]);state.data.studioMarket=market;state.data.studioDrafts=drafts;state.section='studio';render()}catch(e){toast(e.message,true)}}
+async function refreshStudio(){
+ const gig=Number(state.studioGig),band=state.band,session=sessionStorage.getItem('backline_session');
+ if(!gig)return;
+ const serial=(state.studioRequestSerial||0)+1;
+ state.studioRequestSerial=serial;
+ const current=()=>state.studioRequestSerial===serial&&state.band===band&&Number(state.studioGig)===gig&&sessionStorage.getItem('backline_session')===session;
+ try{
+  const base=`/bands/${band}/gigs/${gig}`;
+  const [market,drafts]=await Promise.all([api(base+'/market'),api(base+'/campaign')]);
+  if(!current())return;
+  state.data.studioMarket=market;state.data.studioDrafts=drafts;
+  state.section='studio';render();
+ }catch(e){if(current())toast(e.message,true)}
+}
 function studio(){
  const gigs=get('events').filter(e=>e.kind==='Gig');
  const gig=gigs.find(e=>e.id===state.studioGig);
@@ -260,13 +273,20 @@ async function openShowPacketGig(id,destination='showops'){
 }
 
 async function refreshTours(){
+ const band=state.band,session=sessionStorage.getItem('backline_session');
+ const selectedTour=state.selectedTour;
+ const serial=(state.tourRequestSerial||0)+1;
+ state.tourRequestSerial=serial;
+ const current=()=>state.tourRequestSerial===serial&&state.band===band&&state.selectedTour===selectedTour&&sessionStorage.getItem('backline_session')===session;
  try{
-  state.data.tours=await api('/bands/'+state.band+'/tours');
-  if(state.selectedTour){
-   state.data.currentRoute=await api('/bands/'+state.band+'/tours/'+state.selectedTour+'/route');
-  }
+  const tours=await api('/bands/'+band+'/tours');
+  if(!current())return;
+  const route=selectedTour?await api('/bands/'+band+'/tours/'+selectedTour+'/route'):null;
+  if(!current())return;
+  state.data.tours=tours;
+  state.data.currentRoute=route;
   state.section='touring';render();
- }catch(error){toast(error.message,true)}
+ }catch(error){if(current())toast(error.message,true)}
 }
 function touring(){
  const tours=get('tours'),route=state.data.currentRoute;
