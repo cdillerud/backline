@@ -114,7 +114,8 @@ function openCalendarEventDialog(id){
  modal.className='timelineDialog calendarEventDialog';
  modal.setAttribute('aria-label','Event details: '+item.title);
  const action=(name,label)=>'<button type="button" '+name+'="'+id+'">'+label+'</button>';
- const extras=kind==='Gig'?action('data-schedule-gig-day','My gig day')+action('data-schedule-packet','Show production'):
+ const extras=kind==='Gig'?action('data-schedule-gig-day','Open Gig Day')+
+  (['owner','manager'].includes(state.accountRole)?action('data-schedule-packet','Production details'):''):
   kind==='Rehearsal'?action('data-rehearsal-plan','Objectives & notes')+
    '<button type="button" data-go="songs">Songs to practice</button>'+
    '<button type="button" data-go="setlists">Rehearsal repertoire</button>'+
@@ -126,6 +127,11 @@ function openCalendarEventDialog(id){
   '<div><dt>Location</dt><dd>'+esc(item.venue||'Location TBD')+'</dd></div>'+
   '<div><dt>Status</dt><dd>'+esc(item.status||'Planned')+'</dd></div>'+
   (calendar?'<div><dt>Calendar</dt><dd>'+esc(calendar.calendar_name||kind)+'</dd></div>':'')+'</dl>'+
+  (kind==='Gig'?'<section class="calendarShowFocus" aria-label="Show essentials"><h3>Your show</h3>'+
+   '<div class="calendarShowFacts"><div><span>Soundcheck</span><strong>'+esc(calendar?.advance?.soundcheck||'Not recorded')+'</strong></div>'+
+   '<div><span>Showtime</span><strong>'+esc(calendar?.advance?.show_time||item.time||'Not recorded')+'</strong></div>'+
+   '<div><span>Venue</span><strong>'+esc(item.venue||'To confirm')+'</strong></div></div>'+
+   '<p class="sub">Times and venue details are taken from the band's saved event and advance; verify changes with the venue.</p></section>':'')+
   (item.notes?'<section class="calendarEventNotes"><h3>Notes</h3><p>'+esc(item.notes)+'</p></section>':'')+
   '<section id="calendarAttendance" class="calendarAttendance" hidden aria-label="Event attendance"></section>'+
   '<div class="actions calendarDialogActions">'+(canEditBandEvents()?action('data-schedule-edit','Edit event')+
