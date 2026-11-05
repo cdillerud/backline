@@ -48,13 +48,16 @@ document.addEventListener('submit',async e=>{if(e.target.id!=='loginForm')return
 document.addEventListener('click',async e=>{if(!e.target.closest('#logoutButton'))return;try{await api('/auth/logout',{method:'POST'})}catch(error){}sessionStorage.removeItem('backline_session');clearSessionState();loginScreen()});
 function clearSessionState(){document.querySelectorAll('dialog,.stageDesignerBackdrop,.modalWrap').forEach(node=>node.remove());for(const key of Object.keys(state))delete state[key];Object.assign(state,{band:null,section:'dashboard',bands:[],data:{},modal:null,loadRequestSerial:-1});document.querySelector('#app').inert=false;document.dispatchEvent(new Event('backline-signout'))}
 const get=key=>state.data[key]||[];
+// A cancelled or completed event is history, not an upcoming commitment.
+// Preserve other planning states (offered/tentative/confirmed) without implying confirmation.
+const isFutureCommitment=e=>Boolean(e&&e.date>=today()&&!['cancelled','canceled','completed'].includes(String(e.status||'').toLowerCase()));
 // Home shows only authorized, band-scoped signals. Missing responses stay unknown.
 // Only authorized managers receive operational readiness aggregates. Do not retain private rosters.
 async function refreshHomeReadiness(){
  const band=state.band,token=sessionStorage.getItem('backline_session');
  const current=()=>band===state.band&&token===sessionStorage.getItem('backline_session');
  const role=state.data.collaboration?.role;
- const next=get('events').filter(e=>e.kind==='Gig'&&e.date>=today())
+ const next=get('events').filter(e=>e.kind==='Gig'&&isFutureCommitment(e))
   .sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||''))[0];
  state.data.homeReadiness=null;
  if(!token||!['owner','manager'].includes(role)||!next)return;
@@ -82,7 +85,7 @@ async function refreshHomeSignals(){
  const base='/bands/'+band;
  // Fetch at most four event RSVP collections, always including the featured next gig.
  // Without this, three earlier rehearsals make the featured gig's RSVP incorrectly "not loaded".
- const nextEvents=get('events').filter(e=>e.date>=today()).sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||''));
+ const nextEvents=get('events').filter(isFutureCommitment).sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||''));
  const featured=nextEvents.find(e=>e.kind==='Gig');
  const upcoming=nextEvents.slice(0,3);
  if(featured&&!upcoming.some(e=>Number(e.id)===Number(featured.id)))upcoming.push(featured);
@@ -110,7 +113,7 @@ function empty(msg){return `<div class="empty">${esc(msg)}</div>`}
 function item(title,sub,tag=''){return `<div class="entry"><div class="entryMain"><strong>${esc(title)}</strong><small>${esc(sub)}</small></div>${tag?`<span class="tag">${esc(tag)}</span>`:''}</div>`}
 function panel(title,content,action=''){return `<div class="panel"><div class="panelHeading"><h2>${title}</h2>${action}</div>${content}</div>`}
 function fullDashboard(){
- const d=get('dashboard'), events=(d.upcoming||[]).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.time||'').localeCompare(b.time||''));
+ const d=get('dashboard'), events=(d.upcoming||[]).filter(isFutureCommitment).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.time||'').localeCompare(b.time||''));
  const songs=get('songs'), recordings=get('recordings'), allEvents=get('events');
  const ownUserId=state.data.collaboration?.user_id;
  const ownMemberId=state.data.collaboration?.members?.find(m=>Number(m.id)===Number(ownUserId))?.member_id;
@@ -119,10 +122,10 @@ function fullDashboard(){
   Number(isMine(b))-Number(isMine(a))||(a.due_date||'9999').localeCompare(b.due_date||'9999'));
  const followups=get('booking-followups'), due=Array.isArray(followups.items)?followups.items:[];
  const canManage=['owner','manager'].includes(state.accountRole);
- const rehearsalCount=allEvents.filter(e=>e.kind==='Rehearsal'&&e.date>=today()).length;
- const gigCount=allEvents.filter(e=>e.kind==='Gig'&&e.date>=today()).length;
+ const rehearsalCount=allEvents.filter(e=>e.kind==='Rehearsal'&&isFutureCommitment(e)).length;
+ const gigCount=allEvents.filter(e=>e.kind==='Gig'&&isFutureCommitment(e)).length;
  const band=state.bands.find(b=>b.id===state.band)||{name:'Your band'};
- const nextGig=allEvents.filter(e=>e.kind==='Gig'&&e.date>=today()).sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||''))[0];
+ const nextGig=allEvents.filter(e=>e.kind==='Gig'&&isFutureCommitment(e)).sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||''))[0];
  const quick='<div class="bandHomeQuickActions" aria-label="Band quick actions">'+
   (canManage?'<button type="button" data-action="event">+ Add event</button>':'')+
   '<details class="homeActionMenu"><summary>More actions</summary><div class="homeActionMenuItems">'+
