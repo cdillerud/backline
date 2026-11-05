@@ -395,4 +395,44 @@ button:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--bl-ac
 @media(max-width:950px){.gigdayQuickFacts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:450px){.gigdayQuickFacts{gap:8px}.gigdayQuickFacts>div{padding:12px;min-height:115px}.gigdayQuickFacts strong{font-size:20px}}
 @media print{.gigdayQuickFacts{grid-template-columns:repeat(4,minmax(0,1fr))}.gigdayQuickFacts>div{background:#fff;color:#000;border:1px solid #777}.gigdayQuickFacts strong,.gigdayQuickFacts span,.gigdayQuickFacts small{color:#000}.gigdayQuickFacts button{display:none}}
+
+/* v0.6: navigation is for musicians; administration is a separate surface. */
+.nav [data-go]{min-height:49px}
+.nav button .navName{font-size:14px}
+.manageEntry{padding:8px 6px 0;border-top:1px solid #283b45}
+.manageEntryButton{width:100%;text-align:left;border:1px solid #3b5661;background:#172935;font-size:13px;font-weight:750;color:#c5d4e0;padding:13px}
+.manageEntryButton.active,.manageEntryButton:hover{background:#284137;border-color:#9ad36b;color:#deffbd}
+.manageIntro{margin:8px 0 23px}.manageIntro h2{font:700 clamp(25px,3vw,37px) 'Space Grotesk',sans-serif;margin:8px 0}.manageIntro p{font-size:14px}
+.manageToolGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.manageTool{display:grid;grid-template-columns:minmax(0,1fr) 20px;gap:5px;text-align:left;align-items:center;background:#192735;border:1px solid #364d5b;padding:20px;min-height:118px}
+.manageTool strong{font-size:17px;grid-column:1}.manageTool span:nth-child(2){color:#abbdca;font-size:13px;grid-column:1;line-height:1.5}.manageTool span:last-child{grid-column:2;grid-row:1/3;color:#b9fb74;font-size:22px;text-align:right}
+.manageTool:hover,.manageTool:focus-visible{border-color:#b9fb74;background:#1d3440}
+.homeShowOpen{padding:0;background:none;border:0;font:inherit;color:inherit;text-align:left;text-decoration:none}
+.homeShowOpen:hover,.homeShowOpen:focus-visible{text-decoration:underline;text-decoration-color:#b9fb74}
+.showDetailPage{max-width:850px;margin:0 auto}
+.showBack{border:0;background:transparent;padding:8px 0 16px;color:#b5cfdd}
+.showDetailHero{border-bottom:1px solid #34495a;padding:9px 0 25px;margin-bottom:18px}
+.showDetailHero h2{font:700 clamp(29px,4vw,44px) 'Space Grotesk',sans-serif;line-height:1.1;margin:8px 0}
+.showDetailHero p{color:#b5c7d6;margin:6px 0;font-size:15px}
+.showDetailFacts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0 22px}
+.showDetailFacts>div{display:flex;flex-direction:column;gap:8px;padding:17px;background:#1a2c3b;border:1px solid #3b5568;border-radius:11px;min-width:0}
+.showDetailFacts span{text-transform:uppercase;color:#a6bccb;font-size:11px;letter-spacing:.08em;font-weight:800}
+.showDetailFacts strong{font-size:clamp(15px,1.7vw,20px);overflow-wrap:anywhere}
+.showDetailPrimary{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:21px;border:1px solid #49694b;background:#20362d;border-radius:12px;margin-bottom:22px}
+.showDetailPrimary h3{width:100%;font-size:19px;margin:0}.showDetailPrimary p{width:100%;font-size:13px;color:#c5d7ca;margin:-5px 0 5px}
+.showDetailPrimary button{min-height:44px}
+.showDetailLinks{border:1px solid #34495a;border-radius:14px;overflow:hidden}
+.showDetailRow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 20px;border-bottom:1px solid #304557}
+.showDetailRow:last-child{border-bottom:0}.showDetailRow>div{min-width:0;flex:1}
+.showDetailRow strong{display:block;font-size:16px;margin-bottom:6px}
+.showDetailRow small{display:block;font-size:13px;color:#a9bcca;line-height:1.5;overflow-wrap:anywhere}
+.showDetailRow button{flex:0 0 auto;min-height:42px}
+.showDetailDirections{padding:18px 20px}.showDetailDirections a{color:#b9fb74;font-weight:700}
+@media(max-width:1000px) and (min-width:661px){.manageEntry{padding:5px 0}.manageEntryButton{font-size:20px;padding:12px 4px}.manageEntryButton span{display:none}}
+@media(max-width:660px){.mobileNav{justify-content:space-around}.mobileNav button{flex:1 1 25%;padding:9px 3px;min-height:49px}
+ .mobileNav .navName{font-size:11px!important;font-weight:700}.manageToolGrid{grid-template-columns:1fr}
+ .showDetailFacts{grid-template-columns:1fr 1fr}.showDetailFacts>div:last-child{grid-column:1/-1}
+ .showDetailPrimary{padding:16px}.showDetailPrimary button{flex:1 1 140px}
+ .showDetailRow{padding:14px}.showDetailRow button{max-width:42%;white-space:normal}
+}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/gigday.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
