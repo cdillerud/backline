@@ -17,7 +17,7 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
         expect(page.get_by_text("Your band home")).to_be_visible()
         expect(page.locator(".bandHomeStats .bandHomeStat")).to_have_count(5)
         expect(page.get_by_role("heading",name="Recent conversations")).to_be_visible()
-        expect(page.get_by_role("heading",name="Availability & RSVPs")).to_be_visible()
+        expect(page.get_by_role("heading",name="Other RSVPs")).to_be_visible()
         expect(page.get_by_role("heading",name="Music & preparation")).to_be_visible()
         expect(page.get_by_role("heading",name="Next show preparation")).to_be_visible()
         if page.locator("[data-home-gig-day]").count():
@@ -41,11 +41,15 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
             page.locator('[data-go="dashboard"]:visible').first.click()
         # Manager-facing show checklist is sourced from existing production records.
         if page.locator("[data-home-crew]").count():
+            disclosure=page.locator(".homeReadinessDisclosure")
+            assert disclosure.get_attribute("open") is None
+            disclosure.locator("summary").click()
             expect(page.get_by_text("Venue advance",exact=True)).to_be_visible()
             expect(page.get_by_text("Production documents",exact=True)).to_be_visible()
             expect(page.get_by_text("Stage & inputs",exact=True)).to_be_visible()
             expect(page.get_by_text("Guest requests",exact=True)).to_be_visible()
             expect(page.get_by_text("Lodging",exact=True)).to_be_visible()
+            disclosure.locator("summary").click()
             page.locator("[data-home-crew]").first.click()
             expect(page.get_by_text("Show Operations",exact=True).first).to_be_visible()
             page.locator('[data-go="dashboard"]:visible').first.click()
@@ -60,6 +64,8 @@ def test_schedule_and_band_hub_navigation(account_server,accounts,width):
             expect(page.locator("#calendarAttendance")).to_be_visible()
             page.get_by_role("button",name="Close event details").click()
             page.locator('[data-go="dashboard"]:visible').first.click()
+        assert page.locator(".bandHomeQuickActions [data-action='song']").is_hidden()
+        page.locator(".homeActionMenu summary").click()
         expect(page.get_by_role("button",name="+ Add song")).to_be_visible()
         expect(page.get_by_role("button",name="+ Add event")).to_be_visible()
         page.locator(".bandHomeQuickActions [data-action='song']").click()
