@@ -16,8 +16,8 @@ def test_primary_workspaces_are_navigable_without_document_overflow(
         ("dashboard", "Home"),
         ("songs", "Song Library"),
         ("schedule", "Schedule"),
-        ("touring", "Tour Routing"),
-        ("collaboration", "Band Hub"),
+        ("touring", "Shows & Tours"),
+        ("collaboration", "Bandmates"),
         ("finance", "Band Finances"),
     ]
     with sync_playwright() as playwright:
