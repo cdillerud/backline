@@ -58,6 +58,7 @@ def test_demo_account_browser_login_and_hub(tmp_path):
             overview.get_by_role("button",name="Back to calendar").click()
             page.get_by_role("heading",name="Calendar",exact=True).wait_for(state="visible")
             page.locator('[data-go="dashboard"]:visible').first.click()
+            page.locator('.bandHomeGrid').wait_for(state='visible',timeout=15000)
             spotlight=page.locator(".homeGigSpotlight")
             music_focus=page.locator(".bandHomeGrid .panel").filter(
                 has=page.get_by_role("heading",name="Music to revisit"))
