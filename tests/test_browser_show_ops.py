@@ -9,10 +9,12 @@ import pytest
 from playwright.sync_api import sync_playwright, expect
 
 def navigate(page,key):
-    groups={'showops':'touring','venues':'touring','tasks':'collaboration',
+    groups={'showops':'manage','venues':'manage','tasks':'collaboration',
             'setlists':'songs'}
     target=page.locator('[data-go="'+key+'"]:visible')
     if target.count()==0 and key in groups:
+        if groups[key]=='manage' and page.locator('[data-go="manage"]:visible').count()==0:
+            page.locator('.accountMenu summary').click()
         page.locator('[data-go="'+groups[key]+'"]:visible').first.click()
     page.locator('[data-go="'+key+'"]:visible').first.click()
 
