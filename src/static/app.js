@@ -756,7 +756,7 @@ document.addEventListener('click',async event=>{
  const id=Number(control.dataset.showView||control.dataset.showRsvp||control.dataset.showMusic||control.dataset.showTasks);
  if(!Number.isSafeInteger(id)||!get('events').some(item=>Number(item.id)===id))return;
  document.querySelector('#calendarEventDialog')?.close();
- if(control.hasAttribute('data-show-view')){state.activeShow=id;state.section='show';render();return}
+ if(control.hasAttribute('data-show-view')){const eventRecord=get('events').find(item=>Number(item.id)===id);state.calendarMonth=eventRecord.date.slice(0,7);state.activeShow=id;state.section='show';render();return}
  if(control.hasAttribute('data-show-music')){state.musicGig=id;state.section='setlists';render();return}
  if(control.hasAttribute('data-show-tasks')){state.prepGig=id;state.section='tasks';render();return}
  if(control.hasAttribute('data-show-rsvp')){
@@ -796,6 +796,8 @@ document.addEventListener('click',async event=>{
    state.section='operations';
    await refreshOperations();
   }else if(button.dataset.homeEvent){
+   const target=get('events').find(item=>Number(item.id)===Number(button.dataset.homeEvent));
+   if(target?.date)state.calendarMonth=target.date.slice(0,7);
    state.section='schedule';
    await refreshCalendar(state.calendarAll||false);
    openCalendarEventDialog(Number(button.dataset.homeEvent));
