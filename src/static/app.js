@@ -1,36 +1,46 @@
 const nav=[['dashboard','◫','Dashboard'],['schedule','▦','Schedule'],['finance','＄','Finances'],['bookings','✉','Booking Tracker'],['studio','✦','AI Gig Studio'],['showops','▤','Show Packets'],['touring','⌁','Tours'],['songs','♫','Songs'],['setlists','≡','Setlists'],['members','♟','Members']];
 const state={band:1,section:'dashboard',bands:[],data:{},modal:null};
-/* v0.5 navigation: existing routes remain intact and are grouped into six workspaces.
-   Feature scripts may add destinations to nav; resolve those entries at render time. */
+/* Four everyday destinations. Production/tour administration is deliberately
+   separated from the musician's navigation; no routes or capabilities are deleted. */
 const WORKSPACES=[
- ['dashboard','◫','Home',['dashboard']],
- ['songs','♫','Music',['songs','setlists','studio','media']],
- ['schedule','▦','Schedule',['schedule','events','calendars']],
- ['touring','⌁','Shows',['touring','showops','gigday','operations','venues','bookings']],
- ['collaboration','☏','Bandmates',['collaboration','notifications','tasks','members']],
- ['finance','＄','Business',['finance']]
+ ['dashboard','◫','Home',['dashboard','tasks','gigday']],
+ ['schedule','▦','Calendar',['schedule','events','calendars','show']],
+ ['songs','♫','Music',['songs','setlists','media']],
+ ['collaboration','☏','Band',['collaboration','notifications','members']]
 ];
-const visibleDestination=id=>id!=='finance'||!state.accountRole||['owner','manager','treasurer'].includes(state.accountRole);
-function workspaceFor(section){return WORKSPACES.find(w=>w[3].includes(section))||WORKSPACES[0]}
-function workspaceNavigation(mobile=false){
- const current=workspaceFor(state.section);
- if(mobile)return WORKSPACES.filter(w=>visibleDestination(w[0])).map(([id,icon,label,sections])=>
-  '<button class="'+(sections.includes(state.section)?'active':'')+'" data-go="'+id+'" aria-label="'+label+'">'+icon+'<span>'+label+'</span></button>').join('');
- const main=WORKSPACES.filter(w=>visibleDestination(w[0])).map(([id,icon,label,sections])=>
-  '<button data-go="'+id+'" aria-label="'+esc(label)+'" class="'+(sections.includes(state.section)?'active':'')+'" aria-current="'+(sections.includes(state.section)?'page':'false')+'"><span aria-hidden="true">'+icon+'</span><span class="navName">'+label+'</span></button>').join('');
- const sub=nav.filter(([id])=>current[3].includes(id)&&id!==current[0]&&visibleDestination(id)&&current[0]!=='collaboration');
- return '<nav class="nav" aria-label="Primary workspaces">'+main+'</nav>'+
-  (sub.length?'<div class="overline">'+current[2]+' tools</div><nav class="nav workspaceSubnav" aria-label="'+current[2]+' tools">'+
-   sub.map(([id,icon,label])=>'<button data-go="'+id+'" aria-label="'+esc(label)+'" class="'+(state.section===id?'active':'')+'" aria-current="'+(state.section===id?'page':'false')+'"><span aria-hidden="true">'+icon+'</span><span class="navName">'+label+'</span></button>').join('')+'</nav>':'');
+const MANAGE_ROLES=new Set(['owner','manager','treasurer']);
+const canManageWorkspace=()=>MANAGE_ROLES.has(state.accountRole);
+const manageTools=()=>[
+ ...(['owner','manager'].includes(state.accountRole)?[
+  ['touring','Shows & tours','Tour dates, routing and travel'],
+  ['bookings','Bookings','Opportunities, holds and follow-ups'],
+  ['showops','Show production','Advances, documents and stage plots'],
+  ['operations','People & logistics','Crew, guests and lodging'],
+  ['venues','Venues','Contacts and shared venue information'],
+  ['studio','Promotion','Research and draft show marketing']
+ ]:[]),
+ ...(['owner','manager','treasurer'].includes(state.accountRole)?[
+  ['finance','Money','Income, expenses and settlements']
+ ]:[])
+];
+const visibleDestination=id=>id!=='finance'||!state.accountRole||MANAGE_ROLES.has(state.accountRole);
+function workspaceFor(section){
+ if(section==='manage'||['touring','bookings','showops','operations','venues','studio','finance'].includes(section))
+  return ['manage','⚙','Manage',['manage','touring','bookings','showops','operations','venues','studio','finance']];
+ return WORKSPACES.find(w=>w[3].includes(section))||WORKSPACES[0];
 }
-
-function mobileContextNavigation(){
- // Gig Day already exposes show-specific actions; redundant module pills obscure the calls on phones.
- if(state.section==='gigday')return '';
- const workspace=workspaceFor(state.section);
- const tools=nav.filter(([id])=>workspace[3].includes(id)&&id!==workspace[0]&&visibleDestination(id)&&workspace[0]!=='collaboration');
- return tools.length?'<nav class="mobileContextNav" aria-label="'+workspace[2]+' tools">'+
- tools.map(([id,icon,label])=>'<button data-go="'+id+'" class="'+(state.section===id?'active':'')+'" aria-current="'+(state.section===id?'page':'false')+'">'+esc(label)+'</button>').join('')+'</nav>':'';
+function workspaceNavigation(mobile=false){
+ return WORKSPACES.map(([id,icon,label,sections])=>
+  '<button type="button" data-go="'+id+'" class="'+(sections.includes(state.section)?'active':'')+
+  '" aria-label="'+esc(label)+'" aria-current="'+(sections.includes(state.section)?'page':'false')+'">'+
+  '<span aria-hidden="true">'+icon+'</span><span class="navName">'+label+'</span></button>').join('');
+}
+function mobileContextNavigation(){return ''}
+function managementHome(){
+ if(!canManageWorkspace())return '<section class="panel"><h2>Not available</h2><p class="sub">Band management tools require an authorized role.</p><button data-go="dashboard">Back to Home</button></section>';
+ return '<section class="manageIntro"><span class="eyebrow">Band management</span><h2>Keep the band running</h2><p class="sub">Everything behind the scenes, without cluttering your everyday calendar and music.</p></section>'+
+ '<div class="manageToolGrid">'+manageTools().map(([route,title,description])=>
+  '<button class="manageTool" type="button" data-go="'+route+'"><strong>'+esc(title)+'</strong><span>'+esc(description)+'</span><span aria-hidden="true">→</span></button>').join('')+'</div>';
 }
 const $=s=>document.querySelector(s);const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const dollars=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format((n||0)/100);
