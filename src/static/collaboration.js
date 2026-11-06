@@ -36,7 +36,7 @@ function collaborationBoard(){
    '<details class="mentionDisclosure"><summary>@ Mention bandmates</summary><fieldset class="mentionPills"><legend>Select people to notify</legend>'+info.members.filter(m=>m.id!==info.user_id).map(m=>'<label><input type="checkbox" name="mention_user_ids" value="'+m.id+'">@'+esc(m.display_name)+'</label>').join('')+'</fieldset></details></form>':'')+'</section>':
   '<section class="messenger messengerEmpty"><p>Select a conversation to start messaging.</p></section>';
  const primary='<section class="hubChatWorkspace" aria-label="Band conversations"><aside class="hubThreadRail"><header><h2>Conversations</h2>'+(collabAdmin()?'<button type="button" data-new-thread aria-label="New discussion">+ New</button>':'')+'</header><nav aria-label="Band conversations">'+(choices||'<p class="sub">No conversations yet.</p>')+'</nav></aside>'+chat+'</section>';
- return primary;
+ return '<div class="bandUtilityLinks" aria-label="Band actions"><button type="button" data-go="operations">Show updates & guest passes</button><button type="button" data-go="tasks">My tasks</button></div>'+primary;
 }
 // Messenger keyboard convention: Enter sends, Shift+Enter creates a newline.
 // Composition events must never send a partially composed IME message.
