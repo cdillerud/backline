@@ -45,17 +45,26 @@ def navigate(page,key):
         page.locator('.accountMenu summary').click()
         page.locator('.accountMenu [data-go="members"]').click()
         return
-    target=page.locator('[data-go="'+key+'"]:visible')
-    if target.count()==0:
-        # v0.5 groups related tools inside their primary workspace.
-        groups={
-            'media':'songs','notifications':'collaboration',
-            'tasks':'collaboration','members':'collaboration',
-            'calendars':'schedule','events':'schedule',
-            'venues':'touring','bookings':'touring','showops':'touring','operations':'touring',
-            'setlists':'songs','studio':'songs'}
-        if key in groups:
-            page.locator('[data-go="'+groups[key]+'"]:visible').first.click()
+    if key=='operations' and page.evaluate("state.accountRole") in {'member','viewer'}:
+        page.locator('[data-go="collaboration"]:visible').first.click()
+        page.locator('.bandUtilityLinks [data-go="operations"]').click()
+        return
+    management={'venues','bookings','showops','operations','touring','finance'}
+    if key in management:
+        if page.viewport_size['width'] > 660:
+            page.locator('.manageNav [data-go="manage"]').click()
+        else:
+            page.locator('.accountMenu summary').click()
+            page.locator('.accountMenuItems [data-go="manage"]').click()
+        page.locator('.manageTiles [data-go="'+key+'"]').click()
+        return
+    if key in {'media','setlists','studio'}:
+        page.locator('[data-go="songs"]:visible').first.click()
+        page.locator('.musicQuickNav [data-go="'+key+'"]').click()
+        return
+    if key in {'calendars','events'}:
+        page.locator('[data-go="schedule"]:visible').first.click()
+        return
     page.locator('[data-go="'+key+'"]:visible').first.click()
 
 @pytest.mark.parametrize('width',[1280,390])

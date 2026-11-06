@@ -20,6 +20,11 @@ jobs:
       - name: Install Chromium
         timeout-minutes: 10
         run: python -m playwright install --only-shell chromium
+      - name: Fast frontend syntax gate
+        run: |
+          node --check src/static/app.js
+          node --check src/static/workspace.js
+          node --check src/static/gigday.js
       - name: Authenticated demo acceptance tests
         timeout-minutes: 6
         run: BACKLINE_LOCAL_DEV=1 python -m pytest -vv -x -s tests/test_demo_accounts.py tests/test_demo_browser.py
