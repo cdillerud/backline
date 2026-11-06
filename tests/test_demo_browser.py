@@ -167,7 +167,7 @@ def test_demo_account_browser_login_and_hub(tmp_path):
                 assert page.locator(".bandHomeStat").count()==5
                 if width==768:
                     # Tablet rail hides visible labels; explicit accessible names remain.
-                    assert page.get_by_role("navigation",name="Primary workspaces").get_by_role("button",name="Shows").count()==1
+                    assert page.get_by_role("navigation",name="Primary workspaces").get_by_role("button",name="Calendar").count()==1
                 if width==320:
                     assert page.locator(".mobileNav [data-go='dashboard']").count()==1
             page.set_viewport_size({"width":1280,"height":850})

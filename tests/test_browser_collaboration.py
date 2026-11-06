@@ -52,10 +52,16 @@ def navigate(page,key):
             'media':'songs','notifications':'collaboration',
             'tasks':'collaboration','members':'collaboration',
             'calendars':'schedule','events':'schedule',
-            'venues':'touring','bookings':'touring','showops':'touring','operations':'touring',
+            'venues':'manage','bookings':'manage','showops':'manage','operations':'manage',
             'setlists':'songs','studio':'songs'}
         if key in groups:
-            page.locator('[data-go="'+groups[key]+'"]:visible').first.click()
+            if key=='operations' and page.locator('[data-go="manage"]').count()==0:
+                # Members reach their own guest/show actions from Band, not manager administration.
+                page.locator('[data-go="collaboration"]:visible').first.click()
+            else:
+                if groups[key]=='manage' and page.locator('[data-go="manage"]:visible').count()==0:
+                    page.locator('.accountMenu summary').click()
+                page.locator('[data-go="'+groups[key]+'"]:visible').first.click()
     page.locator('[data-go="'+key+'"]:visible').first.click()
 
 @pytest.mark.parametrize('width',[1280,390])

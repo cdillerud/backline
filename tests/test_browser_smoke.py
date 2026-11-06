@@ -39,20 +39,20 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             page.goto(url,wait_until="networkidle")
             assert page.locator("#app").is_visible()
             assert page.get_by_role("heading",name="Home",exact=True).count()>0
-            assert page.locator("nav[aria-label='Primary workspaces'] > button").count()==6
+            assert page.locator("nav[aria-label='Primary workspaces'] > button").count()==4
             page.get_by_role("heading",name="What needs your attention",exact=True).wait_for(state="visible")
             page.locator("[data-go='collaboration']").first.click()
-            page.get_by_role("heading",name="Bandmates",exact=True).wait_for(state="visible")
+            page.get_by_role("heading",name="Band",exact=True).wait_for(state="visible")
             page.locator("[data-go='dashboard']").first.click()
             page.locator("[data-go='collaboration']").first.click()
-            page.get_by_role("heading",name="Bandmates",exact=True).wait_for(state="visible")
+            page.get_by_role("heading",name="Band",exact=True).wait_for(state="visible")
             page.get_by_role("heading",name="Conversations",exact=True).wait_for(state="visible")
             page.get_by_text("Conversations stay private",exact=True).wait_for(state="visible")
             page.locator("[data-go='songs']").first.click()
             page.locator("[data-go='studio']").first.click()
             assert page.get_by_text("AI Gig Studio").count()>0
             page.locator("[data-go='schedule']").first.click()
-            page.get_by_role("heading",name="Schedule",exact=True).wait_for(state="visible",timeout=15000)
+            page.get_by_role("heading",name="Calendar",exact=True).wait_for(state="visible",timeout=15000)
             assert page.get_by_role("tablist",name="Schedule views").count()==0
             assert page.locator("[data-calendar-day]").count()>=28
             assert page.locator("[data-action='event']").count()>=1
@@ -166,9 +166,9 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             expect(page.locator('[data-calendar-event="'+moved_id+'"]')).to_be_focused()
 
 
-            page.locator("[data-go='touring']").first.click()
-            page.locator("[data-go='showops']").first.click()
-            assert page.get_by_text("Show Packets").count()>0
+            page.locator("[data-go='manage']").first.click()
+            page.locator(".managerToolGrid [data-go='showops']").first.click()
+            page.get_by_role("heading",name="Show Packets",exact=True).wait_for(state="visible",timeout=15000)
             page.get_by_role('tab',name='Stage & inputs').wait_for(state='visible',timeout=10000)
             page.get_by_role('tab',name='Advances & riders').click()
             assert page.get_by_text('Show documents').count()>0
@@ -186,7 +186,8 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             packet_window.close()
             page.get_by_role('tab',name='Contracts & files').click()
             assert page.get_by_text('Contracts and show files').count()>0
-            page.locator("[data-go='touring']").first.click()
+            page.locator("[data-go='manage']").first.click()
+            page.locator(".managerToolGrid [data-go='touring']").first.click()
             page.get_by_role("heading",name="Shows & Tours",exact=True).wait_for(state="visible",timeout=15000)
             page.get_by_role("tab",name="Day of show").click()
             expect(page.get_by_text("Tour day sheets",exact=True)).to_be_visible()
@@ -205,10 +206,12 @@ def test_browser_navigation_and_gig_studio(tmp_path):
             mobile.on("pageerror",lambda error:mobile_errors.append(str(error)))
             mobile.goto(url,wait_until="networkidle")
             mobile.locator(".mobileNav").wait_for(state="visible")
-            assert mobile.locator(".mobileNav > button").count()==6
+            assert mobile.locator(".mobileNav > button").count()==4
             mobile.locator(".mobileNav [data-go='songs']").click()
             mobile.get_by_role("heading",name="Song Library",exact=True).wait_for(state="visible",timeout=15000)
-            mobile.locator(".mobileNav [data-go='touring']").click()
+            mobile.locator(".accountMenu summary").click()
+            mobile.locator(".accountMenu [data-go='manage']").click()
+            mobile.locator(".managerToolGrid [data-go='touring']").click()
             mobile.get_by_role("heading",name="Shows & Tours",exact=True).wait_for(state="visible",timeout=15000)
             assert not mobile_errors,mobile_errors
             mobile.close()
