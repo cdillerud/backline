@@ -459,4 +459,41 @@ button:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--bl-ac
 .showFirstMiniList{margin:10px 0 14px;padding:0;list-style:none;display:grid;gap:8px}
 .showFirstMiniList li{padding:9px 11px;border:1px solid #3a5266;background:#101f2c;border-radius:9px;overflow-wrap:anywhere;font-size:14px;line-height:1.4}
 .showFirstMiniList li small{display:block;margin-top:4px;color:#abc0d2;font-size:12px}
+
+/* A deliberate visual hierarchy: show summary, call sheet, preparation, logistics. */
+@media(min-width:1440px){
+ .showFirstHero{padding:clamp(32px,2.2vw,52px)}
+ .showFirstHero h2{max-width:24ch}
+ .showFirstHero p{font-size:17px;line-height:1.5}
+ .showFirstFacts{margin:18px 0 26px}
+ .showFirstFact span{font-size:12px}
+ .showFirstFact small{font-size:13px}
+ .showFirstSections{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px}
+ .showFirstSection{display:flex;flex-direction:column;align-items:flex-start}
+ .showFirstSection h3{font-size:24px}
+ .showFirstSection .showFirstMiniList{width:100%;margin-bottom:18px}
+ .showFirstSection > button,.showFirstSection > a{margin-top:auto}
+ .showFirstSection:nth-child(3),.showFirstSection:nth-child(4){background:#13212d;border-color:#304456}
+ .showFirstManage{margin-top:26px}
+}
+@media(min-width:1920px){
+ .showFirst{max-width:1720px}
+ .showFirstFacts{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .showFirstSection{min-height:215px}
+}
+/* Wide desktop show overview: let the main workspace use the available canvas. */
+@media(min-width:1200px){
+ .content:has(> .showFirst){max-width:1840px;width:100%}
+ .showFirst{max-width:none;width:100%}
+ .showFirstSections{gap:16px}
+ .showFirstSection{padding:clamp(22px,1.6vw,32px)}
+ .showFirstSection p{font-size:16px}
+ .showFirstMiniList li{font-size:15px;padding:12px 14px}
+ .showFirstSection button,.showFirstActions button,.showFirstActions a{font-size:14px}
+}
+@media(min-width:1800px){
+ .showFirstFacts{gap:16px}
+ .showFirstFact{padding:24px}
+ .showFirstSections{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/gigday.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
