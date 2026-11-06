@@ -447,4 +447,11 @@ button:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--bl-ac
 @media print{.manageNav,.showFirstActions button,.showFirstManage{display:none}}
 .musicQuickNav{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}.musicQuickNav button{min-height:42px;border:1px solid #3e586a;background:#1b2d3b;border-radius:10px;color:#e8f0f5;padding:10px 15px}.musicQuickNav button:hover,.musicQuickNav button:focus-visible{border-color:#b9fb74}
 .bandUtilityLinks{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}.bandUtilityLinks button{min-height:42px;padding:10px 14px;background:#1b2c3a;border:1px solid #405a6b;border-radius:10px;color:#d9e6f1}.bandUtilityLinks button:hover,.bandUtilityLinks button:focus-visible{border-color:#a8dd84}
+
+/* v0.6 mobile: fixed primary navigation must not obscure the final actionable row. */
+@media(max-width:660px){
+ .app{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+ .mobileNav button{min-height:48px;touch-action:manipulation}
+ .mobileNav button:focus-visible{outline:2px solid #b9fb74;outline-offset:-3px;border-radius:8px}
+}
 </style></head><body><div id="app"></div><script src="/static/app.js"></script><script src="/static/workspace.js"></script><script src="/static/gigday.js"></script><script src="/static/collaboration.js"></script><script src="/static/media.js"></script><script src="/static/sharing.js"></script><script src="/static/pwa.js"></script><script src="/static/operations.js"></script></body></html>
