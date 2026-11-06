@@ -8,6 +8,15 @@ from test_browser_collaboration import account_server, sign_in
 
 @pytest.mark.parametrize("role,width", [("owner",320),("owner",390),("owner",768),("owner",1280),("member",320),("member",390),("member",1280)])
 def test_calendar_opens_role_aware_show_overview(account_server, accounts, role, width):
+    _, client, _, _, base, users, headers, gig, member, _ = accounts
+    assert client.put(base+f"/members/{member}/account", headers=headers["owner"],
+                      json={"user_id":users["member"]}).status_code == 200
+    linked = client.post(base+"/setlists", headers=headers["owner"],
+                         json={"title":"Synthetic Friday running order","event_id":gig,"song_ids":[]})
+    assert linked.status_code == 201, linked.text
+    assigned = client.post(base+"/tasks", headers=headers["owner"],
+                           json={"title":"Bring the spare cables","assignee_id":member,"event_id":gig})
+    assert assigned.status_code == 201, assigned.text
     with sync_playwright() as pw:
         browser=pw.chromium.launch()
         page=browser.new_page(viewport={"width":width,"height":850})
@@ -38,6 +47,12 @@ def test_calendar_opens_role_aware_show_overview(account_server, accounts, role,
         expect(overview.get_by_role("button",name="My RSVP:",exact=False)).to_be_visible()
         expect(overview.get_by_role("button",name="Open setlists")).to_be_visible()
         expect(overview.get_by_role("button",name="See my tasks")).to_be_visible()
+        expect(overview.get_by_role("list",name="Linked setlists")).to_contain_text("Synthetic Friday running order")
+        if role=="member":
+            expect(overview.get_by_role("list",name="Your show assignments")).to_contain_text("Bring the spare cables")
+        else:
+            assert overview.get_by_role("list",name="Your show assignments").count()==0
+            assert overview.get_by_text("Bring the spare cables").count()==0
         assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+1")
         if role=="owner":
             expect(overview.locator(".showFirstManage summary")).to_be_visible()
