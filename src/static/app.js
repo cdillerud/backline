@@ -242,7 +242,7 @@ function show(){
   '<div class="showFirstSections"><section class="showFirstSection"><h3>Music</h3><p>'+setlists.length+' linked setlist'+(setlists.length===1?'':'s')+'</p><button data-home-show-setlists="'+Number(chosen.id)+'">Open setlists</button></section>'+
   '<section class="showFirstSection"><h3>My tasks</h3><p>'+ (rosterId==null?'Roster link not recorded':mine.length+' open assignment'+(mine.length===1?'':'s'))+'</p><button data-home-show-tasks="'+Number(chosen.id)+'">See my tasks</button></section>'+
   '<section class="showFirstSection"><h3>Venue</h3><p>'+esc(advance.venue_address||chosen.venue||'Address not recorded')+'</p>'+directionsLink+'</section>'+
-  '<section class="showFirstSection"><h3>Bandmates</h3><p>Availability, conversations and the people sharing this date.</p><button data-show-event-rsvp="'+Number(chosen.id)+'">Availability & RSVPs</button><button data-go="collaboration">Band conversations</button></section></div>'+
+  '<section class="showFirstSection"><h3>Bandmates</h3><p>Availability, conversations and the people sharing this date.</p><button data-show-event-rsvp="'+Number(chosen.id)+'">Availability & RSVPs</button><button data-go="collaboration">Band conversations</button><button data-go="operations">Guest requests & updates</button></section></div>'+
   (chosen.notes?'<section class="showFirstNotes"><h3>Show notes</h3><p>'+esc(chosen.notes)+'</p></section>':'')+
   managerTools+'</section>';
 }
