@@ -20,6 +20,7 @@ def test_calendar_opens_role_aware_show_overview(account_server, accounts, role,
             expect(page.locator(".mobileNav")).to_be_visible()
             for destination in ("Home", "Calendar", "Music", "Band"):
                 expect(page.locator(".mobileNav").get_by_role("button", name=destination)).to_be_visible()
+            assert page.evaluate("""() => [...document.querySelectorAll(".mobileNav > button")].every(button => button.getBoundingClientRect().height >= 44)"""), "Primary mobile tap targets must be at least 44px high"
         else:
             expect(page.locator(".mobileNav")).to_be_hidden()
         page.locator('[data-go="schedule"]:visible').first.click()
