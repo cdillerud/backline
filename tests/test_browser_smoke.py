@@ -167,9 +167,8 @@ def test_browser_navigation_and_gig_studio(tmp_path):
 
 
             page.locator("[data-go='manage']").first.click()
-            page.locator(".managerToolGrid [data-go='touring']").first.click()
-            page.locator("[data-go='showops']").first.click()
-            assert page.get_by_text("Show Packets").count()>0
+            page.locator(".managerToolGrid [data-go='showops']").first.click()
+            page.get_by_role("heading",name="Show Packets",exact=True).wait_for(state="visible",timeout=15000)
             page.get_by_role('tab',name='Stage & inputs').wait_for(state='visible',timeout=10000)
             page.get_by_role('tab',name='Advances & riders').click()
             assert page.get_by_text('Show documents').count()>0
