@@ -239,8 +239,12 @@ function show(){
   '<div class="showFirstFacts" aria-label="Show times">'+value('Load-in',advance.load_in,advance.timezone||'Time zone unconfirmed')+
   value('Soundcheck',advance.soundcheck)+value('Doors',advance.doors)+
   value('Showtime',advance.show_time||chosen.time,advance.show_time?'From venue advance':'From event listing; confirm time')+'</div>'+
-  '<div class="showFirstSections"><section class="showFirstSection"><h3>Music</h3><p>'+setlists.length+' linked setlist'+(setlists.length===1?'':'s')+'</p><button data-home-show-setlists="'+Number(chosen.id)+'">Open setlists</button></section>'+
-  '<section class="showFirstSection"><h3>My tasks</h3><p>'+ (rosterId==null?'Roster link not recorded':mine.length+' open assignment'+(mine.length===1?'':'s'))+'</p><button data-home-show-tasks="'+Number(chosen.id)+'">See my tasks</button></section>'+
+  '<div class="showFirstSections"><section class="showFirstSection"><h3>Music</h3><p>'+setlists.length+' linked setlist'+(setlists.length===1?'':'s')+'</p>'+
+  (setlists.length?'<ul class="showFirstMiniList" aria-label="Linked setlists">'+setlists.slice(0,3).map(list=>'<li>'+esc(list.title)+'</li>').join('')+'</ul>'+(setlists.length>3?'<small>+'+(setlists.length-3)+' more setlists</small>':''):'<p class="sub">No setlist linked to this show yet.</p>')+
+  '<button data-home-show-setlists="'+Number(chosen.id)+'">Open setlists</button></section>'+
+  '<section class="showFirstSection"><h3>My tasks</h3><p>'+ (rosterId==null?'Roster link not recorded':mine.length+' open assignment'+(mine.length===1?'':'s'))+'</p>'+
+  (mine.length?'<ul class="showFirstMiniList" aria-label="Your show assignments">'+mine.slice(0,3).map(task=>'<li>'+esc(task.title)+(task.due_date?'<small>Due '+esc(datePretty(task.due_date))+'</small>':'')+'</li>').join('')+'</ul>'+(mine.length>3?'<small>+'+(mine.length-3)+' more assignments</small>':''):(rosterId!=null?'<p class="sub">No open tasks assigned to you for this show.</p>':''))+
+  '<button data-home-show-tasks="'+Number(chosen.id)+'">See my tasks</button></section>'+
   '<section class="showFirstSection"><h3>Venue</h3><p>'+esc(advance.venue_address||chosen.venue||'Address not recorded')+'</p>'+directionsLink+'</section>'+
   '<section class="showFirstSection"><h3>Bandmates</h3><p>Availability, conversations and the people sharing this date.</p><button data-show-event-rsvp="'+Number(chosen.id)+'">Availability & RSVPs</button><button data-go="collaboration">Band conversations</button><button data-go="operations">Guest requests & updates</button></section></div>'+
   (chosen.notes?'<section class="showFirstNotes"><h3>Show notes</h3><p>'+esc(chosen.notes)+'</p></section>':'')+
