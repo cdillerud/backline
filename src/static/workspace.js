@@ -100,8 +100,14 @@ async function refreshCalendar(all=false){
 }
 function scheduleBoard(){
  const canManage=['owner','manager'].includes(state.accountRole)||!sessionStorage.getItem('backline_session');
- const head='<div class="toolbar"><p>All your shows and rehearsals in one place. Select a date for details and availability.</p>'+(canManage?'<button class="primary" data-action="event">+ Add event</button>':'')+'</div>';
- return head+calendarBoard();
+ const head='<div class="toolbar"><p>All your shows, rehearsals and availability in one place.</p>'+(canManage?'<button class="primary" data-action="event">+ Add event</button>':'')+'</div>';
+ const upcoming=get('events').filter(isFutureCommitment).slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||String(a.time||'').localeCompare(String(b.time||''))).slice(0,6);
+ const nextDates='<section class="calendarAgenda" aria-label="Upcoming dates"><div class="calendarAgendaHead"><h2>Coming up</h2><span>'+upcoming.length+' date'+(upcoming.length===1?'':'s')+'</span></div>'+
+  (upcoming.length?'<div class="calendarAgendaList">'+upcoming.map(item=>{
+   const gig=item.kind==='Gig',kind=gig?'Show':item.kind||'Event';
+   return '<button type="button" class="calendarAgendaItem" '+(gig?'data-show-overview':'data-calendar-event')+'="'+Number(item.id)+'"><span class="calendarAgendaDate">'+esc(datePretty(item.date))+'</span><span class="calendarAgendaDetails"><strong>'+esc(item.title)+'</strong><small>'+esc(kind)+' · '+esc(item.time||'Time TBD')+' · '+esc(item.venue||'Location TBD')+'</small></span><span aria-hidden="true">→</span></button>';
+  }).join('')+'</div>':'<p class="sub">No upcoming dates yet.</p>')+'</section>';
+ return head+nextDates+calendarBoard();
 }
 function openCalendarEventDialog(id){
  const item=get('events').find(e=>e.id===id);
@@ -114,7 +120,7 @@ function openCalendarEventDialog(id){
  modal.className='timelineDialog calendarEventDialog';
  modal.setAttribute('aria-label','Event details: '+item.title);
  const action=(name,label)=>'<button type="button" '+name+'="'+id+'">'+label+'</button>';
- const extras=kind==='Gig'?action('data-schedule-gig-day','My gig day')+action('data-schedule-packet','Show production'):
+ const extras=kind==='Gig'?action('data-show-overview','Open show')+action('data-schedule-gig-day','My gig day')+(canManageOperations()?action('data-schedule-packet','Production'):''):
   kind==='Rehearsal'?action('data-rehearsal-plan','Objectives & notes')+
    '<button type="button" data-go="songs">Songs to practice</button>'+
    '<button type="button" data-go="setlists">Rehearsal repertoire</button>'+
@@ -128,8 +134,8 @@ function openCalendarEventDialog(id){
   (calendar?'<div><dt>Calendar</dt><dd>'+esc(calendar.calendar_name||kind)+'</dd></div>':'')+'</dl>'+
   (item.notes?'<section class="calendarEventNotes"><h3>Notes</h3><p>'+esc(item.notes)+'</p></section>':'')+
   '<section id="calendarAttendance" class="calendarAttendance" hidden aria-label="Event attendance"></section>'+
-  '<div class="actions calendarDialogActions">'+action('data-schedule-edit','Edit event')+
-  action('data-schedule-move','Change date')+action('data-assign-calendar','Choose calendar')+
+  '<div class="actions calendarDialogActions">'+(canManageOperations()?action('data-schedule-edit','Edit event')+
+  action('data-schedule-move','Change date')+action('data-assign-calendar','Choose calendar'):'')+
   '<button type="button" data-schedule-rsvp="'+id+'" aria-controls="calendarAttendance" aria-expanded="false">Availability & RSVPs</button>'+extras+'</div>';
  document.body.append(modal);
  const origin=document.activeElement;
@@ -141,7 +147,7 @@ function openCalendarEventDialog(id){
  },{once:true});
  modal.addEventListener('click',event=>{
   if(event.target===modal||event.target.closest('[data-schedule-close]')){modal.close();return}
-  if(event.target.closest('[data-schedule-edit],[data-schedule-move],[data-assign-calendar],[data-schedule-packet],[data-schedule-gig-day],[data-rehearsal-plan],[data-go]')){
+  if(event.target.closest('[data-schedule-edit],[data-schedule-move],[data-assign-calendar],[data-schedule-packet],[data-schedule-gig-day],[data-show-overview],[data-rehearsal-plan],[data-go]')){
    modal.close();
   }
  });
@@ -264,7 +270,7 @@ function calendarBoard(){
  return panel('Band calendars','<div class="actions"><button type="button" data-calendar-month-step="-1" aria-label="Previous month">‹</button><button type="button" data-calendar-today>Today</button><button type="button" data-calendar-month-step="1" aria-label="Next month">›</button><label>Month<input id="calendarMonth" type="month" value="'+esc(month)+'"></label><button data-calendar-all>'+(state.calendarAll?'This band only':'My bands combined')+'</button><button data-new-calendar>+ Calendar</button><button data-calendar-export>Download iCal</button><button data-calendar-subscriptions>Subscriptions</button></div><p class="sub">Double-click a day to add a dated event. Use Enter on a focused day, or + Add event on touch devices.</p><div class="calendarTypeLegend" aria-label="Event colors"><span class="show"><i></i>Shows</span><span class="rehearsal"><i></i>Rehearsals</span><span class="meeting"><i></i>Meetings</span></div><div class="calendarWrap"><div class="calendarGrid">'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day=>'<strong>'+day+'</strong>').join('')+cells.join('')+'</div></div>');
 }
 function createEventOnCalendarDate(day){
- if(!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(day))return;
+ if(!canManageOperations()||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(day))return;
  state.eventDraftDate=day;state.modal='event';render();
 }
 document.addEventListener('click',event=>{
