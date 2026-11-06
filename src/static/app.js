@@ -135,7 +135,7 @@ function fullDashboard(){
   return own.response==='yes'?'Going':own.response==='no'?"Can't go":own.response==='maybe'?'Maybe':'Response needed';
  };
  const rsvpText=nextAttendance&&!Array.isArray(nextAttendance.rows)?'RSVP unavailable':nextAttendance?myRsvpFor(nextGig)||'Not linked':'RSVP not loaded';
- const gigSpotlight=nextGig?'<section class="homeGigSpotlight" aria-label="Next gig"><div class="homeGigSpotlightInfo"><span class="eyebrow">Next gig</span><h3>'+esc(nextGig.title)+'</h3><p>'+datePretty(nextGig.date)+' · '+esc(nextGig.time||'Time TBD')+' · '+esc(nextGig.venue||'Venue TBD')+'</p><p class="homeGigRsvp">My RSVP: <strong>'+esc(rsvpText)+'</strong></p></div><div class="homeGigSpotlightActions"><button type="button" class="primary" data-home-gig-day="'+nextGig.id+'">My Gig Day</button><button type="button" class="small" data-home-event="'+nextGig.id+'">RSVP & details</button></div></section>':'';
+ const gigSpotlight=nextGig?'<section class="homeGigSpotlight" aria-label="Next gig"><div class="homeGigSpotlightInfo"><span class="eyebrow">Next gig</span><h3>'+esc(nextGig.title)+'</h3><p>'+datePretty(nextGig.date)+' · '+esc(nextGig.time||'Time TBD')+' · '+esc(nextGig.venue||'Venue TBD')+'</p><p class="homeGigRsvp">My RSVP: <strong>'+esc(rsvpText)+'</strong></p></div><div class="homeGigSpotlightActions"><button type="button" class="primary" data-show-overview="'+nextGig.id+'">Open show</button><button type="button" class="small" data-home-gig-day="'+nextGig.id+'">My Gig Day</button><button type="button" class="small" data-home-event="'+nextGig.id+'">RSVP & details</button></div></section>':'';
  const stats='<div class="cards bandHomeStats" aria-label="Band at a glance">'+
   stat('Songs',songs.length,'songs','in the library')+
   stat('Shows',gigCount,'schedule','upcoming')+
@@ -793,7 +793,7 @@ document.addEventListener('click',async event=>{
  const id=Number(trigger.dataset.showOverview||trigger.dataset.showEventRsvp);
  if(!Number.isSafeInteger(id)||!get('events').some(e=>Number(e.id)===id&&e.kind==='Gig'))return;
  try{
-  if(trigger.hasAttribute('data-show-overview'))await openShowPacketGig(id,'show');
+  if(trigger.hasAttribute('data-show-overview')){document.querySelector('#calendarEventDialog')?.close();await openShowPacketGig(id,'show');}
   else{
    state.section='schedule';
    await refreshCalendar(state.calendarAll||false);
