@@ -105,7 +105,7 @@ function scheduleBoard(){
  const nextDates='<section class="calendarAgenda" aria-label="Upcoming dates"><div class="calendarAgendaHead"><h2>Coming up</h2><span>'+upcoming.length+' date'+(upcoming.length===1?'':'s')+'</span></div>'+
   (upcoming.length?'<div class="calendarAgendaList">'+upcoming.map(item=>{
    const gig=item.kind==='Gig',kind=gig?'Show':item.kind||'Event';
-   return '<button type="button" class="calendarAgendaItem" '+(gig?'data-show-overview':'data-calendar-event')+'="'+Number(item.id)+'"><span class="calendarAgendaDate">'+esc(datePretty(item.date))+'</span><span class="calendarAgendaDetails"><strong>'+esc(item.title)+'</strong><small>'+esc(kind)+' · '+esc(item.time||'Time TBD')+' · '+esc(item.venue||'Location TBD')+'</small></span><span aria-hidden="true">→</span></button>';
+   return '<button type="button" class="calendarAgendaItem" '+(gig?'data-show-overview':'data-schedule-details')+'="'+Number(item.id)+'"><span class="calendarAgendaDate">'+esc(datePretty(item.date))+'</span><span class="calendarAgendaDetails"><strong>'+esc(item.title)+'</strong><small>'+esc(kind)+' · '+esc(item.time||'Time TBD')+' · '+esc(item.venue||'Location TBD')+'</small></span><span aria-hidden="true">→</span></button>';
   }).join('')+'</div>':'<p class="sub">No upcoming dates yet.</p>')+'</section>';
  return head+nextDates+calendarBoard();
 }
