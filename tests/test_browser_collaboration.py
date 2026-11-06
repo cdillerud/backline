@@ -45,6 +45,10 @@ def navigate(page,key):
         page.locator('.accountMenu summary').click()
         page.locator('.accountMenu [data-go="members"]').click()
         return
+    if key=='operations' and page.evaluate("state.accountRole") in {'member','viewer'}:
+        page.locator('[data-go="collaboration"]:visible').first.click()
+        page.locator('.bandUtilityLinks [data-go="operations"]').click()
+        return
     management={'venues','bookings','showops','operations','touring','finance'}
     if key in management:
         if page.viewport_size['width'] > 660:
