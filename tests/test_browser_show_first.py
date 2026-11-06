@@ -6,7 +6,7 @@ from test_collaboration import accounts
 from test_browser_collaboration import account_server, sign_in
 
 
-@pytest.mark.parametrize("role,width", [("owner",320),("owner",390),("owner",768),("owner",1280),("member",320),("member",390),("member",1280)])
+@pytest.mark.parametrize("role,width", [("owner",320),("owner",390),("owner",768),("owner",1280),("owner",1920),("member",320),("member",390),("member",1280),("member",1920)])
 def test_calendar_opens_role_aware_show_overview(account_server, accounts, role, width):
     _, client, _, _, base, users, headers, gig, member, _ = accounts
     assert client.put(base+f"/members/{member}/account", headers=headers["owner"],
@@ -43,6 +43,8 @@ def test_calendar_opens_role_aware_show_overview(account_server, accounts, role,
         expect(overview).to_be_visible()
         expect(page.locator(".top h1")).to_have_text("Show")
         assert overview.locator(".showFirstFact").count()==4
+        if width >= 1920:
+            assert overview.bounding_box()["width"] >= 1200, "Show should use the wide desktop canvas"
         expect(overview.get_by_role("button",name="Open Gig Day")).to_be_visible()
         expect(overview.get_by_role("button",name="My RSVP:",exact=False)).to_be_visible()
         expect(overview.get_by_role("button",name="Open setlists")).to_be_visible()
